@@ -42,4 +42,32 @@ class TestQueryData(unittest.TestCase):
         """
         query = "test"
         response = query_source_data.query_source_data(query)
+        print(response['query'])
+        self.assertEqual(response['query'], query)
         self.assertIsInstance(response, dict)
+
+    def test_db_prepared_successfully_returns_db_response(self):
+        """
+        Test preparing the DB
+        """
+        response = query_source_data.prepare_db()
+        self.assertIsNotNone(response)
+    
+    def test_search_db_returns_response_when_no_result_found(self):
+        """
+        Test searching the DB
+        """
+        query = "test"
+        db = query_source_data.prepare_db()
+        response = query_source_data.search_db(db, query)
+        self.assertEqual(response, f"Unable to find matching results for: {query}")
+
+    def test_search_db_returns_response_when_result_found(self):
+        """
+        Test searching the DB
+        """
+        query = "Who was romeo?"
+        db = query_source_data.prepare_db()
+        response = query_source_data.search_db(db, query)
+        self.assertIsInstance(response, dict)
+        self.assertNotEqual(response, f"Unable to find matching results for: {query}")
