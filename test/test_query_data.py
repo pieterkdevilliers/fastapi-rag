@@ -1,0 +1,37 @@
+import unittest
+import asyncio
+import query_data
+from main import read_root, query_data
+
+
+class TestRoot(unittest.TestCase):
+    """
+    Initial Test as principle of TDD"""
+
+    def test_read_root_returns_success_response_as_dictionary(self):
+        """
+        Test read_root
+        """
+        response = asyncio.run(read_root())
+        self.assertIsInstance(response, dict)
+
+
+class TestQueryData(unittest.TestCase):
+    """
+    Tests for the Query Data"""
+
+    def test_query_data_returns_success_response_if_query_provided(self):
+        """
+        Test query_data with query
+        """
+        query = "test"
+        response = asyncio.run(query_data(query))
+        self.assertIsInstance(response, dict)
+
+    def test_query_data_returns_error_response_if_no_query_provided(self):
+        """
+        Test query_data without query
+        """
+        response = asyncio.run(query_data(query=None))
+        self.assertIsInstance(response, dict)
+        self.assertEqual(response, {"error": "No query provided"})
