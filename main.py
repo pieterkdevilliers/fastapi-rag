@@ -1,5 +1,10 @@
+from typing import Any
 from fastapi import FastAPI
 import query_source_data
+import source_db
+import source_models
+
+source_models.Base.metadata.create_all(bind=source_db.engine)
 
 app = FastAPI()
 
@@ -17,7 +22,7 @@ async def read_root():
 
 
 @app.get("/api/v1/query-data")
-async def query_data(query):
+async def query_data(query: str) -> dict[str, Any]:
     """
     Query Data
     """
