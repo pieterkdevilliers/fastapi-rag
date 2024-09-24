@@ -1,6 +1,6 @@
 import unittest
 import asyncio
-import query_data
+import query_source_data
 from main import read_root, query_data
 
 
@@ -35,3 +35,11 @@ class TestQueryData(unittest.TestCase):
         response = asyncio.run(query_data(query=None))
         self.assertIsInstance(response, dict)
         self.assertEqual(response, {"error": "No query provided"})
+    
+    def test_query_source_data_returns_response_including_query(self):
+        """
+        Test query_data with query
+        """
+        query = "test"
+        response = query_source_data.query_source_data(query)
+        self.assertIsInstance(response, dict)

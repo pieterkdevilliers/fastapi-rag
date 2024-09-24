@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import query_source_data
 
 app = FastAPI()
 
@@ -23,4 +24,8 @@ async def query_data(query):
     if not query:
         return {"error": "No query provided"}
     
-    return {query: query}
+    response = query_source_data.query_source_data(query)
+    print(response)
+    return {"query": query, 
+            "response": response
+            }
