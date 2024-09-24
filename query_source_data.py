@@ -24,36 +24,18 @@ Answer the question based only on the following context:
 Answer the question based on the above context: {question}
 """
 
-def main(query):
-    # Create CLI.
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("query_text", type=str, help="The query text.")
-    # args = parser.parse_args()
-    # query_text = args.query_text
+
+def prepare_db_and_perform_query(query):
+    """
+    Main function performing the query"""
+
     query_text = query
 
-    # Prepare the DB.
-    embedding_function = OpenAIEmbeddings()
-    db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
+    db = prepare_db()
 
-    # Search the DB.
-    results = db.similarity_search_with_relevance_scores(query_text, k=3)
-    if len(results) == 0 or results[0][1] < 0.7:
-        print(f"Unable to find matching results for: {query_text}")
-        return (f"Unable to find matching results for: {query_text}")
+    result = search_db(db, query_text)
 
-    context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
-    prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-    prompt = prompt_template.format(context=context_text, question=query_text)
-    print(prompt)
-
-    model = ChatOpenAI()
-    response_text = model.predict(prompt)
-
-    sources = [doc.metadata.get("source", None) for doc, _score in results]
-    formatted_response = f"Response: {response_text}\nSources: {sources}"
-    print(formatted_response)
-    return formatted_response
+    return result
 
 
 def query_source_data(query):
@@ -63,8 +45,42 @@ def query_source_data(query):
     if not query:
         return {"error": "No query provided"}
     
-    response = main(query)
+    response = prepare_db_and_perform_query(query)
     return {
         "query": query,
         "response": response
         }
+
+
+def prepare_db():
+    """
+    Prepare the DB
+    """
+    embedding_function = OpenAIEmbeddings()
+    db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
+    return db
+
+
+def search_db(db, query):
+    """
+    Search the DB
+    """
+    results = db.similarity_search_with_relevance_scores(query, k=3)
+    if len(results) == 0 or results[0][1] < 0.7:
+        print(f"Unable to find matching results for: {query}")
+        return (f"Unable to find matching results for: {query}")
+    
+    context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
+    prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+    prompt = prompt_template.format(context=context_text, question=query)
+
+    model = ChatOpenAI()
+    response_text = model.predict(prompt)
+
+    sources = [doc.metadata.get("source", None) for doc, _score in results]
+
+    return {
+        "query": query,
+        "response": response_text,
+        "sources": sources
+    }
