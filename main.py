@@ -88,7 +88,8 @@ async def upload_file(
     if file_ext != 'md':
         return {"error": "File must be a markdown file"}
     
-    file_name = f'{file.filename}_{token_hex(8)}.{file_ext}'
+    file_name = file.filename.rsplit('.', 1)[0]
+    file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
     file_path = f'./files/{file_name}'
 
     db_file = save_file_to_db(file_name, file_path, session)
