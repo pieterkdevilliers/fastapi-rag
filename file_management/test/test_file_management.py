@@ -5,7 +5,7 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 from io import BytesIO
 from fastapi.testclient import TestClient
 from main import upload_file, app, get_session, get_files
-from file_management.source_db import SourceFileModel
+from file_management.models import SourceFileModel
 from file_management.utils import save_file_to_db
 
 

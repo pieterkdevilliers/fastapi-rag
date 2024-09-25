@@ -4,7 +4,7 @@ from typing import Any
 from secrets import token_hex
 from fastapi import FastAPI, UploadFile, Depends, File
 from sqlmodel import select, Session
-from file_management.source_db import engine, SourceFileModel
+from file_management.models import engine, SourceFileModel
 from file_management.utils import save_file_to_db
 import query_data.query_source_data as query_source_data
 
