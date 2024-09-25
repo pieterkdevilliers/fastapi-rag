@@ -1,6 +1,6 @@
 import unittest
 import asyncio
-import query_source_data
+import query_data.query_source_data as query_source_data
 from main import read_root, query_data
 
 
