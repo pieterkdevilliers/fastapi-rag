@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 from starlette.datastructures import UploadFile as StarletteUploadFile
 from io import BytesIO
 from fastapi.testclient import TestClient
-from main import upload_file, app, get_session
+from main import upload_file, app, get_session, get_files
 from file_management.source_db import SourceFileModel
 from file_management.utils import save_file_to_db
 
@@ -19,6 +19,13 @@ class TestFileManagement(unittest.TestCase):
         Setup Test Class
         """
         cls.client = TestClient(app)
+    
+    async def async_get_files(self):
+        """
+        Create an async function to get files
+        """
+        files = await self.client.get("/api/v1/get-files")
+        return files.json()
     
     def _create_mock_txt_file(self, filename):
         """
@@ -98,8 +105,10 @@ class TestFileManagement(unittest.TestCase):
         Test get_files
         """
         response = self.client.get("/api/v1/get-files")
-        self.assertEqual(response.status_code, 200)
-        self.assertIsInstance(response.json(), dict)
-        self.assertIn('response', response.json())
-        self.assertEqual(response.json()['response'], 'success')
+        files = response.json()
+        self.assertIsInstance(files, dict)
+        self.assertIn("files", files)
+        self.assertIsInstance(files["files"], list)
+        
+
 

@@ -60,14 +60,18 @@ async def get_files(session: Session = Depends(get_session)):
     """
     Get All Files
     """
+    returned_files = []
     statement = select(SourceFileModel).filter()
     result = session.exec(statement)
     files = result.all()
+    for file in files:
+        returned_files.append(file)
+    print(type(returned_files))
 
-    if not files:
+    if not returned_files:
         return {"error": "No files found"}
     
-    return {"response": "success"}
+    return {"files": returned_files}
 
 
 @app.post("/api/v1/upload-file")
