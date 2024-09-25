@@ -32,3 +32,7 @@ async def query_data(query: str) -> dict[str, Any]:
     response = query_source_data.query_source_data(query)
     print(response)
     return response
+
+############################################
+# File Management Routes
+############################################
