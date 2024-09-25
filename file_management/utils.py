@@ -1,6 +1,6 @@
 from sqlmodel import Session
 from fastapi import Depends
-from file_management.source_db import SourceFileModel, engine
+from file_management.models import SourceFileModel, engine
 
 
 
