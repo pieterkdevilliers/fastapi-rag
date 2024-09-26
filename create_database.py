@@ -1,3 +1,4 @@
+
 # from langchain.document_loaders import DirectoryLoader
 from langchain_community.document_loaders import DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -10,15 +11,14 @@ from dotenv import load_dotenv
 import os
 import shutil
 
-# Load environment variables. Assumes that project contains .env file with API keys
+
 load_dotenv()
-#---- Set OpenAI API key 
-# Change environment variable name from "OPENAI_API_KEY" to the name given in 
-# your .env file.
+
 openai.api_key = os.environ['OPENAI_API_KEY']
 
 CHROMA_PATH = "chroma"
 DATA_PATH = "data/"
+BATCH_SIZE = 5461
 
 
 def main():
@@ -34,7 +34,7 @@ def generate_data_store():
     """
     documents = load_documents()
     chunks = split_text(documents)
-    save_to_chroma(chunks)
+    save_to_chroma_in_batches(chunks)
 
 
 def load_documents():
@@ -68,20 +68,32 @@ def split_text(documents: list[Document]):
     return chunks
 
 
-def save_to_chroma(chunks: list[Document]):
+def batch(iterable, n=BATCH_SIZE):
     """
-    Save the chunks to the Chroma database.
+    Helper function to split a list into batches of size n.
+    """
+    l = len(iterable)
+    for ndx in range(0, l, n):
+        yield iterable[ndx:min(ndx + n, l)]
+
+
+def save_to_chroma_in_batches(chunks: list[Document]):
+    """
+    Save the chunks to the Chroma database in batches.
     """
     # Clear out the database first.
     if os.path.exists(CHROMA_PATH):
         shutil.rmtree(CHROMA_PATH)
 
-    # Create a new DB from the documents.
-    db = Chroma.from_documents(
-        chunks, OpenAIEmbeddings(), persist_directory=CHROMA_PATH
-    )
-    db.persist()
-    print(f"Saved {len(chunks)} chunks to {CHROMA_PATH}.")
+    # Iterate over chunks in batches and save each batch
+    embeddings = OpenAIEmbeddings()
+
+    for chunk_batch in batch(chunks):
+        db = Chroma.from_documents(
+            chunk_batch, embeddings, persist_directory=CHROMA_PATH
+        )
+        db.persist()  # Persist the database after every batch
+        print(f"Saved {len(chunk_batch)} chunks to {CHROMA_PATH}.")
 
 
 if __name__ == "__main__":
