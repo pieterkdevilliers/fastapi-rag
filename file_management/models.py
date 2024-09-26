@@ -1,19 +1,21 @@
 from typing import Optional
-from sqlmodel import SQLModel, Field, create_engine
+from sqlmodel import SQLModel, Field, Relationship
 
-# DB_FILE = "sqlite:///./source_db.db"
-DB_FILE = "source_db.db"
-engine = create_engine(f'sqlite:///{DB_FILE}', echo=True)
-
-
-class SourceFileModel(SQLModel, table=True):
+class SourceFile(SQLModel, table=True):
     """
     DB Table for Source Files - Not the generated / chunked documents
     """
-    __tablename__ = "sourcefile"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     file_name: str
     file_path: str
+
+    # Lazy import Account inside the class definition or function where needed
+    def get_account(self):
+        from accounts.models import Account
+        return self.account
+    
+    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
+    account: "Account" = Relationship(back_populates="source_files")
 
 

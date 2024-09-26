@@ -4,12 +4,11 @@ from typing import Any
 from secrets import token_hex
 from fastapi import FastAPI, UploadFile, Depends, File
 from sqlmodel import select, Session
-from file_management.models import engine, SourceFileModel
+from file_management.models import SourceFile
+from db import engine
 from file_management.utils import save_file_to_db
 import query_data.query_source_data as query_source_data
 
-
-# source_models.Base.metadata.create_all(bind=source_db.engine)
 
 app = FastAPI()
 
@@ -61,7 +60,7 @@ async def get_files(session: Session = Depends(get_session)):
     Get All Files
     """
     returned_files = []
-    statement = select(SourceFileModel).filter()
+    statement = select(SourceFile).filter()
     result = session.exec(statement)
     files = result.all()
     for file in files:

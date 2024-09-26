@@ -5,7 +5,8 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from sqlmodel import SQLModel
 from alembic import context
-from file_management.models import SourceFileModel
+from file_management.models import SourceFile
+from accounts.models import Account, User
 
 
 # this is the Alembic Config object, which provides
