@@ -5,8 +5,10 @@ from secrets import token_hex
 from fastapi import FastAPI, UploadFile, Depends, File
 from sqlmodel import select, Session
 from file_management.models import SourceFile
-from db import engine
 from file_management.utils import save_file_to_db
+from accounts.models import Account
+from accounts.utils import save_new_account_to_db, update_account_in_db, delete_account_from_db
+from db import engine
 import query_data.query_source_data as query_source_data
 
 
@@ -68,7 +70,8 @@ async def get_files(session: Session = Depends(get_session)):
     print(type(returned_files))
 
     if not returned_files:
-        return {"error": "No files found"}
+        return {"error": "No files found",
+                "files": returned_files}
     
     return {"files": returned_files}
 
@@ -102,3 +105,75 @@ async def upload_file(
 ############################################
 # Users and Accounts Routes
 ############################################
+
+@app.get("/api/v1/accounts")
+async def accounts(session: Session = Depends(get_session)):
+    """
+    Get All Accounts
+    """
+    returned_accounts = []
+    statement = select(Account).filter()
+    result = session.exec(statement)
+    accounts = result.all()
+    
+    if not accounts:
+        return {"error": "No accounts found",
+                "accounts": returned_accounts}
+        
+    for account in accounts:
+        returned_accounts.append(account)
+    return {"response": "success",
+            "accounts": returned_accounts}
+
+
+@app.post("/api/v1/accounts/{account_organisation}")
+async def create_account(account_organisation: str, session: Session = Depends(get_session)):
+    """
+    Create Account
+    """
+    account = save_new_account_to_db(account_organisation, session)
+    
+    return {"response": "success",
+            "account": account,
+            "account_organisation": account.account_organisation,
+            "account_unique_id": account.account_unique_id}
+
+
+@app.put("/api/v1/accounts/{account_organisation}/{account_unique_id}")
+async def edit_account(account_organisation: str, account_unique_id: str, session: Session = Depends(get_session)):
+    """
+    Edit Account
+    """
+    account = update_account_in_db(account_organisation, account_unique_id, session)
+    
+    return {"response": "success",
+            "account": account,
+            "account_organisation": account.account_organisation,
+            "account_unique_id": account.account_unique_id}
+
+
+@app.delete("/api/v1/accounts/{account_unique_id}")
+async def delete_account(account_unique_id: str, session: Session = Depends(get_session)):
+    """
+    Delete Account
+    """
+    response = delete_account_from_db(account_unique_id, session)
+    print(response)
+    return {'response': 'success',
+            'account_unique_id': response['account_unique_id']}
+
+
+@app.get("/api/v1/accounts/{account_unique_id}")
+async def account(account_unique_id: str, session: Session = Depends(get_session)):
+    """
+    Get Account By ID
+    """
+    statement = select(Account).filter(Account.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    account = result.first()
+    
+    if not account:
+        return {"error": "Account not found"}
+    
+    return {"response": "success",
+            "account": account}
