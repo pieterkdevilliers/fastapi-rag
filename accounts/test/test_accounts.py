@@ -64,7 +64,7 @@ class TestAccounts(unittest.TestCase):
         """
         Test post_account
         """
-        account_unique_id = 12345263574687
+        account_unique_id = '0d3d55822828eb6f'
         account_organisation = "Test Organisation"
         response = self.client.put(f"/api/v1/accounts/{account_organisation}/{account_unique_id}")
         returned_account = response.json()
@@ -74,11 +74,21 @@ class TestAccounts(unittest.TestCase):
         """
         Test post_account
         """
-        account_unique_id = 12345263574687
+        account_unique_id = '0d3d55822828eb6f'
         account_organisation = "Test Organisation"
         response = self.client.put(f"/api/v1/accounts/{account_organisation}/{account_unique_id}")
         returned_account = response.json()
         self.assertTrue(returned_account['account_unique_id'])
         self.assertIn('response', returned_account)
         self.assertEqual(returned_account['response'], "success")
+    
+    def test_delete_accounts_returns_success_response(self):
+        """
+        Test delete_account
+        """
+        account_unique_id = '1888d128020eb28e'
+        response = self.client.delete(f"/api/v1/accounts/{account_unique_id}")
+        deleted_account = response.json()
+        self.assertEqual(deleted_account['response'], "success")
+        self.assertTrue(deleted_account['account_unique_id'])
     

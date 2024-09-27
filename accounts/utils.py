@@ -35,3 +35,21 @@ def update_account_in_db(account_organisation: str, account_unique_id: int, sess
     session.refresh(account)
     
     return account
+
+
+def delete_account_from_db(account_unique_id: int, session: Session):
+    """
+    Delete Account from DB
+    """
+    statement = select(Account).filter(Account.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    account = result.first()
+    
+    if not account:
+        return {"error": "Account not found"}
+    
+    session.delete(account)
+    session.commit()
+    
+    return {"response": "success",
+            "account_unique_id": account_unique_id}

@@ -7,7 +7,7 @@ from sqlmodel import select, Session
 from file_management.models import SourceFile
 from file_management.utils import save_file_to_db
 from accounts.models import Account
-from accounts.utils import save_new_account_to_db, update_account_in_db
+from accounts.utils import save_new_account_to_db, update_account_in_db, delete_account_from_db
 from db import engine
 import query_data.query_source_data as query_source_data
 
@@ -140,7 +140,7 @@ async def create_account(account_organisation: str, session: Session = Depends(g
 
 
 @app.put("/api/v1/accounts/{account_organisation}/{account_unique_id}")
-async def edit_account(account_organisation: str, account_unique_id: int, session: Session = Depends(get_session)):
+async def edit_account(account_organisation: str, account_unique_id: str, session: Session = Depends(get_session)):
     """
     Edit Account
     """
@@ -152,8 +152,19 @@ async def edit_account(account_organisation: str, account_unique_id: int, sessio
             "account_unique_id": account.account_unique_id}
 
 
+@app.delete("/api/v1/accounts/{account_unique_id}")
+async def delete_account(account_unique_id: str, session: Session = Depends(get_session)):
+    """
+    Delete Account
+    """
+    response = delete_account_from_db(account_unique_id, session)
+    print(response)
+    return {'response': 'success',
+            'account_unique_id': response['account_unique_id']}
+
+
 @app.get("/api/v1/accounts/{account_unique_id}")
-async def account(account_unique_id: int, session: Session = Depends(get_session)):
+async def account(account_unique_id: str, session: Session = Depends(get_session)):
     """
     Get Account By ID
     """
