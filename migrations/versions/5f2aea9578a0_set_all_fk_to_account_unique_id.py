@@ -1,8 +1,8 @@
-"""Initial Migration
+"""Set all fk to account_unique_id
 
-Revision ID: f0de995499f3
+Revision ID: 5f2aea9578a0
 Revises: 
-Create Date: 2024-09-26 16:17:19.928651
+Create Date: 2024-09-27 12:59:53.710498
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'f0de995499f3'
+revision: str = '5f2aea9578a0'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,16 +31,16 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('file_name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('file_path', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('account_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['account_id'], ['account.id'], ),
+    sa.Column('account_unique_id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.ForeignKeyConstraint(['account_unique_id'], ['account.account_unique_id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('user',
     sa.Column('user_email', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('user_password', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('user_account_id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('account_unique_id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['user_account_id'], ['account.id'], ),
+    sa.ForeignKeyConstraint(['account_unique_id'], ['account.account_unique_id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###

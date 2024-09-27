@@ -15,7 +15,7 @@ class SourceFile(SQLModel, table=True):
         from accounts.models import Account
         return self.account
     
-    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
+    account_unique_id: str = Field(default=None, foreign_key="account.account_unique_id")
     account: "Account" = Relationship(back_populates="source_files")
 
 

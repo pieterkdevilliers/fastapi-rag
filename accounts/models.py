@@ -26,7 +26,7 @@ class UserBase(SQLModel):
     """
     user_email: str
     user_password: str
-    user_account_id: str = Field(foreign_key="account.id")
+    account_unique_id: str = Field(foreign_key="account.account_unique_id")
 
 
 class User(UserBase, table=True):
