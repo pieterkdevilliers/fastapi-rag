@@ -1,10 +1,10 @@
 from secrets import token_hex
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
-from accounts.models import Account
+from accounts.models import Account, User
 
 
-def save_new_account_to_db(account_organisation: str, session: Session):
+def create_new_account_in_db(account_organisation: str, session: Session):
     """
     Save New Account to DB
     """
@@ -18,7 +18,7 @@ def save_new_account_to_db(account_organisation: str, session: Session):
     return account
 
 
-def update_account_in_db(account_organisation: str, account_unique_id: int, session: Session):
+def update_account_in_db(account_organisation: str, account_unique_id: str, session: Session):
     """
     Update Account in DB
     """
@@ -37,7 +37,7 @@ def update_account_in_db(account_organisation: str, account_unique_id: int, sess
     return account
 
 
-def delete_account_from_db(account_unique_id: int, session: Session):
+def delete_account_from_db(account_unique_id: str, session: Session):
     """
     Delete Account from DB
     """
@@ -53,3 +53,53 @@ def delete_account_from_db(account_unique_id: int, session: Session):
     
     return {"response": "success",
             "account_unique_id": account_unique_id}
+
+
+def create_new_user_in_db(user_email: str, user_password: str, account_unique_id: str, session: Session):
+    """
+    Save New User to DB
+    """
+    user = User(user_email=user_email, user_password=user_password, account_unique_id=account_unique_id)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    
+    return user
+
+
+def update_user_in_db(user_id: int, user_email: str, user_password: str, account_unique_id: str, session: Session):
+    """
+    Update Account in DB
+    """
+    statement = select(User).filter(User.id == user_id, User.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    user = result.first()
+    
+    if not user:
+        return {"error": "User not found"}
+    
+    user.user_email = user_email
+    user.user_password = user_password
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    
+    return user
+
+
+def delete_user_from_db(account_unique_id: str, user_id: int,  session: Session):
+    """
+    Delete Account from DB
+    """
+    statement = select(User).filter(User.account_unique_id == account_unique_id, User.id == user_id)
+    result = session.exec(statement)
+    user = result.first()
+    
+    if not user:
+        return {"error": "User not found"}
+    
+    session.delete(user)
+    session.commit()
+    
+    return {"response": "success",
+            "user_id": user_id}

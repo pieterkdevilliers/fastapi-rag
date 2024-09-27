@@ -6,8 +6,9 @@ from fastapi import FastAPI, UploadFile, Depends, File
 from sqlmodel import select, Session
 from file_management.models import SourceFile
 from file_management.utils import save_file_to_db
-from accounts.models import Account
-from accounts.utils import save_new_account_to_db, update_account_in_db, delete_account_from_db
+from accounts.models import Account, User
+from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
+    create_new_user_in_db, update_user_in_db, delete_user_from_db
 from db import engine
 import query_data.query_source_data as query_source_data
 
@@ -103,11 +104,11 @@ async def upload_file(
 
 
 ############################################
-# Users and Accounts Routes
+# Accounts Routes
 ############################################
 
 @app.get("/api/v1/accounts")
-async def accounts(session: Session = Depends(get_session)):
+async def get_accounts(session: Session = Depends(get_session)):
     """
     Get All Accounts
     """
@@ -131,7 +132,7 @@ async def create_account(account_organisation: str, session: Session = Depends(g
     """
     Create Account
     """
-    account = save_new_account_to_db(account_organisation, session)
+    account = create_new_account_in_db(account_organisation, session)
     
     return {"response": "success",
             "account": account,
@@ -158,13 +159,12 @@ async def delete_account(account_unique_id: str, session: Session = Depends(get_
     Delete Account
     """
     response = delete_account_from_db(account_unique_id, session)
-    print(response)
     return {'response': 'success',
             'account_unique_id': response['account_unique_id']}
 
 
 @app.get("/api/v1/accounts/{account_unique_id}")
-async def account(account_unique_id: str, session: Session = Depends(get_session)):
+async def get_account(account_unique_id: str, session: Session = Depends(get_session)):
     """
     Get Account By ID
     """
@@ -177,3 +177,82 @@ async def account(account_unique_id: str, session: Session = Depends(get_session
     
     return {"response": "success",
             "account": account}
+
+
+############################################
+# Users Routes
+############################################
+
+@app.get("/api/v1/users")
+async def get_users(session: Session = Depends(get_session)):
+    """
+    Get all Users
+    """
+    returned_users = []
+    statement = select(User).filter()
+    result = session.exec(statement)
+    users = result.all()
+    
+    if not users:
+        return {"error": "No users found",
+                "users": returned_users}
+        
+    for user in users:
+        returned_users.append(user)
+    
+    return {"response": "success",
+            "users": returned_users}
+
+
+@app.post("/api/v1/users/{account_unique_id}/{user_email}/{user_password}")
+async def create_user(account_unique_id: str, user_email: str, user_password: str, session: Session = Depends(get_session)):
+    """
+    Create User
+    """
+    user = create_new_user_in_db(user_email, user_password, account_unique_id, session)
+    
+    return {"response": "success",
+            "user": user,
+            "user_email": user.user_email,
+            "user_id": user.id}
+
+
+@app.put("/api/v1/users/{account_unique_id}/{user_id}/{user_email}/{user_password}")
+async def edit_user(account_unique_id: str, user_id: int, user_email: str, user_password: str, session: Session = Depends(get_session)):
+    """
+    Edit User
+    """
+    user = update_user_in_db(user_id, user_email, user_password, account_unique_id, session)
+    
+    return {"response": "success",
+            "user": user,
+            "user_email": user.user_email,
+            "user_id": user.id}
+
+
+@app.delete("/api/v1/users/{account_unique_id}/{user_id}")
+async def delete_user(account_unique_id: str, user_id: int, session: Session = Depends(get_session)):
+    """
+    Delete User
+    """
+    response = delete_user_from_db(account_unique_id, user_id, session)
+    
+    return {"response": "success",
+            "user_id": response['user_id']}
+
+
+@app.get("/api/v1/users/{account_unique_id}/{user_id}")
+async def get_user(account_unique_id: str, user_id: int, session: Session = Depends(get_session)):
+    """
+    Get User By ID
+    """
+    statement = select(User).filter(User.account_unique_id == account_unique_id, User.id == user_id)
+    result = session.exec(statement)
+    user = result.first()
+    
+    if not user:
+        return {"error": "User not found",
+                "user_id": user_id}
+    
+    return {"response": "success",
+            "user": user}
