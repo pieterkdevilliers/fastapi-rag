@@ -98,3 +98,7 @@ async def upload_file(
             "file_path": file_path,
             "file_id": db_file.id}
 
+
+############################################
+# Users and Accounts Routes
+############################################
