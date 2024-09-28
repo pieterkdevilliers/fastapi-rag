@@ -1,7 +1,7 @@
 import unittest
 import asyncio
 from unittest.mock import AsyncMock, patch
-from starlette.datastructures import UploadFile as StarletteUploadFile
+from starlette.datastructures import UploadFile
 from io import BytesIO
 from fastapi.testclient import TestClient
 from main import upload_file, app, get_session, get_files
@@ -24,29 +24,29 @@ class TestFileManagement(unittest.TestCase):
         """
         Create an async function to get files
         """
-        files = await self.client.get("/api/v1/get-files")
+        files = await self.client.get("/api/v1/get-files/{account_unique_id}")
         return files.json()
     
     def _create_mock_txt_file(self, filename):
         """
         Create a mock text file
         """
-        return StarletteUploadFile(filename=filename, file=b"mock file content")
-    
+        return UploadFile(filename=filename, file=b"mock file content")
+
     def _create_mock_md_file(self, filename):
         """
         Create a mock markdown file
         """
         file_content = b"# Sample Markdown Content\nThis is a test markdown file."
         file_stream = BytesIO(file_content)
-        return StarletteUploadFile(filename=filename, file=file_stream)
+        return UploadFile(filename=filename, file=file_stream)
 
     def test_upload_file_returns_success_response(self):
         """
         Test upload_file
         """
         file = self._create_mock_txt_file("test.md")
-        response = asyncio.run(upload_file(file))
+        response = response = asyncio.run(upload_file("18a318b688b04fa4", file))
         self.assertIsInstance(response, dict)
     
     def test_upload_file_returns_file_name_in_success_response(self):
@@ -54,7 +54,7 @@ class TestFileManagement(unittest.TestCase):
         Test upload_file
         """
         file = self._create_mock_md_file("test.md")
-        response = asyncio.run(upload_file(file))
+        response = asyncio.run(upload_file("18a318b688b04fa4", file))
         self.assertIsInstance(response, dict)
         self.assertIn('file_name', response)
         self.assertIsInstance(response['file_name'], str)
@@ -65,7 +65,7 @@ class TestFileManagement(unittest.TestCase):
         Test upload_file
         """
         file = self._create_mock_md_file("test.md")
-        response = asyncio.run(upload_file(file))
+        response = asyncio.run(upload_file("18a318b688b04fa4", file))
         self.assertIsInstance(response, dict)
         self.assertIn('file_path', response)
         self.assertIsInstance(response['file_path'], str)
@@ -77,7 +77,7 @@ class TestFileManagement(unittest.TestCase):
         """
 
         file = self._create_mock_md_file("test.md")
-        response = asyncio.run(upload_file(file))
+        response = asyncio.run(upload_file("18a318b688b04fa4", file))
         self.assertIsInstance(response, dict)
         self.assertIn('file_id', response)
         self.assertIsInstance(response['file_id'], int)
@@ -88,7 +88,7 @@ class TestFileManagement(unittest.TestCase):
         Test upload_file with file that is not markdown
         """
         file = self._create_mock_txt_file("test.txt")
-        response = asyncio.run(upload_file(file))
+        response = asyncio.run(upload_file("18a318b688b04fa4", file))
         self.assertIsInstance(response, dict)
         self.assertEqual(response, {"error": "File must be a markdown file"})
 
@@ -96,7 +96,7 @@ class TestFileManagement(unittest.TestCase):
         """
         Test upload_file without file
         """
-        response = asyncio.run(upload_file(file=None))
+        response = asyncio.run(upload_file(account_unique_id="18a318b688b04fa4", file=None))
         self.assertIsInstance(response, dict)
         self.assertEqual(response, {"error": "No file provided"})
 
@@ -104,7 +104,8 @@ class TestFileManagement(unittest.TestCase):
         """
         Test get_files
         """
-        response = self.client.get("/api/v1/get-files")
+        account_unique_id = "18a318b688b04fa4"
+        response = self.client.get(f"/api/v1/get-files/{account_unique_id}")
         files = response.json()
         self.assertIsInstance(files, dict)
         self.assertIn("files", files)

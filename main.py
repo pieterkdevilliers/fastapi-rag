@@ -57,13 +57,13 @@ async def query_data(query: str) -> dict[str, Any]:
 # File Management Routes
 ############################################
 
-@app.get("/api/v1/get-files")
-async def get_files(session: Session = Depends(get_session)):
+@app.get("/api/v1/get-files/{account_unique_id}")
+async def get_files(account_unique_id: str, session: Session = Depends(get_session)):
     """
     Get All Files
     """
     returned_files = []
-    statement = select(SourceFile).filter()
+    statement = select(SourceFile).filter(SourceFile.account_unique_id == account_unique_id)
     result = session.exec(statement)
     files = result.all()
     for file in files:
@@ -77,8 +77,9 @@ async def get_files(session: Session = Depends(get_session)):
     return {"files": returned_files}
 
 
-@app.post("/api/v1/upload-file")
+@app.post("/api/v1/upload-file/{account_unique_id}")
 async def upload_file(
+    account_unique_id: str,
     file: UploadFile = File(...),
     session: Session = Depends(get_session)):
     """
@@ -94,8 +95,9 @@ async def upload_file(
     file_name = file.filename.rsplit('.', 1)[0]
     file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
     file_path = f'./files/{file_name}'
+    file_account = account_unique_id
 
-    db_file = save_file_to_db(file_name, file_path, session)
+    db_file = save_file_to_db(file_name, file_path, file_account, session)
     
     return {"response": "success",
             "file_name": file_name,
