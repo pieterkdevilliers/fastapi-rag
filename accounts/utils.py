@@ -18,18 +18,18 @@ def create_new_account_in_db(account_organisation: str, session: Session):
     return account
 
 
-def update_account_in_db(account_organisation: str, account_unique_id: str, session: Session):
+def update_account_in_db(account_unique_id: str, updated_account: Account, session: Session):
     """
     Update Account in DB
     """
-    statement = select(Account).filter(Account.account_unique_id == account_unique_id)
-    result = session.exec(statement)
-    account = result.first()
+    account = session.get(Account, account_unique_id == account_unique_id)
     
     if not account:
         return {"error": "Account not found"}
     
-    account.account_organisation = account_organisation
+    updated_account_dict = updated_account.model_dump(exclude_unset=True)
+    for key, value in updated_account_dict.items():
+        setattr(account, key, value)
     session.add(account)
     session.commit()
     session.refresh(account)

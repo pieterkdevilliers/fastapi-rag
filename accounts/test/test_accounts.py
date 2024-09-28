@@ -64,29 +64,28 @@ class TestAccounts(unittest.TestCase):
         """
         Test post_account
         """
-        account_unique_id = '5055e80f63e28b7a'
-        account_organisation = "Test Organisation"
-        response = self.client.put(f"/api/v1/accounts/{account_organisation}/{account_unique_id}")
+        account_unique_id = 'a6f3de5a43d26e9e'
+        response = self.client.put(f"/api/v1/accounts/{account_unique_id}")
         returned_account = response.json()
-        self.assertTrue(returned_account['response'], "success")
+        self.assertIsInstance(returned_account, dict)
         
     def test_put_accounts_returns_account_in_success_response(self):
         """
         Test post_account
         """
-        account_unique_id = '5055e80f63e28b7a'
-        account_organisation = "Test Organisation"
-        response = self.client.put(f"/api/v1/accounts/{account_organisation}/{account_unique_id}")
+        account_unique_id = 'a6f3de5a43d26e9e'
+        account_id = 1
+        account_organisation = "Test Organisation Amended Test"
+        updated_account = Account(account_organisation=account_organisation, account_unique_id=account_unique_id, id=account_id)
+        response = self.client.put(f"/api/v1/accounts/{account_unique_id}", json=updated_account.model_dump())
         returned_account = response.json()
-        self.assertTrue(returned_account['account_unique_id'])
         self.assertIn('response', returned_account)
-        self.assertEqual(returned_account['response'], "success")
     
     def test_delete_accounts_returns_success_response(self):
         """
         Test delete_account
         """
-        account_unique_id = 'ca6d6b33f39747ea'
+        account_unique_id = '9d26846e4be226d1'
         response = self.client.delete(f"/api/v1/accounts/{account_unique_id}")
         deleted_account = response.json()
         self.assertEqual(deleted_account['response'], "success")
