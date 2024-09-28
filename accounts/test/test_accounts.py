@@ -1,6 +1,7 @@
 import unittest
 import asyncio
 from fastapi.testclient import TestClient
+from accounts.models import Account
 from main import app
 
 
@@ -79,7 +80,7 @@ class TestAccounts(unittest.TestCase):
         updated_account = Account(account_organisation=account_organisation, account_unique_id=account_unique_id, id=account_id)
         response = self.client.put(f"/api/v1/accounts/{account_unique_id}", json=updated_account.model_dump())
         returned_account = response.json()
-        self.assertIn('response', returned_account)
+        self.assertTrue(returned_account['account_unique_id'])
     
     def test_delete_accounts_returns_success_response(self):
         """
