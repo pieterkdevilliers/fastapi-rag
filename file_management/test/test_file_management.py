@@ -24,7 +24,7 @@ class TestFileManagement(unittest.TestCase):
         """
         Create an async function to get files
         """
-        files = await self.client.get("/api/v1/get-files/{account_unique_id}")
+        files = await self.client.get("/api/v1/files/{account_unique_id}")
         return files.json()
     
     def _create_mock_txt_file(self, filename):
@@ -105,11 +105,37 @@ class TestFileManagement(unittest.TestCase):
         Test get_files
         """
         account_unique_id = "18a318b688b04fa4"
-        response = self.client.get(f"/api/v1/get-files/{account_unique_id}")
+        response = self.client.get(f"/api/v1/files/{account_unique_id}")
         files = response.json()
         self.assertIsInstance(files, dict)
         self.assertIn("files", files)
         self.assertIsInstance(files["files"], list)
+    
+    def test_update_file_returns_success_response(self):
+        """
+        Test update_file
+        """
+        account_unique_id = "a2cac1e9f6d584d7"
+        file_id = 1
+        updated_file = SourceFile(file_name="test.md", account_unique_id=account_unique_id, id=file_id)
+        response = self.client.put(f"/api/v1/files/{account_unique_id}/{file_id}", json=updated_file.model_dump())
+        response = response.json()
+        self.assertIsInstance(response, dict)
+    
+    def test_update_file_returns_file_in_success_response(self):
+        """
+        Test update_file
+        """
+        account_unique_id = "a2cac1e9f6d584d7"
+        file_id = 1
+        updated_file = SourceFile(file_name="test.md", account_unique_id=account_unique_id, id=file_id)
+        response = self.client.put(f"/api/v1/files/{account_unique_id}/{file_id}", json=updated_file.model_dump())
+        response = response.json()
+        self.assertIsInstance(response, dict)
+        self.assertIn('file_name', response)
+        self.assertIsInstance(response['file_name'], str)
+        self.assertTrue(response['file_name'])
+
         
 
 
