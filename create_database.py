@@ -75,7 +75,8 @@ async def load_documents(data_path: str, account_unique_id: str, session: AsyncS
     """
     statement = select(SourceFile).filter(
         SourceFile.account_unique_id == account_unique_id,
-        SourceFile.included_in_source_data == True
+        SourceFile.included_in_source_data == True,
+        SourceFile.already_processed_to_source_data == False
     )
     result = await session.execute(statement)  # Use await here
     documents_from_db = result.scalars().all()
@@ -87,6 +88,8 @@ async def load_documents(data_path: str, account_unique_id: str, session: AsyncS
             with open(file_path, 'r') as file:
                 content = file.read()
                 documents.append(Document(page_content=content, metadata={"file_name": db_file.file_name, "source": db_file.file_path}))
+                db_file.already_processed_to_source_data = True
+                await session.commit()
 
     print(f"Loaded {len(documents)} documents based on DB query.")
     return documents
