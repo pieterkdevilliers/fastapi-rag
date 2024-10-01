@@ -111,9 +111,16 @@ async def upload_file(
     
     file_name = file.filename.rsplit('.', 1)[0]
     file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
-    file_path = f'./files/{file_name}'
+    directory = f'./files/{account_unique_id}'
+    file_path = os.path.join(directory, file_name)
     file_account = account_unique_id
+    
+    os.makedirs(directory, exist_ok=True)
 
+    with open(file_path, "wb") as buffer:
+        content = await file.read()
+        buffer.write(content)
+    
     db_file = save_file_to_db(file_name, file_path, file_account, session)
     
     return {"response": "success",

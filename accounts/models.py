@@ -1,6 +1,5 @@
-from typing import Optional
+from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
-from file_management.models import SourceFile
 
 
 class AccountBase(SQLModel):
@@ -16,8 +15,10 @@ class Account(AccountBase, table=True):
     User Account Model
     """
     id: Optional[int] = Field(default=None, primary_key=True)
-    users: list["User"] = Relationship(back_populates="account")
-    source_files: list[SourceFile] = Relationship(back_populates="account")
+    users: List["User"] = Relationship(back_populates="account")
+    source_files: List["SourceFile"] = Relationship(back_populates="account")
+
+from file_management.models import SourceFile
 
 
 class UserBase(SQLModel):
@@ -35,4 +36,3 @@ class User(UserBase, table=True):
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     account: Account = Relationship(back_populates="users")
-    
