@@ -39,7 +39,7 @@ openai.api_key = os.environ['OPENAI_API_KEY']
 BATCH_SIZE = 5461
 
 
-async def main(account_unique_id):
+async def generate_chroma_db(account_unique_id):
     """
     Generate a data store from the documents in the data directory.
     """
@@ -48,6 +48,10 @@ async def main(account_unique_id):
     # Get the session asynchronously
     async for session in get_async_session():  # Use async for instead of async with
         await generate_data_store(account_unique_id, session)
+    
+    response = {"response": "success"}
+    print(response)
+    return response
 
 
 async def generate_data_store(account_unique_id, session: AsyncSession):
@@ -127,10 +131,10 @@ async def save_to_chroma_in_batches(chunks: list[Document], chroma_path: str):
         db = Chroma.from_documents(
             chunk_batch, embeddings, persist_directory=chroma_path
         )
-        db.persist()
+        # db.persist()
         print(f"Saved {len(chunk_batch)} chunks to {chroma_path}.")
 
 
 if __name__ == "__main__":
     account_unique_id = "18a318b688b04fa4"
-    asyncio.run(main(account_unique_id))
+    asyncio.run(generate_chroma_db(account_unique_id))
