@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Any
+from typing import Any, Union
 from secrets import token_hex
 from fastapi import FastAPI, UploadFile, Depends, File
 from sqlmodel import select, Session
@@ -121,26 +121,19 @@ async def upload_file(
             "file_path": file_path,
             "file_id": db_file.id}
 
-
-@app.put("/api/v1/files/{account_unique_id}/{file_id}")
-async def edit_file(
-                    account_unique_id: str,
-                    file_id: int,
-                    included_in_source_data: bool,
-                    session: Session = Depends(get_session)):
+@app.put("/api/v1/files/{account_unique_id}/{file_id}", response_model=Union[SourceFile, dict])
+async def update_file(file_id: int, updated_file: SourceFile, session: Session = Depends(get_session)):
     """
     Edit File
     """
-    file = select(SourceFile).filter(SourceFile.account_unique_id == account_unique_id, SourceFile.id == file_id)
-    if not file:
-        return {"error": "File not found",
-                "file_id": file_id}
+    file = session.get(SourceFile, file_id)
     
-    updated_file = update_file_in_db(file_id, account_unique_id, included_in_source_data, session)
-        
-    return {"response": "success",
-            "updated_file": updated_file,
-            "file_id": file_id}
+    if not file:
+        return {"error": "File not found"}
+    
+    updated_file = update_file_in_db(file_id, updated_file, session)
+    
+    return updated_file
 
 
 ############################################
@@ -180,17 +173,16 @@ async def create_account(account_organisation: str, session: Session = Depends(g
             "account_unique_id": account.account_unique_id}
 
 
-@app.put("/api/v1/accounts/{account_organisation}/{account_unique_id}")
-async def edit_account(account_organisation: str, account_unique_id: str, session: Session = Depends(get_session)):
+@app.put("/api/v1/accounts/{account_unique_id}", response_model=Union[Account, dict])
+async def edit_account(account_unique_id: str, updated_account: Account, session: Session = Depends(get_session)):
     """
     Edit Account
     """
-    account = update_account_in_db(account_organisation, account_unique_id, session)
+    account = session.get(Account, account_unique_id)
+
+    account = update_account_in_db(account_unique_id, updated_account, session)
     
-    return {"response": "success",
-            "account": account,
-            "account_organisation": account.account_organisation,
-            "account_unique_id": account.account_unique_id}
+    return account
 
 
 @app.delete("/api/v1/accounts/{account_unique_id}")
