@@ -145,26 +145,48 @@ class TestFileManagement(unittest.TestCase):
         self.assertIn("file", file)
         self.assertIsInstance(file["file"], dict)
     
-    def test_update_file_returns_success_response(self):
+    def test_update_file_returns_file_in_success_response(self):
         """
         Test update_file
         """
         included_in_source_data = False
         account_unique_id = "18a318b688b04fa4"
         file_id = 1
-        response = self.client.put(f"/api/v1/files/{account_unique_id}/{file_id}?included_in_source_data={included_in_source_data}")
+        updated_file_body = {
+                "included_in_source_data": included_in_source_data,
+                "account_unique_id": account_unique_id,
+                "id": file_id
+                }
+        response = self.client.put(f"/api/v1/files/{account_unique_id}/{file_id}", json=updated_file_body)
         file = response.json()
         self.assertIsInstance(file, dict)
-        self.assertEqual(file["response"], "success")
+        self.assertIn("id", file)
     
     def test_update_file_returns_error_response_if_file_not_found(self):
         """
         Test update_file with file not found
         """
-        included_in_source_data = False
+        included_in_source_data = "false"
         account_unique_id = "18a318b688b04fa4"
         file_id = 100
-        response = self.client.put(f"/api/v1/files/{account_unique_id}/{file_id}?included_in_source_data={included_in_source_data}")
+        updated_file_body = {
+                "included_in_source_data": included_in_source_data,
+                "account_unique_id": account_unique_id,
+                "id": file_id
+                }
+        response = self.client.put(f"/api/v1/files/{account_unique_id}/{file_id}", json=updated_file_body)
+        self.assertEqual(response.status_code, 404)
         file = response.json()
         self.assertIsInstance(file, dict)
-        self.assertEqual(file, {"error": "File not found", "file_id": file_id})
+        self.assertEqual(file, {"detail":{"error": "File not found", "file_id": file_id}})
+    
+    def test_delete_file_returns_success_response(self):
+        """
+        Test delete_file
+        """
+        account_unique_id = '18a318b688b04fa4'
+        file_id = 3
+        response = self.client.delete(f"/api/v1/files/{account_unique_id}/{file_id}")
+        deleted_account = response.json()
+        self.assertEqual(deleted_account['response'], "success")
+        self.assertTrue(deleted_account['file_id'])

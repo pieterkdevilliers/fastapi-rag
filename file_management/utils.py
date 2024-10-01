@@ -1,4 +1,5 @@
 from sqlmodel import Session
+from sqlmodel.sql.expression import select
 from file_management.models import SourceFile
         
 
@@ -31,3 +32,22 @@ def update_file_in_db(file_id: int, updated_file: SourceFile, session: Session):
     session.refresh(file)
     
     return file
+
+
+def delete_file_from_db(account_unique_id: str, file_id: int, session: Session):
+    """
+    Delete Source File from DB
+    """
+    statement = select(SourceFile).filter(SourceFile.account_unique_id == account_unique_id, SourceFile.id == file_id)
+    result = session.exec(statement)
+    file = result.first()
+    
+    if not file:
+        return {"error": "File not found",
+                "file_id": file_id}
+    
+    session.delete(file)
+    session.commit()
+    
+    return {"response": "success",
+            "file_id": file_id}

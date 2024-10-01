@@ -2,10 +2,10 @@ import os
 import shutil
 from typing import Any, Union
 from secrets import token_hex
-from fastapi import FastAPI, UploadFile, Depends, File
+from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException
 from sqlmodel import select, Session
 from file_management.models import SourceFile
-from file_management.utils import save_file_to_db, update_file_in_db
+from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db
 from accounts.models import Account, User
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db
@@ -121,19 +121,41 @@ async def upload_file(
             "file_path": file_path,
             "file_id": db_file.id}
 
+
 @app.put("/api/v1/files/{account_unique_id}/{file_id}", response_model=Union[SourceFile, dict])
-async def update_file(file_id: int, updated_file: SourceFile, session: Session = Depends(get_session)):
+async def update_file(file_id: int,
+                      updated_file: SourceFile = Body(...),
+                      session: Session = Depends(get_session)):
     """
     Edit File
     """
+    print('updated_file:', updated_file)
     file = session.get(SourceFile, file_id)
+    print('file:', file)
     
     if not file:
-        return {"error": "File not found"}
+        raise HTTPException(status_code=404, detail={"error": "File not found", "file_id": file_id})
     
     updated_file = update_file_in_db(file_id, updated_file, session)
     
     return updated_file
+
+
+@app.delete("/api/v1/files/{account_unique_id}/{file_id}")
+async def delete_file(account_unique_id: str, file_id: int, session: Session = Depends(get_session)):
+    """
+    Delete File
+    """
+    file = session.get(SourceFile, file_id)
+    
+    if not file:
+        return {"error": "File not found",
+                "file_id": file_id}
+        
+    response = delete_file_from_db(account_unique_id, file_id, session)
+    return {'response': 'success',
+            'file_id': response['file_id']}
+
 
 
 ############################################
