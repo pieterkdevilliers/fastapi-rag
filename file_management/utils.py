@@ -13,7 +13,6 @@ def save_file_to_db(filename: str, file_path: str, file_account: str, session: S
     
     return db_file
 
-
 def update_file_in_db(file_id: int, updated_file: SourceFile, session: Session):
     """
     Update Source File in DB

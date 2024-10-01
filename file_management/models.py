@@ -9,6 +9,7 @@ class SourceFile(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     file_name: str
     file_path: str
+    included_in_source_data: bool = Field(default=False, nullable=True)
 
     # Lazy import Account inside the class definition or function where needed
     def get_account(self):
