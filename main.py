@@ -271,17 +271,20 @@ async def create_user(account_unique_id: str, user_email: str, user_password: st
             "user_id": user.id}
 
 
-@app.put("/api/v1/users/{account_unique_id}/{user_id}/{user_email}/{user_password}")
-async def edit_user(account_unique_id: str, user_id: int, user_email: str, user_password: str, session: Session = Depends(get_session)):
+@app.put("/api/v1/users/{account_unique_id}/{user_id}", response_model=Union[User, dict])
+async def edit_user(account_unique_id: str, user_id: int, updated_user: User, session: Session = Depends(get_session)):
     """
     Edit User
     """
-    user = update_user_in_db(user_id, user_email, user_password, account_unique_id, session)
+    user = session.get(User, user_id)
     
-    return {"response": "success",
-            "user": user,
-            "user_email": user.user_email,
-            "user_id": user.id}
+    if not user:
+        return {"error": "User not found",
+                "user_id": user_id}
+    
+    user = update_user_in_db(account_unique_id, user_id, updated_user, session)
+    
+    return user
 
 
 @app.delete("/api/v1/users/{account_unique_id}/{user_id}")

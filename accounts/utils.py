@@ -67,19 +67,19 @@ def create_new_user_in_db(user_email: str, user_password: str, account_unique_id
     return user
 
 
-def update_user_in_db(user_id: int, user_email: str, user_password: str, account_unique_id: str, session: Session):
+def update_user_in_db(account_unique_id: str, user_id: int, updated_user: User, session: Session):
     """
     Update Account in DB
     """
-    statement = select(User).filter(User.id == user_id, User.account_unique_id == account_unique_id)
-    result = session.exec(statement)
-    user = result.first()
+    user = session.get(User, user_id)
     
     if not user:
         return {"error": "User not found"}
     
-    user.user_email = user_email
-    user.user_password = user_password
+    updated_user_dict = updated_user.model_dump(exclude_unset=True)
+    for key, value in updated_user_dict.items():
+        setattr(user, key, value)
+        
     session.add(user)
     session.commit()
     session.refresh(user)

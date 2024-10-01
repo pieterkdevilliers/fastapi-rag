@@ -155,21 +155,8 @@ class TestUsers(unittest.TestCase):
         self.assertTrue(returned_user['user_email'])
         self.assertIn('response', returned_user)
         self.assertEqual(returned_user['response'], "success")
-
-    
-    def test_put_users_returns_success_response(self):
-        """
-        Test post_account
-        """
-        account_unique_id = '461d83b0371706b4'
-        user_email = "anotheruser@test.com"
-        user_password = "password2PasswordChange"
-        user_id = 4
-        response = self.client.put(f"/api/v1/users/{account_unique_id}/{user_id}/{user_email}/{user_password}")
-        returned_user = response.json()
-        self.assertTrue(returned_user['response'], "success")
         
-    def test_put_accounts_returns_account_in_success_response(self):
+    def test_put_user_returns_user_in_success_response(self):
         """
         Test post_account
         """
@@ -177,18 +164,22 @@ class TestUsers(unittest.TestCase):
         user_email = "anotheruser@test.com"
         user_password = "password2PasswordChange"
         user_id = 4
-        response = self.client.put(f"/api/v1/users/{account_unique_id}/{user_id}/{user_email}/{user_password}")
-        returned_account = response.json()
-        self.assertTrue(returned_account['user_email'])
-        self.assertIn('response', returned_account)
-        self.assertEqual(returned_account['response'], "success")
+        updated_user = {
+            "user_email": user_email,
+            "user_password": user_password,
+            "account_unique_id": account_unique_id,
+            "id": user_id
+        }
+        response = self.client.put(f"/api/v1/users/{account_unique_id}/{user_id}", json=updated_user)
+        returned_user = response.json()
+        self.assertTrue(returned_user['user_email'])
     
     def test_delete_user_returns_success_response(self):
         """
         Test delete_account
         """
         account_unique_id = '461d83b0371706b4'
-        user_id = 11
+        user_id = 22
         response = self.client.delete(f"/api/v1/users/{account_unique_id}/{user_id}")
         deleted_user = response.json()
         self.assertEqual(deleted_user['response'], "success")
