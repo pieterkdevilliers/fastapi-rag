@@ -24,7 +24,7 @@ class TestFileManagement(unittest.TestCase):
         """
         Create an async function to get files
         """
-        files = await self.client.get("/api/v1/get-files/{account_unique_id}")
+        files = await self.client.get("/api/v1/files/{account_unique_id}")
         return files.json()
     
     def _create_mock_txt_file(self, filename):
@@ -105,11 +105,66 @@ class TestFileManagement(unittest.TestCase):
         Test get_files
         """
         account_unique_id = "18a318b688b04fa4"
-        response = self.client.get(f"/api/v1/get-files/{account_unique_id}")
+        response = self.client.get(f"/api/v1/files/{account_unique_id}")
         files = response.json()
         self.assertIsInstance(files, dict)
         self.assertIn("files", files)
         self.assertIsInstance(files["files"], list)
+    
+    def test_get_file_by_id_returns_success_response(self):
+        """
+        Test get_file_by_id
+        """
+        account_unique_id = "18a318b688b04fa4"
+        file_id = 1
+        response = self.client.get(f"/api/v1/files/{account_unique_id}/{file_id}")
+        file = response.json()
+        self.assertIsInstance(file, dict)
+        self.assertEqual(file["response"], "success")
+    
+    def test_get_file_by_id_returns_error_response_if_file_not_found(self):
+        """
+        Test get_file_by_id with file not found
+        """
+        account_unique_id = "18a318b688b04fa4"
+        file_id = 100
+        response = self.client.get(f"/api/v1/files/{account_unique_id}/{file_id}")
+        file = response.json()
+        self.assertIsInstance(file, dict)
+        self.assertEqual(file, {"error": "File not found", "file_id": file_id})
         
-
-
+    def test_get_file_by_id_returns_file_when_found(self):
+        """
+        Test get_file_by_id with file found
+        """
+        account_unique_id = "18a318b688b04fa4"
+        file_id = 1
+        response = self.client.get(f"/api/v1/files/{account_unique_id}/{file_id}")
+        file = response.json()
+        self.assertIsInstance(file, dict)
+        self.assertIn("file", file)
+        self.assertIsInstance(file["file"], dict)
+    
+    def test_update_file_returns_success_response(self):
+        """
+        Test update_file
+        """
+        included_in_source_data = False
+        account_unique_id = "18a318b688b04fa4"
+        file_id = 1
+        response = self.client.put(f"/api/v1/files/{account_unique_id}/{file_id}?included_in_source_data={included_in_source_data}")
+        file = response.json()
+        self.assertIsInstance(file, dict)
+        self.assertEqual(file["response"], "success")
+    
+    def test_update_file_returns_error_response_if_file_not_found(self):
+        """
+        Test update_file with file not found
+        """
+        included_in_source_data = False
+        account_unique_id = "18a318b688b04fa4"
+        file_id = 100
+        response = self.client.put(f"/api/v1/files/{account_unique_id}/{file_id}?included_in_source_data={included_in_source_data}")
+        file = response.json()
+        self.assertIsInstance(file, dict)
+        self.assertEqual(file, {"error": "File not found", "file_id": file_id})

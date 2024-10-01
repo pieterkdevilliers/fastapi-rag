@@ -5,7 +5,7 @@ from secrets import token_hex
 from fastapi import FastAPI, UploadFile, Depends, File
 from sqlmodel import select, Session
 from file_management.models import SourceFile
-from file_management.utils import save_file_to_db
+from file_management.utils import save_file_to_db, update_file_in_db
 from accounts.models import Account, User
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db
@@ -57,7 +57,7 @@ async def query_data(query: str) -> dict[str, Any]:
 # File Management Routes
 ############################################
 
-@app.get("/api/v1/get-files/{account_unique_id}")
+@app.get("/api/v1/files/{account_unique_id}")
 async def get_files(account_unique_id: str, session: Session = Depends(get_session)):
     """
     Get All Files
@@ -77,7 +77,24 @@ async def get_files(account_unique_id: str, session: Session = Depends(get_sessi
     return {"files": returned_files}
 
 
-@app.post("/api/v1/upload-file/{account_unique_id}")
+@app.get("/api/v1/files/{account_unique_id}/{file_id}")
+async def get_file(account_unique_id: str, file_id: int, session: Session = Depends(get_session)):
+    """
+    Get File By ID
+    """
+    statement = select(SourceFile).filter(SourceFile.account_unique_id == account_unique_id, SourceFile.id == file_id)
+    result = session.exec(statement)
+    file = result.first()
+    
+    if not file:
+        return {"error": "File not found",
+                "file_id": file_id}
+    
+    return {"response": "success",
+            "file": file}
+
+
+@app.post("/api/v1/files/{account_unique_id}")
 async def upload_file(
     account_unique_id: str,
     file: UploadFile = File(...),
@@ -103,6 +120,27 @@ async def upload_file(
             "file_name": file_name,
             "file_path": file_path,
             "file_id": db_file.id}
+
+
+@app.put("/api/v1/files/{account_unique_id}/{file_id}")
+async def edit_file(
+                    account_unique_id: str,
+                    file_id: int,
+                    included_in_source_data: bool,
+                    session: Session = Depends(get_session)):
+    """
+    Edit File
+    """
+    file = select(SourceFile).filter(SourceFile.account_unique_id == account_unique_id, SourceFile.id == file_id)
+    if not file:
+        return {"error": "File not found",
+                "file_id": file_id}
+    
+    updated_file = update_file_in_db(file_id, account_unique_id, included_in_source_data, session)
+        
+    return {"response": "success",
+            "updated_file": updated_file,
+            "file_id": file_id}
 
 
 ############################################
