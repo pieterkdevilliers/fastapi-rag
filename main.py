@@ -41,15 +41,15 @@ async def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/api/v1/query-data")
-async def query_data(query: str) -> dict[str, Any]:
+@app.get("/api/v1/query-data/{account_unique_id}")
+async def query_data(query: str, account_unique_id: str) -> dict[str, Any]:
     """
     Query Data
     """
     if not query:
         return {"error": "No query provided"}
     
-    response = query_source_data.query_source_data(query)
+    response = query_source_data.query_source_data(query, account_unique_id)
     print(response)
     return response
 
@@ -111,7 +111,7 @@ async def upload_file(
     
     file_name = file.filename.rsplit('.', 1)[0]
     file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
-    directory = f'./files/{account_unique_id}'
+    directory = f'/files/{account_unique_id}'
     file_path = os.path.join(directory, file_name)
     file_account = account_unique_id
     

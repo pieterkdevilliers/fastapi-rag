@@ -25,39 +25,40 @@ Answer the question based on the above context: {question}
 """
 
 
-def prepare_db_and_perform_query(query):
+def prepare_db_and_perform_query(query, account_unique_id):
     """
     Main function performing the query"""
 
     query_text = query
 
-    db = prepare_db()
+    db = prepare_db(account_unique_id)
 
     result = search_db(db, query_text)
 
     return result
 
 
-def query_source_data(query):
+def query_source_data(query, account_unique_id):
     """
     Query Source Data
     """
     if not query:
         return {"error": "No query provided"}
     
-    response = prepare_db_and_perform_query(query)
+    response = prepare_db_and_perform_query(query, account_unique_id)
     return {
         "query": query,
         "response": response
         }
 
 
-def prepare_db():
+def prepare_db(account_unique_id):
     """
     Prepare the DB
     """
     embedding_function = OpenAIEmbeddings()
-    db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
+    chroma_path = f"./chroma/{account_unique_id}"
+    db = Chroma(persist_directory=chroma_path, embedding_function=embedding_function)
     return db
 
 

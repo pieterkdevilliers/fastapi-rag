@@ -82,7 +82,7 @@ async def load_documents(data_path: str, account_unique_id: str, session: AsyncS
         if os.path.exists(file_path):
             with open(file_path, 'r') as file:
                 content = file.read()
-                documents.append(Document(page_content=content, metadata={"file_name": db_file.file_name}))
+                documents.append(Document(page_content=content, metadata={"file_name": db_file.file_name, "source": db_file.file_path}))
 
     print(f"Loaded {len(documents)} documents based on DB query.")
     return documents
