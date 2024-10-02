@@ -72,32 +72,6 @@ async def generate_data_store(account_unique_id, replace, session: AsyncSession)
     await save_to_chroma_in_batches(chunks, chroma_path, replace)
 
 
-# async def load_documents(data_path: str, account_unique_id: str, session: AsyncSession):
-#     """
-#     Load the documents from the data directory based on a database query.
-#     """
-#     statement = select(SourceFile).filter(
-#         SourceFile.account_unique_id == account_unique_id,
-#         SourceFile.included_in_source_data == True,
-#         SourceFile.already_processed_to_source_data == False
-#     )
-#     result = await session.execute(statement)  # Use await here
-#     documents_from_db = result.scalars().all()
-
-#     documents = []
-#     for db_file in documents_from_db:
-#         file_path = os.path.join(data_path, db_file.file_name)
-#         if os.path.exists(file_path):
-#             with open(file_path, 'r') as file:
-#                 content = file.read()
-#                 documents.append(Document(page_content=content, metadata={"file_name": db_file.file_name, "source": db_file.file_path}))
-#                 db_file.already_processed_to_source_data = True
-#                 await session.commit()
-
-#     print(f"Loaded {len(documents)} documents based on DB query.")
-#     return documents
-
-
 async def load_documents(data_path: str, account_unique_id: str, session: AsyncSession):
     """
     Load the documents from the data directory based on a database query.
