@@ -110,11 +110,14 @@ pydantic==2.9.2
 pydantic-settings==2.5.2
 pydantic_core==2.23.4
 Pygments==2.18.0
+pypandoc==1.13
 pypdf==5.0.0
+PyPDF2==3.0.1
 PyPika==0.48.9
 pyproject_hooks==1.1.0
 pytest==8.3.3
 python-dateutil==2.9.0.post0
+python-docx==1.1.2
 python-dotenv==1.0.1
 python-iso639==2024.4.27
 python-magic==0.4.27

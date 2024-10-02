@@ -56,11 +56,11 @@ async def query_data(query: str, account_unique_id: str) -> dict[str, Any]:
 
 
 @app.get("/api/v1/generate-chroma-db/{account_unique_id}")
-async def generate_chroma_db_datastore(account_unique_id: str):
+async def generate_chroma_db_datastore(account_unique_id: str, replace: bool = False) -> dict[str, Any]:
     """
     Generate Chroma DB
     """
-    response = await generate_chroma_db(account_unique_id)
+    response = await generate_chroma_db(account_unique_id, replace)
     return response
 
 ############################################
@@ -116,12 +116,12 @@ async def upload_file(
         return {"error": "No file provided"}
     
     file_ext = file.filename.split('.')[-1]
-    if file_ext != 'md':
-        return {"error": "File must be a markdown file"}
+    # if file_ext != 'md':
+    #     return {"error": "File must be a markdown file"}
     
     file_name = file.filename.rsplit('.', 1)[0]
     file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
-    directory = f'/files/{account_unique_id}'
+    directory = f'./files/{account_unique_id}'
     file_path = os.path.join(directory, file_name)
     file_account = account_unique_id
     
