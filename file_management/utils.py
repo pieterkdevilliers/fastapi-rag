@@ -7,7 +7,10 @@ def save_file_to_db(filename: str, file_path: str, file_account: str, session: S
     """
     Save Source File to DB
     """
-    db_file = SourceFile(file_name=filename, file_path=file_path, account_unique_id=file_account)
+    db_file = SourceFile(file_name=filename,
+                         file_path=file_path,
+                         account_unique_id=file_account,
+                         included_in_source_data=True)
     session.add(db_file)
     session.commit()
     session.refresh(db_file)

@@ -2,7 +2,7 @@ import os
 import shutil
 from typing import Any, Union
 from secrets import token_hex
-from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException
+from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, APIRouter
 from sqlmodel import select, Session
 from file_management.models import SourceFile
 from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db
@@ -55,12 +55,29 @@ async def query_data(query: str, account_unique_id: str) -> dict[str, Any]:
     return response
 
 
+# @app.get("/api/v1/generate-chroma-db/{account_unique_id}")
+# async def generate_chroma_db_datastore(account_unique_id: str, replace: bool = False) -> dict[str, Any]:
+#     """
+#     Generate Chroma DB
+#     """
+#     response = await generate_chroma_db(account_unique_id, replace)
+#     return response
+
+
 @app.get("/api/v1/generate-chroma-db/{account_unique_id}")
 async def generate_chroma_db_datastore(account_unique_id: str, replace: bool = False) -> dict[str, Any]:
     """
     Generate Chroma DB
     """
-    response = await generate_chroma_db(account_unique_id, replace)
+    print(f"Received request to generate Chroma DB for account {account_unique_id} with replace={replace}")
+    
+    try:
+        response = await generate_chroma_db(account_unique_id, replace)
+        print(f"Chroma DB generation successful: {response}")
+    except Exception as e:
+        print(f"Error generating Chroma DB: {e}")
+        return {"error": str(e)}
+    
     return response
 
 ############################################
@@ -104,39 +121,82 @@ async def get_file(account_unique_id: str, file_id: int, session: Session = Depe
             "file": file}
 
 
+# @app.post("/api/v1/files/{account_unique_id}")
+# async def upload_file(
+#     account_unique_id: str,
+#     file: UploadFile = File(...),
+#     session: Session = Depends(get_session)):
+#     """
+#     Upload File
+#     """
+#     if not file:
+#         return {"error": "No file provided"}
+    
+#     file_ext = file.filename.split('.')[-1]
+#     # if file_ext != 'md':
+#     #     return {"error": "File must be a markdown file"}
+    
+#     file_name = file.filename.rsplit('.', 1)[0]
+#     file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
+#     directory = f'./files/{account_unique_id}'
+#     file_path = os.path.join(directory, file_name)
+#     file_account = account_unique_id
+    
+#     os.makedirs(directory, exist_ok=True)
+
+#     with open(file_path, "wb") as buffer:
+#         content = await file.read()
+#         buffer.write(content)
+    
+#     db_file = save_file_to_db(file_name, file_path, file_account, session)
+    
+#     return {"response": "success",
+#             "file_name": file_name,
+#             "file_path": file_path,
+#             "file_id": db_file.id}
+
+
 @app.post("/api/v1/files/{account_unique_id}")
-async def upload_file(
+async def upload_files(
     account_unique_id: str,
-    file: UploadFile = File(...),
+    files: list[UploadFile] = File(...),  # Accepting a list of files
     session: Session = Depends(get_session)):
     """
-    Upload File
+    Upload Multiple Files
     """
-    if not file:
-        return {"error": "No file provided"}
+    if not files:
+        return {"error": "No files provided"}
     
-    file_ext = file.filename.split('.')[-1]
-    # if file_ext != 'md':
-    #     return {"error": "File must be a markdown file"}
+    uploaded_files_info = []  # To store information about all uploaded files
     
-    file_name = file.filename.rsplit('.', 1)[0]
-    file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
     directory = f'./files/{account_unique_id}'
-    file_path = os.path.join(directory, file_name)
-    file_account = account_unique_id
-    
     os.makedirs(directory, exist_ok=True)
+    
+    for file in files:
+        file_ext = file.filename.split('.')[-1]
+        
+        # Generate unique file name
+        file_name = file.filename.rsplit('.', 1)[0]
+        file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
+        file_path = os.path.join(directory, file_name)
+        file_account = account_unique_id
 
-    with open(file_path, "wb") as buffer:
-        content = await file.read()
-        buffer.write(content)
-    
-    db_file = save_file_to_db(file_name, file_path, file_account, session)
-    
-    return {"response": "success",
+        # Write file to the disk
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        # Save file information to the database
+        db_file = save_file_to_db(file_name, file_path, file_account, session)
+        
+        # Collect file details for response
+        uploaded_files_info.append({
             "file_name": file_name,
             "file_path": file_path,
-            "file_id": db_file.id}
+            "file_id": db_file.id
+        })
+    
+    return {"response": "success", "uploaded_files": uploaded_files_info}
 
 
 @app.put("/api/v1/files/{account_unique_id}/{file_id}", response_model=Union[SourceFile, dict])

@@ -163,33 +163,42 @@ async def save_to_chroma_in_batches(chunks: list[Document], chroma_path: str, re
     """
     embeddings = OpenAIEmbeddings()
 
-    # Load existing Chroma instance if it exists, otherwise create a new one
+    # Handle replacing the existing Chroma DB
     if os.path.exists(chroma_path):
         print(f"Chroma DB already exists at {chroma_path}.")
         if replace:
-            print(f"Replacing existing Chroma DB at {chroma_path}.")
-            shutil.rmtree(chroma_path)
-            os.makedirs(chroma_path)  # Recreate the directory after removal
-            db = Chroma(persist_directory=chroma_path, embedding_function=embeddings)
-        else:
-            print(f"Appending to existing Chroma DB at {chroma_path}.")
-            db = Chroma(persist_directory=chroma_path, embedding_function=embeddings)
-    else:
+            try:
+                print(f"Replacing existing Chroma DB at {chroma_path}.")
+                shutil.rmtree(chroma_path)  # Remove the existing directory
+                os.makedirs(chroma_path)  # Recreate the directory after removal
+                print(f"Successfully removed and recreated directory: {chroma_path}.")
+            except Exception as e:
+                print(f"Error removing existing Chroma DB: {e}")
+                return  # Exit if unable to remove the directory
+
+    # Initialize the Chroma DB
+    try:
         print(f"Creating new Chroma DB at {chroma_path}.")
-        os.makedirs(chroma_path)
         db = Chroma(persist_directory=chroma_path, embedding_function=embeddings)
+        print(f"Successfully initialized Chroma DB: {db}")
+    except Exception as e:
+        print(f"Error initializing Chroma DB after replacing: {e}")
+        return  # Exit if unable to initialize the database
 
     # Only add documents if chunks are available
     if chunks:
         # Iterate over chunks in batches and save each batch
         async for chunk_batch in batch(chunks):
-            db.add_documents(chunk_batch)  # Append new documents to the existing Chroma DB
-            db.persist()  # Ensure changes are persisted to the DB
-            print(f"Saved {len(chunk_batch)} chunks to {chroma_path}.")
+            try:
+                db.add_documents(chunk_batch)  # Append new documents to the existing Chroma DB
+                db.persist()  # Ensure changes are persisted to the DB
+                print(f"Saved {len(chunk_batch)} chunks to {chroma_path}.")
+            except Exception as e:
+                print(f"Error saving chunks to Chroma DB: {e}")
     else:
         print("No chunks to add to the Chroma DB.")
 
 
 if __name__ == "__main__":
     account_unique_id = "18a318b688b04fa4"
-    asyncio.run(generate_chroma_db(account_unique_id, replace=False))
+    asyncio.run(generate_chroma_db(account_unique_id, replace=True))
