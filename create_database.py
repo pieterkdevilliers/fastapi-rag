@@ -50,7 +50,6 @@ async def generate_chroma_db(account_unique_id):
         await generate_data_store(account_unique_id, session)
     
     response = {"response": "success"}
-    print(response)
     return response
 
 

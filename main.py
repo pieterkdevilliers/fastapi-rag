@@ -9,6 +9,7 @@ from file_management.utils import save_file_to_db, update_file_in_db, delete_fil
 from accounts.models import Account, User
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db
+from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
 
@@ -51,6 +52,15 @@ async def query_data(query: str, account_unique_id: str) -> dict[str, Any]:
     
     response = query_source_data.query_source_data(query, account_unique_id)
     print(response)
+    return response
+
+
+@app.get("/api/v1/generate-chroma-db/{account_unique_id}")
+async def generate_chroma_db_datastore(account_unique_id: str):
+    """
+    Generate Chroma DB
+    """
+    response = await generate_chroma_db(account_unique_id)
     return response
 
 ############################################
