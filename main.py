@@ -55,15 +55,6 @@ async def query_data(query: str, account_unique_id: str) -> dict[str, Any]:
     return response
 
 
-# @app.get("/api/v1/generate-chroma-db/{account_unique_id}")
-# async def generate_chroma_db_datastore(account_unique_id: str, replace: bool = False) -> dict[str, Any]:
-#     """
-#     Generate Chroma DB
-#     """
-#     response = await generate_chroma_db(account_unique_id, replace)
-#     return response
-
-
 @app.get("/api/v1/generate-chroma-db/{account_unique_id}")
 async def generate_chroma_db_datastore(account_unique_id: str, replace: bool = False) -> dict[str, Any]:
     """
@@ -79,6 +70,22 @@ async def generate_chroma_db_datastore(account_unique_id: str, replace: bool = F
         return {"error": str(e)}
     
     return response
+
+
+@app.get("/api/v1/clear-chroma-db/{account_unique_id}")
+async def clear_chroma_db_datastore(account_unique_id: str) -> dict[str, Any]:
+    """
+    Clear Chroma DB
+    """
+    print(f"Received request to clear Chroma DB for account {account_unique_id}")
+    
+    chroma_path = f"./chroma/{account_unique_id}"
+    if os.path.exists(chroma_path):
+        shutil.rmtree(chroma_path)
+        return {"response": "success"}
+    
+    else:
+        return {"error": "Chroma DB not found"}
 
 ############################################
 # File Management Routes
