@@ -2,6 +2,10 @@ import os
 import shutil
 import openai
 import asyncio  # Import asyncio
+from docx import Document as DocxDocument
+import PyPDF2
+import pypandoc
+import markdown
 # from langchain_community.document_loaders import DirectoryLoader
 from langchain_community.vectorstores import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -39,7 +43,7 @@ openai.api_key = os.environ['OPENAI_API_KEY']
 BATCH_SIZE = 5461
 
 
-async def generate_chroma_db(account_unique_id):
+async def generate_chroma_db(account_unique_id, replace=False):
     """
     Generate a data store from the documents in the data directory.
     """
@@ -47,13 +51,13 @@ async def generate_chroma_db(account_unique_id):
     
     # Get the session asynchronously
     async for session in get_async_session():  # Use async for instead of async with
-        await generate_data_store(account_unique_id, session)
+        await generate_data_store(account_unique_id, replace, session)
     
     response = {"response": "success"}
     return response
 
 
-async def generate_data_store(account_unique_id, session: AsyncSession):
+async def generate_data_store(account_unique_id, replace, session: AsyncSession):
     """
     Generate a data store from the documents in the data directory.
     """
@@ -65,7 +69,33 @@ async def generate_data_store(account_unique_id, session: AsyncSession):
     
     documents = await load_documents(data_path, account_unique_id, session)
     chunks = await split_text(documents)
-    await save_to_chroma_in_batches(chunks, chroma_path)
+    await save_to_chroma_in_batches(chunks, chroma_path, replace)
+
+
+# async def load_documents(data_path: str, account_unique_id: str, session: AsyncSession):
+#     """
+#     Load the documents from the data directory based on a database query.
+#     """
+#     statement = select(SourceFile).filter(
+#         SourceFile.account_unique_id == account_unique_id,
+#         SourceFile.included_in_source_data == True,
+#         SourceFile.already_processed_to_source_data == False
+#     )
+#     result = await session.execute(statement)  # Use await here
+#     documents_from_db = result.scalars().all()
+
+#     documents = []
+#     for db_file in documents_from_db:
+#         file_path = os.path.join(data_path, db_file.file_name)
+#         if os.path.exists(file_path):
+#             with open(file_path, 'r') as file:
+#                 content = file.read()
+#                 documents.append(Document(page_content=content, metadata={"file_name": db_file.file_name, "source": db_file.file_path}))
+#                 db_file.already_processed_to_source_data = True
+#                 await session.commit()
+
+#     print(f"Loaded {len(documents)} documents based on DB query.")
+#     return documents
 
 
 async def load_documents(data_path: str, account_unique_id: str, session: AsyncSession):
@@ -77,18 +107,52 @@ async def load_documents(data_path: str, account_unique_id: str, session: AsyncS
         SourceFile.included_in_source_data == True,
         SourceFile.already_processed_to_source_data == False
     )
-    result = await session.execute(statement)  # Use await here
+    result = await session.execute(statement)
     documents_from_db = result.scalars().all()
 
     documents = []
     for db_file in documents_from_db:
         file_path = os.path.join(data_path, db_file.file_name)
         if os.path.exists(file_path):
-            with open(file_path, 'r') as file:
-                content = file.read()
-                documents.append(Document(page_content=content, metadata={"file_name": db_file.file_name, "source": db_file.file_path}))
-                db_file.already_processed_to_source_data = True
-                await session.commit()
+            file_extension = os.path.splitext(db_file.file_name)[1].lower()
+
+            # Handle text files
+            if file_extension == ".txt":
+                with open(file_path, 'r') as file:
+                    content = file.read()
+
+            # Handle docx files
+            elif file_extension == ".docx":
+                doc = DocxDocument(file_path)
+                content = "\n".join([para.text for para in doc.paragraphs])
+
+            # Handle doc files using pypandoc for conversion
+            elif file_extension == ".doc":
+                try:
+                    content = pypandoc.convert_file(file_path, 'plain')
+                except Exception as e:
+                    print(f"Failed to convert .doc file: {e}")
+                    continue
+
+            # Handle markdown files
+            elif file_extension == ".md":
+                with open(file_path, 'r') as file:
+                    markdown_content = file.read()
+                    content = markdown.markdown(markdown_content)  # Convert markdown to plain text
+
+            # Handle PDFs
+            elif file_extension == ".pdf":
+                with open(file_path, 'rb') as file:
+                    reader = PyPDF2.PdfReader(file)
+                    content = "\n".join([page.extract_text() for page in reader.pages])
+
+            else:
+                print(f"Unsupported file format: {file_extension}")
+                continue
+
+            documents.append(Document(page_content=content, metadata={"file_name": db_file.file_name, "source": db_file.file_path}))
+            db_file.already_processed_to_source_data = True
+            await session.commit()
 
     print(f"Loaded {len(documents)} documents based on DB query.")
     return documents
@@ -119,24 +183,39 @@ async def batch(iterable, n=BATCH_SIZE):
         await asyncio.sleep(0)  # Allow other tasks to run
 
 
-async def save_to_chroma_in_batches(chunks: list[Document], chroma_path: str):
+async def save_to_chroma_in_batches(chunks: list[Document], chroma_path: str, replace: bool):
     """
-    Save the chunks to the Chroma database in batches.
+    Save the chunks to the Chroma database in batches, appending to existing data.
     """
-    if os.path.exists(chroma_path):
-        shutil.rmtree(chroma_path)
-
     embeddings = OpenAIEmbeddings()
 
-    # Iterate over chunks in batches and save each batch
-    async for chunk_batch in batch(chunks):  # Use async for here
-        db = Chroma.from_documents(
-            chunk_batch, embeddings, persist_directory=chroma_path
-        )
-        # db.persist()
-        print(f"Saved {len(chunk_batch)} chunks to {chroma_path}.")
+    # Load existing Chroma instance if it exists, otherwise create a new one
+    if os.path.exists(chroma_path):
+        print(f"Chroma DB already exists at {chroma_path}.")
+        if replace:
+            print(f"Replacing existing Chroma DB at {chroma_path}.")
+            shutil.rmtree(chroma_path)
+            os.makedirs(chroma_path)  # Recreate the directory after removal
+            db = Chroma(persist_directory=chroma_path, embedding_function=embeddings)
+        else:
+            print(f"Appending to existing Chroma DB at {chroma_path}.")
+            db = Chroma(persist_directory=chroma_path, embedding_function=embeddings)
+    else:
+        print(f"Creating new Chroma DB at {chroma_path}.")
+        os.makedirs(chroma_path)
+        db = Chroma(persist_directory=chroma_path, embedding_function=embeddings)
+
+    # Only add documents if chunks are available
+    if chunks:
+        # Iterate over chunks in batches and save each batch
+        async for chunk_batch in batch(chunks):
+            db.add_documents(chunk_batch)  # Append new documents to the existing Chroma DB
+            db.persist()  # Ensure changes are persisted to the DB
+            print(f"Saved {len(chunk_batch)} chunks to {chroma_path}.")
+    else:
+        print("No chunks to add to the Chroma DB.")
 
 
 if __name__ == "__main__":
     account_unique_id = "18a318b688b04fa4"
-    asyncio.run(generate_chroma_db(account_unique_id))
+    asyncio.run(generate_chroma_db(account_unique_id, replace=False))
