@@ -127,41 +127,6 @@ async def get_file(account_unique_id: str, file_id: int, session: Session = Depe
             "file": file}
 
 
-# @app.post("/api/v1/files/{account_unique_id}")
-# async def upload_file(
-#     account_unique_id: str,
-#     file: UploadFile = File(...),
-#     session: Session = Depends(get_session)):
-#     """
-#     Upload File
-#     """
-#     if not file:
-#         return {"error": "No file provided"}
-    
-#     file_ext = file.filename.split('.')[-1]
-#     # if file_ext != 'md':
-#     #     return {"error": "File must be a markdown file"}
-    
-#     file_name = file.filename.rsplit('.', 1)[0]
-#     file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
-#     directory = f'./files/{account_unique_id}'
-#     file_path = os.path.join(directory, file_name)
-#     file_account = account_unique_id
-    
-#     os.makedirs(directory, exist_ok=True)
-
-#     with open(file_path, "wb") as buffer:
-#         content = await file.read()
-#         buffer.write(content)
-    
-#     db_file = save_file_to_db(file_name, file_path, file_account, session)
-    
-#     return {"response": "success",
-#             "file_name": file_name,
-#             "file_path": file_path,
-#             "file_id": db_file.id}
-
-
 @app.post("/api/v1/files/{account_unique_id}")
 async def upload_files(
     account_unique_id: str,
