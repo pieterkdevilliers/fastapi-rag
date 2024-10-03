@@ -22,12 +22,15 @@ def update_account_in_db(account_unique_id: str, updated_account: Account, sessi
     """
     Update Account in DB
     """
-    account = session.get(Account, account_unique_id == account_unique_id)
+    print('******************account_unique_id:', account_unique_id)
+    print('******************updated_account:', updated_account)
+    account = session.exec(select(Account).where(Account.account_unique_id == account_unique_id)).first()
+    print('***********************account:', account)
     
     if not account:
         return {"error": "Account not found"}
     
-    updated_account_dict = updated_account.model_dump(exclude_unset=True)
+    updated_account_dict = updated_account.model_dump(exclude_unset=True, exclude={"id"})
     for key, value in updated_account_dict.items():
         setattr(account, key, value)
     session.add(account)
