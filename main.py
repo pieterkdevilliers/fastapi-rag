@@ -1,4 +1,5 @@
 import os
+import boto3
 import shutil
 from typing import Any, Union
 from secrets import token_hex
@@ -13,12 +14,20 @@ from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
 
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
+
+# Initialize the S3 client
+s3 = boto3.client('s3')
+
+# The name of your S3 bucket
+BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+
 
 app = FastAPI()
 
 # Define the upload directory
-UPLOAD_DIR = "data"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# UPLOAD_DIR = "data"
+# os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 # Dependency
@@ -133,41 +142,100 @@ async def upload_files(
     files: list[UploadFile] = File(...),  # Accepting a list of files
     session: Session = Depends(get_session)):
     """
-    Upload Multiple Files
+    Upload Multiple Files to S3 in a subfolder for the given account_unique_id,
+    and store metadata in the database.
     """
     if not files:
         return {"error": "No files provided"}
     
     uploaded_files_info = []  # To store information about all uploaded files
-    
-    directory = f'./files/{account_unique_id}'
-    os.makedirs(directory, exist_ok=True)
-    
-    for file in files:
-        file_ext = file.filename.split('.')[-1]
-        
-        # Generate unique file name
-        file_name = file.filename.rsplit('.', 1)[0]
-        file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
-        file_path = os.path.join(directory, file_name)
-        file_account = account_unique_id
 
-        # Write file to the disk
-        with open(file_path, "wb") as buffer:
+    for file in files:
+        try:
+            file_ext = file.filename.split('.')[-1]
+            
+            # Generate unique file name
+            file_name = file.filename.rsplit('.', 1)[0]
+            unique_file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
+            file_account = account_unique_id
+
+            # Simulate the subfolder by including account_unique_id in the S3 key
+            s3_key = f"{account_unique_id}/{unique_file_name}"
+
+            # Read the file content
             content = await file.read()
-            buffer.write(content)
+
+            # Upload file to S3, saving it under the account_unique_id "folder"
+            s3.put_object(
+                Bucket=BUCKET_NAME,
+                Key=s3_key,  # Upload to account subfolder
+                Body=content,
+                ContentType=file.content_type
+            )
+
+            # Get the S3 file URL
+            file_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
+
+            # Save file information to the database (adjust this function to your schema)
+            db_file = save_file_to_db(unique_file_name, file_url, file_account, session)
+
+            # Collect file details for response
+            uploaded_files_info.append({
+                "file_name": unique_file_name,
+                "file_url": file_url,
+                "file_id": db_file.id
+            })
         
-        # Save file information to the database
-        db_file = save_file_to_db(file_name, file_path, file_account, session)
-        
-        # Collect file details for response
-        uploaded_files_info.append({
-            "file_name": file_name,
-            "file_path": file_path,
-            "file_id": db_file.id
-        })
-    
+        except NoCredentialsError:
+            raise HTTPException(status_code=400, detail="AWS credentials not found")
+        except PartialCredentialsError:
+            raise HTTPException(status_code=400, detail="Incomplete AWS credentials")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
     return {"response": "success", "uploaded_files": uploaded_files_info}
+
+# @app.post("/api/v1/files/{account_unique_id}")
+# async def upload_files(
+#     account_unique_id: str,
+#     files: list[UploadFile] = File(...),  # Accepting a list of files
+#     session: Session = Depends(get_session)):
+#     """
+#     Upload Multiple Files
+#     """
+#     if not files:
+#         return {"error": "No files provided"}
+    
+#     uploaded_files_info = []  # To store information about all uploaded files
+    
+#     directory = f'./files/{account_unique_id}'
+#     os.makedirs(directory, exist_ok=True)
+    
+#     for file in files:
+#         file_ext = file.filename.split('.')[-1]
+        
+#         # Generate unique file name
+#         file_name = file.filename.rsplit('.', 1)[0]
+#         file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
+#         file_path = os.path.join(directory, file_name)
+#         file_account = account_unique_id
+
+#         # Write file to the disk
+#         with open(file_path, "wb") as buffer:
+#             content = await file.read()
+#             buffer.write(content)
+        
+#         # Save file information to the database
+#         db_file = save_file_to_db(file_name, file_path, file_account, session)
+        
+#         # Collect file details for response
+#         uploaded_files_info.append({
+#             "file_name": file_name,
+#             "file_path": file_path,
+#             "file_id": db_file.id
+#         })
+    
+#     return {"response": "success", "uploaded_files": uploaded_files_info}
 
 
 @app.put("/api/v1/files/{account_unique_id}/{file_id}", response_model=Union[SourceFile, dict])

@@ -1,5 +1,7 @@
 import os
+import io
 import shutil
+import boto3
 import openai
 import asyncio  # Import asyncio
 from docx import Document as DocxDocument
@@ -16,8 +18,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from dotenv import load_dotenv
 from file_management.models import SourceFile
 from db import async_engine
+from botocore.exceptions import ClientError
 
 load_dotenv()
+
+# Initialize the S3 client
+s3 = boto3.client('s3')
+BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+
 
 # Create a sessionmaker for the async session
 AsyncSessionLocal = sessionmaker(
@@ -59,15 +67,18 @@ async def generate_chroma_db(account_unique_id, replace=False):
     return response
 
 
-async def generate_data_store(account_unique_id, replace, session: AsyncSession):
+async def generate_data_store(account_unique_id: str, replace: bool, session: AsyncSession):
     """
-    Generate a data store from the documents in the data directory.
+    Generate a data store from the documents uploaded to S3.
     """
     print(f"Generating data store for account {account_unique_id}.")
-    data_path = f"./files/{account_unique_id}"
-    chroma_path = f"./chroma/{account_unique_id}"
     
-    documents = await load_documents(data_path, account_unique_id, session)
+    chroma_path = f"./chroma/{account_unique_id}"
+
+    # Fetch the document URLs from the database instead of reading from local file_path
+    documents = await load_documents_from_s3(account_unique_id, session)
+
+    # Split the text into chunks
     chunks = await split_text(documents)
 
     # Check for empty chunks before initializing the database
@@ -77,10 +88,11 @@ async def generate_data_store(account_unique_id, replace, session: AsyncSession)
         print(f"No chunks generated for account {account_unique_id}. Skipping Chroma DB creation.")
 
 
-async def load_documents(data_path: str, account_unique_id: str, session: AsyncSession):
+async def load_documents_from_s3(account_unique_id: str, session: AsyncSession):
     """
-    Load the documents from the data directory based on a database query.
+    Load documents from S3 based on a database query.
     """
+    # Query database for files to process
     statement = select(SourceFile).filter(
         SourceFile.account_unique_id == account_unique_id,
         SourceFile.included_in_source_data == True,
@@ -90,52 +102,94 @@ async def load_documents(data_path: str, account_unique_id: str, session: AsyncS
     documents_from_db = result.scalars().all()
 
     documents = []
+    
     for db_file in documents_from_db:
-        file_path = os.path.join(data_path, db_file.file_name)
-        if os.path.exists(file_path):
+        # Construct S3 key (path in S3) using account_unique_id and file name
+        s3_key = f"{account_unique_id}/{db_file.file_name}"
+
+        try:
+            
+            s3_object = s3.get_object(Bucket=BUCKET_NAME, Key=s3_key)
+
+            file_content = s3_object['Body'].read()
+
+            # Process file content based on its extension
             file_extension = os.path.splitext(db_file.file_name)[1].lower()
+            content = await read_file_from_s3(file_content, file_extension)
 
-            try:
-                content = await read_file(file_path, file_extension)
-            except Exception as e:
-                print(f"Failed to read file {db_file.file_name}: {e}")
-                continue
+            # Append the document with metadata
+            documents.append(Document(
+                page_content=content, 
+                metadata={"file_name": db_file.file_name, "source": s3_key}
+            ))
 
-            documents.append(Document(page_content=content, metadata={"file_name": db_file.file_name, "source": db_file.file_path}))
+            # Mark file as processed in the database
             db_file.already_processed_to_source_data = True
             await session.commit()
 
-    print(f"Loaded {len(documents)} documents based on DB query.")
+        except ClientError as e:
+            print(f"Failed to fetch file {db_file.file_name} from S3: {e}")
+            continue
+        except Exception as e:
+            print(f"Failed to process file {db_file.file_name}: {e}")
+            continue
+
+    print(f"Loaded {len(documents)} documents from S3 based on DB query.")
     return documents
 
 
-async def read_file(file_path: str, file_extension: str) -> str:
+async def read_file_from_s3(file_content: bytes, file_extension: str) -> str:
     """
-    Helper function to handle reading files based on the file extension.
+    Helper function to handle reading files from S3 based on the file extension.
     """
+    print(f"Processing file with extension: {file_extension}")
+    
+    # Handling .txt files
     if file_extension == ".txt":
-        with open(file_path, 'r') as file:
-            return file.read()
+        try:
+            return file_content.decode('utf-8')
+        except Exception as e:
+            print(f"Error decoding .txt file: {e}")
+            raise
 
+    # Handling .docx files
     elif file_extension == ".docx":
-        doc = DocxDocument(file_path)
-        return "\n".join([para.text for para in doc.paragraphs])
+        try:
+            # Convert the byte stream to an in-memory file-like object
+            doc = DocxDocument(io.BytesIO(file_content))
+            return "\n".join([para.text for para in doc.paragraphs])
+        except Exception as e:
+            print(f"Error processing .docx file: {e}")
+            raise
 
+    # Handling .doc files
     elif file_extension == ".doc":
         try:
-            return pypandoc.convert_file(file_path, 'plain')
+            # Save the file content to an in-memory file
+            temp_file = io.BytesIO(file_content)
+            temp_file.name = "temp.doc"  # Required for pypandoc
+            return pypandoc.convert_file(temp_file.name, 'plain')
         except Exception as e:
-            raise Exception(f"Failed to convert .doc file: {e}")
+            print(f"Failed to convert .doc file: {e}")
+            raise
 
+    # Handling .md (markdown) files
     elif file_extension == ".md":
-        with open(file_path, 'r') as file:
-            markdown_content = file.read()
+        try:
+            markdown_content = file_content.decode('utf-8')
             return markdown.markdown(markdown_content)
+        except Exception as e:
+            print(f"Error decoding markdown file: {e}")
+            raise
 
+    # Handling .pdf files
     elif file_extension == ".pdf":
-        with open(file_path, 'rb') as file:
-            reader = PyPDF2.PdfReader(file)
-            return "\n".join([page.extract_text() for page in reader.pages])
+        try:
+            pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
+            return "\n".join([page.extract_text() for page in pdf_reader.pages])
+        except Exception as e:
+            print(f"Error processing .pdf file: {e}")
+            raise
 
     else:
         raise ValueError(f"Unsupported file format: {file_extension}")

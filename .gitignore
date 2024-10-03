@@ -1,6 +1,7 @@
 chroma/
 fastapi-rag/
 source_db.db
+files/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
