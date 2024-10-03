@@ -17,6 +17,8 @@ class Account(AccountBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     users: List["User"] = Relationship(back_populates="account")
     source_files: List["SourceFile"] = Relationship(back_populates="account")
+    relevance_score: float = Field(default=0.7, nullable=True)
+    k_value: int = Field(default=3, nullable=True)
 
 from file_management.models import SourceFile
 

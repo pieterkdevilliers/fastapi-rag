@@ -43,15 +43,14 @@ async def read_root():
 
 
 @app.get("/api/v1/query-data/{account_unique_id}")
-async def query_data(query: str, account_unique_id: str) -> dict[str, Any]:
+async def query_data(query: str, account_unique_id: str, session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Query Data
     """
     if not query:
         return {"error": "No query provided"}
     
-    response = query_source_data.query_source_data(query, account_unique_id)
-    print(response)
+    response = query_source_data.query_source_data(query, account_unique_id, session)
     return response
 
 
