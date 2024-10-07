@@ -1,8 +1,8 @@
-"""Set all fk to account_unique_id
+"""Reset DB
 
-Revision ID: 5f2aea9578a0
+Revision ID: b80969842197
 Revises: 
-Create Date: 2024-09-27 12:59:53.710498
+Create Date: 2024-10-07 13:23:32.269129
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = '5f2aea9578a0'
+revision: str = 'b80969842197'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,12 +25,19 @@ def upgrade() -> None:
     sa.Column('account_organisation', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('account_unique_id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.Column('relevance_score', sa.Float(), nullable=True),
+    sa.Column('k_value', sa.Integer(), nullable=True),
+    sa.Column('chunk_size', sa.Integer(), nullable=True),
+    sa.Column('chunk_overlap', sa.Integer(), nullable=True),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('account_unique_id')
     )
     op.create_table('sourcefile',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('file_name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('file_path', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('included_in_source_data', sa.Boolean(), nullable=True),
+    sa.Column('already_processed_to_source_data', sa.Boolean(), nullable=True),
     sa.Column('account_unique_id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.ForeignKeyConstraint(['account_unique_id'], ['account.account_unique_id'], ),
     sa.PrimaryKeyConstraint('id')

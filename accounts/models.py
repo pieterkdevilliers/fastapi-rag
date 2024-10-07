@@ -7,7 +7,7 @@ class AccountBase(SQLModel):
     User Account Model Base
     """
     account_organisation: str
-    account_unique_id: str
+    account_unique_id: str = Field(unique=True)
 
 
 class Account(AccountBase, table=True):
