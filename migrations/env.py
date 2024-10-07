@@ -22,6 +22,9 @@ if ENVIRONMENT == "development":
 else:
     database_url = os.environ.get("DATABASE_URL")
 
+# Replace 'postgres://' with 'postgresql://'
+database_url = database_url.replace('postgres://', 'postgresql://')
+
 config.set_main_option("sqlalchemy.url", database_url)
 
 
