@@ -19,7 +19,7 @@ else:
     print(f"DATABASE_URL: {DATABASE_URL}")
 
     # Synchronous engine for PostgreSQL
-    engine = create_engine(DATABASE_URL, echo=True)
+    engine = create_engine(DATABASE_URL.replace('postgres://', 'postgresql://'), echo=True)
 
     # Asynchronous engine for PostgreSQL
-    async_engine = create_async_engine(DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://'), echo=True)
+    async_engine = create_async_engine(DATABASE_URL.replace('postgres://', 'postgresql+asyncpg://'), echo=True)
