@@ -1,8 +1,8 @@
 
+import os
 from logging.config import fileConfig
 from pathlib import Path
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 from alembic import context
 from file_management.models import SourceFile
@@ -13,8 +13,20 @@ from accounts.models import Account, User
 # access to the values within the .ini file in use.
 config = context.config
 
-DB_PATH = str(Path().parent / "source_db.db")
-config.set_main_option("sqlalchemy.url", f"sqlite:///{DB_PATH}")
+# Get the environment variable
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
+
+# Set the database URL based on the environment
+if ENVIRONMENT == "development":
+    database_url = os.environ.get("SQLALCHEMY_DATABASE_URL")
+else:
+    database_url = os.environ.get("DATABASE_URL")
+
+config.set_main_option("sqlalchemy.url", database_url)
+
+
+# DB_PATH = str(Path().parent / "source_db.db")
+# config.set_main_option("sqlalchemy.url", f"sqlite:///{DB_PATH}")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
