@@ -3,6 +3,7 @@ import requests
 import io
 import uuid
 import shutil
+import numpy as np
 import boto3
 import openai
 import asyncio
@@ -60,7 +61,8 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 if not openai.api_key:
     raise ValueError("OPENAI_API_KEY environment variable not set")
 
-BATCH_SIZE = 5461
+# BATCH_SIZE = 5461
+BATCH_SIZE = 100
 
 async def generate_chroma_db(account_unique_id, replace=False):
     """
@@ -173,6 +175,7 @@ async def save_chunks_to_remote_db(chunks: list[Document], chroma_path: str, rep
     """
     print(f"Saving chunks to remote Chroma DB at {chroma_path}.")
     embeddings_model = OpenAIEmbeddings()
+    expected_dimension = 975  # The dimension defined in your collection
     
     async for chunk_batch in batch(chunks):
         try:
@@ -182,17 +185,36 @@ async def save_chunks_to_remote_db(chunks: list[Document], chroma_path: str, rep
                     chunk.id = str(uuid.uuid4())
 
             # Generate embeddings for each chunk
-            # Use asyncio.gather to await multiple coroutines
             embedding_vectors = await asyncio.gather(
                 *[embeddings_model.aembed_documents(chunk.page_content) for chunk in chunk_batch]
             )
+
+            # Log the dimensions of the embeddings
+            for vec in embedding_vectors:
+                print(f"Initial embedding shape: {np.array(vec).shape}")
+
+            # Resize embeddings if necessary
+            resized_embeddings = []
+            for vec in embedding_vectors:
+                # Convert to numpy array if it is a list
+                vec = np.array(vec)
+
+                # Flatten the array to ensure it's one-dimensional
+                if vec.shape[0] != expected_dimension:
+                    print(f"Mismatch! Expected dimension: {expected_dimension}, but got: {vec.shape[0]}")
+                
+                # Resize or trim the embedding to match the expected dimension
+                resized = vec.flatten()[:expected_dimension]  # Take the first 'expected_dimension' elements
+
+                resized_embeddings.append(resized)
+                print(f"Resized embedding shape: {resized.shape}")
 
             # Preparing the payload for the API
             payload = {
                 "ids": [chunk.id for chunk in chunk_batch],
                 "documents": [chunk.page_content for chunk in chunk_batch],
                 "metadatas": [chunk.metadata for chunk in chunk_batch],
-                "embeddings": embedding_vectors,  # Use the generated embedding vectors
+                "embeddings": [vec.tolist() for vec in resized_embeddings],  # Convert to list for JSON serialization
                 "uris": []  # Optional: add URIs if applicable
             }
 
@@ -203,7 +225,6 @@ async def save_chunks_to_remote_db(chunks: list[Document], chroma_path: str, rep
             )
             if response.status_code != 201:
                 print(f"Error saving chunks to remote Chroma DB: {response.text}")
-                print(f"Failed to save chunks to remote Chroma DB: {response}")
                 return {"response": "error", "message": response.text}
             else:
                 print(f"Saved {len(chunk_batch)} chunks to remote ChromaDB at {collection_id}.")
@@ -211,6 +232,77 @@ async def save_chunks_to_remote_db(chunks: list[Document], chroma_path: str, rep
             print(f"Error saving chunks to remote Chroma DB: {e}")
             return {"response": "error", "message": str(e)}
         
+# async def save_chunks_to_remote_db(chunks: list[Document], chroma_path: str, replace: bool, headers: dict, json: dict, collection_id: str):
+#     """
+#     Save the chunks to the remote Chroma database using API calls.
+#     """
+#     print(f"Saving chunks to remote Chroma DB at {chroma_path}.")
+#     embeddings_model = OpenAIEmbeddings()
+    
+#     expected_dimension = 975  # Set your expected dimension
+    
+#     async for chunk_batch in batch(chunks):
+#         try:
+#             # Ensure each chunk has a unique ID
+#             for chunk in chunk_batch:
+#                 if chunk.id is None:
+#                     chunk.id = str(uuid.uuid4())
+
+#             # Generate embeddings for each chunk
+#             embedding_vectors = await asyncio.gather(
+#                 *[embeddings_model.aembed_documents(chunk.page_content) for chunk in chunk_batch]
+#             )
+
+#             # Log the dimensions of the embeddings and resize if necessary
+#             resized_vectors = []
+#             for vec in embedding_vectors:
+#                 print(f"Embedding dimension: {len(vec)}")
+#                 resized_vector = resize_vector(np.array(vec), expected_dimension)
+#                 resized_vectors.append(resized_vector.tolist())  # Convert to list for JSON serialization
+
+#             # Preparing the payload for the API
+#             payload = {
+#                 "ids": [chunk.id for chunk in chunk_batch],
+#                 "documents": [chunk.page_content for chunk in chunk_batch],
+#                 "metadatas": [chunk.metadata for chunk in chunk_batch],
+#                 "embeddings": resized_vectors,  # Use the resized embedding vectors
+#                 "uris": []  # Optional: add URIs if applicable
+#             }
+
+#             response = requests.post(
+#                 f"{chroma_path}/collections/{collection_id}/add", 
+#                 json=payload, 
+#                 headers=headers
+#             )
+#             if response.status_code != 201:
+#                 print(f"Error saving chunks to remote Chroma DB: {response.text}")
+#                 print(f"Failed to save chunks to remote Chroma DB: {response}")
+#                 return {"response": "error", "message": response.text}
+#             else:
+#                 print(f"Saved {len(chunk_batch)} chunks to remote ChromaDB at {collection_id}.")
+#         except Exception as e:
+#             print(f"Error saving chunks to remote Chroma DB: {e}")
+#             return {"response": "error", "message": str(e)}
+
+
+def resize_embedding(embedding, expected_size):
+    # Convert to numpy array if it is a list
+    if isinstance(embedding, list):
+        embedding = np.array(embedding)
+
+    current_size = embedding.shape[0]
+    
+    if current_size < expected_size:
+        # Pad with zeros if too small
+        resized = np.pad(embedding, (0, expected_size - current_size), 'constant')
+    elif current_size > expected_size:
+        # Trim if too large
+        resized = embedding[:expected_size]
+    else:
+        resized = embedding
+    
+    # Flatten to ensure it's a 1D array
+    return resized.flatten()
         
 
 async def create_chroma_db_dir(chroma_path: str):
