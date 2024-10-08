@@ -3,6 +3,7 @@ import requests
 import io
 import uuid
 import shutil
+import gc
 import numpy as np
 import boto3
 import openai
@@ -228,6 +229,7 @@ async def save_chunks_to_remote_db(chunks: list[Document], chroma_path: str, rep
                 return {"response": "error", "message": response.text}
             else:
                 print(f"Saved {len(chunk_batch)} chunks to remote ChromaDB at {collection_id}.")
+                gc.collect()
         except Exception as e:
             print(f"Error saving chunks to remote Chroma DB: {e}")
             return {"response": "error", "message": str(e)}
