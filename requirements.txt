@@ -20,7 +20,8 @@ cffi==1.17.1
 chardet==5.2.0
 charset-normalizer==3.3.2
 chroma-hnswlib==0.7.6
-chromadb==0.5.7
+chromadb==0.5.11
+chromadb-client==0.5.11
 click==8.1.7
 coloredlogs==15.0.1
 cryptography==43.0.1
