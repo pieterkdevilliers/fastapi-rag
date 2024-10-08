@@ -12,6 +12,7 @@ from docx import Document as DocxDocument
 import PyPDF2
 import pypandoc
 import markdown
+import chromadb
 from langchain_chroma import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
@@ -23,6 +24,7 @@ from dotenv import load_dotenv
 from file_management.models import SourceFile
 from db import async_engine
 from botocore.exceptions import ClientError
+from chromadb.api.types import EmbeddingFunction
 
 load_dotenv()
 
@@ -36,6 +38,24 @@ headers = {
     'X-Chroma-Token': CHROMA_SERVER_AUTHN_CREDENTIALS,
     'Content-Type': 'application/json'
 }
+
+embedding_function = OpenAIEmbeddings()
+# sample_text = "Sample text to check embedding size."
+# embedding = embedding_function.embed_documents([sample_text])
+# print(f"Embedding size: {len(embedding[0])}")
+
+class ChromaEmbeddingFunction(EmbeddingFunction):
+    def __init__(self):
+        self.embedding_function = OpenAIEmbeddings()
+
+    def __call__(self, input):
+        # Ensure that the input is a list of strings
+        if not isinstance(input, list):
+            input = [input]
+        return self.embedding_function.embed_documents(input)
+    
+    def get_dimension(self):
+        return self.embedding_function.get_dimension()
 
 # Initialize the S3 client
 s3 = boto3.client('s3')
@@ -102,11 +122,13 @@ async def generate_data_store(account_unique_id: str, replace: bool, session: As
     else:
         print(f"No chunks generated for account {account_unique_id}. Skipping Chroma DB creation.")
 
+
 async def save_to_chroma_in_batches(chunks: list[Document], chroma_path: str, replace: bool, account_unique_id: str):
     """
     Save the chunks to the Chroma database in batches.
     """
-    embeddings = OpenAIEmbeddings()
+    print(f"Saving chunks to Chroma DB at {chroma_path} save_to_chroma_in_batches.")
+    embedding_function = ChromaEmbeddingFunction()
 
     # Check if we are using a local or remote ChromaDB
     if ENVIRONMENT == 'development':
@@ -120,10 +142,10 @@ async def save_to_chroma_in_batches(chunks: list[Document], chroma_path: str, re
         db = None
         if replace:
             print(f"Creating new Chroma DB at {chroma_path}.")
-            db = await create_new_chroma_db(chroma_path, embeddings)
+            db = await create_new_chroma_db(chroma_path, embedding_function)
         else:
             print(f"Loading existing Chroma DB at {chroma_path}.")
-            db = Chroma(persist_directory=chroma_path, embedding_function=embeddings)
+            db = Chroma(persist_directory=chroma_path, embedding_function=embedding_function)
 
         if db is None:
             print("Error initializing Chroma DB.")
@@ -132,30 +154,42 @@ async def save_to_chroma_in_batches(chunks: list[Document], chroma_path: str, re
         await save_chunks_to_local_db(chunks, db, chroma_path)
     else:
         # Handle remote ChromaDB setup using HTTP API calls
+        print("Using remote ChromaDB setup.")
         data = {
             "database": "default_database",
             "name": (f"collection-{account_unique_id}"),
-            "tenant": "default_tenant"
+            "tenant": "default_tenant",
             }
+        print("data:", data)
+        
+        client = chromadb.HttpClient(host='https://fastapi-rag-chroma.onrender.com', port=8000, headers=headers)
+        print("client:", client)
         try:
-            response = requests.get(f'{chroma_path}/collections/collection-{account_unique_id}', headers=headers, json=data)
-            print("response id:", response.text)
-            # Parse the JSON response directly
-            response_data = response.json()
-            collection_id = response_data.get('id')
-            print(f"Collection ID: {collection_id}")
+            collection = client.get_collection(name=f"collection-{account_unique_id}", embedding_function=embedding_function)
+            print("collection:", collection.id)
+            collection_id = collection.id
         except Exception as e:
+            if "does not exist" in str(e).lower():
+                embedding_function = ChromaEmbeddingFunction()  # Should return embeddings of dimension 1536
+
+                # Create the Chroma collection with the correct embedding function
+                data = {
+                    "name": f"collection-{account_unique_id}",
+                    "tenant": "default_tenant",
+                    "database": "default_database",
+                    # "dimension": 1536,  # Ensure the correct dimension is set
+                }
+
+                collection = client.create_collection(name=f"collection-{account_unique_id}", embedding_function=embedding_function)
+                print("collection from create:", collection.id)
+                collection_id = collection.id
+                print(f"Collection ID: {collection_id}")
+            print(f"Error retrieving collection: {str(e)}")
             return {"response": "error", "message": str(e)}
-        
-        if response.status_code != 200:
-            response = requests.post(f'{chroma_path}/collections', headers=headers, json=data)
-            print("response:", response.text)
-            # Parse the JSON response directly
-            response_data = response.json()
-            collection_id = response_data.get('id')
-            print(f"Collection ID: {collection_id}")
-        
+    
+        collection_id = collection.id
         await save_chunks_to_remote_db(chunks, chroma_path, replace, headers=headers, json=data, collection_id=collection_id)
+
 
 async def save_chunks_to_local_db(chunks: list[Document], db: Chroma, chroma_path: str):
     """
@@ -176,7 +210,8 @@ async def save_chunks_to_remote_db(chunks: list[Document], chroma_path: str, rep
     """
     print(f"Saving chunks to remote Chroma DB at {chroma_path}.")
     embeddings_model = OpenAIEmbeddings()
-    expected_dimension = 975  # The dimension defined in your collection
+    # embeddings_model = ChromaEmbeddingFunction()
+    expected_dimension = 1536  # The dimension defined in your collection
     
     async for chunk_batch in batch(chunks):
         try:
