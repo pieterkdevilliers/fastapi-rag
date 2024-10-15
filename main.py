@@ -5,16 +5,17 @@ from typing import Any, Union
 from secrets import token_hex
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, APIRouter
 from sqlmodel import select, Session
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
+from pydantic import BaseModel
 from file_management.models import SourceFile
-from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db
+from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db, \
+    fetch_html_content, extract_text_from_html, prepare_for_s3_upload
 from accounts.models import Account, User
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db
 from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
-
-from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 
 # Initialize the S3 client
 s3 = boto3.client('s3')
@@ -195,48 +196,6 @@ async def upload_files(
 
     return {"response": "success", "uploaded_files": uploaded_files_info}
 
-# @app.post("/api/v1/files/{account_unique_id}")
-# async def upload_files(
-#     account_unique_id: str,
-#     files: list[UploadFile] = File(...),  # Accepting a list of files
-#     session: Session = Depends(get_session)):
-#     """
-#     Upload Multiple Files
-#     """
-#     if not files:
-#         return {"error": "No files provided"}
-    
-#     uploaded_files_info = []  # To store information about all uploaded files
-    
-#     directory = f'./files/{account_unique_id}'
-#     os.makedirs(directory, exist_ok=True)
-    
-#     for file in files:
-#         file_ext = file.filename.split('.')[-1]
-        
-#         # Generate unique file name
-#         file_name = file.filename.rsplit('.', 1)[0]
-#         file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
-#         file_path = os.path.join(directory, file_name)
-#         file_account = account_unique_id
-
-#         # Write file to the disk
-#         with open(file_path, "wb") as buffer:
-#             content = await file.read()
-#             buffer.write(content)
-        
-#         # Save file information to the database
-#         db_file = save_file_to_db(file_name, file_path, file_account, session)
-        
-#         # Collect file details for response
-#         uploaded_files_info.append({
-#             "file_name": file_name,
-#             "file_path": file_path,
-#             "file_id": db_file.id
-#         })
-    
-#     return {"response": "success", "uploaded_files": uploaded_files_info}
-
 
 @app.put("/api/v1/files/{account_unique_id}/{file_id}", response_model=Union[SourceFile, dict])
 async def update_file(file_id: int,
@@ -271,6 +230,26 @@ async def delete_file(account_unique_id: str, file_id: int, session: Session = D
     response = delete_file_from_db(account_unique_id, file_id, session)
     return {'response': 'success',
             'file_id': response['file_id']}
+    
+    
+class URLRequest(BaseModel):
+    """
+    URL Request
+    """
+    url: str
+    
+@app.post("/api/v1/get-text-from-url/{account_unique_id}")
+async def get_text_from_url(request: URLRequest, account_unique_id: str, session: Session = Depends(get_session)):
+    """
+    Get Text from URL
+    """
+    url = request.url
+    html_content = await fetch_html_content(url)
+    extracted_text = await extract_text_from_html(html_content)
+    saved_file = await prepare_for_s3_upload(extracted_text['text'], extracted_text['title'], account_unique_id, session)
+    # saved_file = await save_text_to_file(extracted_text['text'], extracted_text['title'], account_unique_id, url, session)
+    print(f"Received request to get text from URL: {request.url}")
+    return {"response": "success", "url": request.url}
 
 
 

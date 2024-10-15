@@ -182,3 +182,18 @@ class TestFileManagement(unittest.TestCase):
         deleted_account = response.json()
         self.assertEqual(deleted_account['response'], "success")
         self.assertTrue(deleted_account['file_id'])
+    
+    # Web URL to Files
+    
+    def test_get_text_from_url_returns_success_response(self):
+        """
+        Test get_text_from_url
+        """
+        url = "https://www.scottishshutters.co.uk/triangular-window-blind-ideas/"
+        response = self.client.post("/api/v1/get-text-from-url", json={"url": url, "account_unique_id": "18a318b688b04fa4"})
+        
+        # Check the status code first
+        self.assertEqual(response.status_code, 200)
+        
+        # Then check if the response is in the expected format
+        self.assertIsInstance(response.json(), dict)

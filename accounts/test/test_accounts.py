@@ -74,8 +74,8 @@ class TestAccounts(unittest.TestCase):
         """
         Test post_account
         """
-        account_unique_id = 'a6f3de5a43d26e9e'
-        account_id = 1
+        account_unique_id = 'e5e05b444298442e'
+        account_id = 34
         account_organisation = "Test Organisation Amended Test"
         updated_account = Account(account_organisation=account_organisation, account_unique_id=account_unique_id, id=account_id)
         response = self.client.put(f"/api/v1/accounts/{account_unique_id}", json=updated_account.model_dump())
