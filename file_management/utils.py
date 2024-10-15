@@ -21,6 +21,7 @@ def save_file_to_db(filename: str, file_path: str, file_account: str, session: S
     """
     Save Source File to DB
     """
+    filename = filename.lower().replace(" ", "_")
     db_file = SourceFile(file_name=filename,
                          file_path=file_path,
                          account_unique_id=file_account,
