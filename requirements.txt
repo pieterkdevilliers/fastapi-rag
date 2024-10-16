@@ -105,6 +105,7 @@ orderly-set==5.2.2
 orjson==3.10.7
 overrides==7.7.0
 packaging==24.1
+passlib==1.7.4
 pluggy==1.5.0
 posthog==3.6.6
 protobuf==4.25.5
@@ -117,6 +118,7 @@ pydantic==2.9.2
 pydantic-settings==2.5.2
 pydantic_core==2.23.4
 Pygments==2.18.0
+PyJWT==2.9.0
 pypandoc==1.13
 pypdf==5.0.0
 PyPDF2==3.0.1

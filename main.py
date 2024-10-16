@@ -1,11 +1,16 @@
 import os
-import boto3
-import shutil
-from typing import Any, Union
+from typing import Any, Union, Annotated
 from secrets import token_hex
-from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, APIRouter
+import shutil
+import jwt
+import boto3
+from datetime import datetime, timedelta, timezone
+from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jwt.exceptions import InvalidTokenError
 from sqlmodel import select, Session
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
+from passlib.context import CryptContext
 from pydantic import BaseModel
 from file_management.models import SourceFile
 from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db, \
@@ -26,9 +31,17 @@ BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
 
 app = FastAPI()
 
-# Define the upload directory
-# UPLOAD_DIR = "data"
-# os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+############################################
+#  Authentication
+############################################
+
+SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 # Dependency
@@ -38,18 +51,139 @@ def get_session():
     """
     with Session(engine) as session:
         yield session
+        
+
+
+############################################
+#  Authentication Routes
+############################################
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: str | None = None
+
+
+def verify_password(plain_password, hashed_password):
+    """
+    Verify Password
+    """
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password):
+    """
+    Get Password Hash
+    """
+    return pwd_context.hash(password)
+
+
+
+@app.get("/api/v1/root")
+async def read_root(token: Annotated[str, Depends(oauth2_scheme)]):
+    """
+    Root Route
+    """
+    return {"token": token}
+    
+
+def get_auth_user(user_email: str, session: Session = Depends(get_session)):
+    """
+    Get Auth User
+    """
+    statement = select(User).where(User.user_email == user_email)
+    result = session.exec(statement)
+    user = result.first()
+    if user:
+        user_dict = user.model_dump()
+        return user_dict
+    return None
+
+
+def authenticate_user(user_email: str, password: str, session: Session = Depends(get_session)):
+    """
+    Authenticate User
+    """
+    user = get_auth_user(user_email, session=session)
+    if not user:
+        return False
+    if not verify_password(password, user['user_password']):
+        return False
+    return user
+
+
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    """
+    Create Access Token
+    """
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], session: Session = Depends(get_session)):
+    """
+    Get Current User
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_email: str = payload.get("sub")
+        if user_email is None:
+            raise credentials_exception
+        token_data = TokenData(username=user_email)
+    except InvalidTokenError:
+        raise credentials_exception
+    user = get_auth_user(token_data.username, session=session)
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+async def get_current_active_user(current_user: Annotated[User, Depends(get_current_user)]):
+    """
+    Get Current Active User
+    """
+    return current_user
+
+
+@app.post("/token")
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    session: Session = Depends(get_session)) -> Token:
+    """
+    Login for Access Token
+    """
+    user = authenticate_user(form_data.username, form_data.password, session=session)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user['user_email']}, expires_delta=access_token_expires
+    )
+    return Token(access_token=access_token, token_type="bearer")
 
 
 ############################################
 # Main Routes
 ############################################
 
-@app.get("/api/v1/root")
-async def read_root():
-    """
-    Root Route
-    """
-    return {"Hello": "World"}
 
 
 @app.get("/api/v1/query-data/{account_unique_id}")
@@ -65,7 +199,9 @@ async def query_data(query: str, account_unique_id: str, session: Session = Depe
 
 
 @app.get("/api/v1/generate-chroma-db/{account_unique_id}")
-async def generate_chroma_db_datastore(account_unique_id: str, replace: bool = False) -> dict[str, Any]:
+async def generate_chroma_db_datastore(account_unique_id: str,
+                                       current_user: Annotated[User, Depends(get_current_active_user)],
+                                       replace: bool = False) -> dict[str, Any]:
     """
     Generate Chroma DB
     """
@@ -82,7 +218,7 @@ async def generate_chroma_db_datastore(account_unique_id: str, replace: bool = F
 
 
 @app.get("/api/v1/clear-chroma-db/{account_unique_id}")
-async def clear_chroma_db_datastore(account_unique_id: str) -> dict[str, Any]:
+async def clear_chroma_db_datastore(account_unique_id: str, current_user: Annotated[User, Depends(get_current_active_user)]) -> dict[str, Any]:
     """
     Clear Chroma DB
     """
@@ -101,7 +237,8 @@ async def clear_chroma_db_datastore(account_unique_id: str) -> dict[str, Any]:
 ############################################
 
 @app.get("/api/v1/files/{account_unique_id}")
-async def get_files(account_unique_id: str, session: Session = Depends(get_session)):
+async def get_files(account_unique_id: str, current_user: Annotated[User, Depends(get_current_active_user)],
+                    session: Session = Depends(get_session)):
     """
     Get All Files
     """
@@ -121,7 +258,9 @@ async def get_files(account_unique_id: str, session: Session = Depends(get_sessi
 
 
 @app.get("/api/v1/files/{account_unique_id}/{file_id}")
-async def get_file(account_unique_id: str, file_id: int, session: Session = Depends(get_session)):
+async def get_file(account_unique_id: str, file_id: int,
+                   current_user: Annotated[User, Depends(get_current_active_user)],
+                   session: Session = Depends(get_session)):
     """
     Get File By ID
     """
@@ -138,10 +277,10 @@ async def get_file(account_unique_id: str, file_id: int, session: Session = Depe
 
 
 @app.post("/api/v1/files/{account_unique_id}")
-async def upload_files(
-    account_unique_id: str,
-    files: list[UploadFile] = File(...),  # Accepting a list of files
-    session: Session = Depends(get_session)):
+async def upload_files(account_unique_id: str,
+                       current_user: Annotated[User, Depends(get_current_active_user)],
+                       files: list[UploadFile] = File(...),
+                       session: Session = Depends(get_session)):
     """
     Upload Multiple Files to S3 in a subfolder for the given account_unique_id,
     and store metadata in the database.
@@ -199,6 +338,7 @@ async def upload_files(
 
 @app.put("/api/v1/files/{account_unique_id}/{file_id}", response_model=Union[SourceFile, dict])
 async def update_file(file_id: int,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
                       updated_file: SourceFile = Body(...),
                       session: Session = Depends(get_session)):
     """
@@ -217,7 +357,9 @@ async def update_file(file_id: int,
 
 
 @app.delete("/api/v1/files/{account_unique_id}/{file_id}")
-async def delete_file(account_unique_id: str, file_id: int, session: Session = Depends(get_session)):
+async def delete_file(account_unique_id: str, file_id: int,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      session: Session = Depends(get_session)):
     """
     Delete File
     """
@@ -239,7 +381,9 @@ class URLRequest(BaseModel):
     url: str
     
 @app.post("/api/v1/get-text-from-url/{account_unique_id}")
-async def get_text_from_url(request: URLRequest, account_unique_id: str, session: Session = Depends(get_session)):
+async def get_text_from_url(request: URLRequest, account_unique_id: str,
+                            current_user: Annotated[User, Depends(get_current_active_user)],
+                            session: Session = Depends(get_session)):
     """
     Get Text from URL
     """
@@ -258,7 +402,8 @@ async def get_text_from_url(request: URLRequest, account_unique_id: str, session
 ############################################
 
 @app.get("/api/v1/accounts")
-async def get_accounts(session: Session = Depends(get_session)):
+async def get_accounts(current_user: Annotated[User, Depends(get_current_active_user)],
+                       session: Session = Depends(get_session)):
     """
     Get All Accounts
     """
@@ -291,7 +436,9 @@ async def create_account(account_organisation: str, session: Session = Depends(g
 
 
 @app.put("/api/v1/accounts/{account_unique_id}", response_model=Union[Account, dict])
-async def edit_account(account_unique_id: str, updated_account: Account, session: Session = Depends(get_session)):
+async def edit_account(account_unique_id: str, updated_account: Account, 
+                       current_user: Annotated[User, Depends(get_current_active_user)],
+                       session: Session = Depends(get_session)):
     """
     Edit Account
     """
@@ -303,7 +450,9 @@ async def edit_account(account_unique_id: str, updated_account: Account, session
 
 
 @app.delete("/api/v1/accounts/{account_unique_id}")
-async def delete_account(account_unique_id: str, session: Session = Depends(get_session)):
+async def delete_account(account_unique_id: str,
+                         current_user: Annotated[User, Depends(get_current_active_user)],
+                         session: Session = Depends(get_session)):
     """
     Delete Account
     """
@@ -313,7 +462,9 @@ async def delete_account(account_unique_id: str, session: Session = Depends(get_
 
 
 @app.get("/api/v1/accounts/{account_unique_id}")
-async def get_account(account_unique_id: str, session: Session = Depends(get_session)):
+async def get_account(account_unique_id: str,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      session: Session = Depends(get_session)):
     """
     Get Account By ID
     """
@@ -333,7 +484,8 @@ async def get_account(account_unique_id: str, session: Session = Depends(get_ses
 ############################################
 
 @app.get("/api/v1/users")
-async def get_users(session: Session = Depends(get_session)):
+async def get_users(current_user: Annotated[User, Depends(get_current_active_user)],
+                    session: Session = Depends(get_session)):
     """
     Get all Users
     """
@@ -354,10 +506,13 @@ async def get_users(session: Session = Depends(get_session)):
 
 
 @app.post("/api/v1/users/{account_unique_id}/{user_email}/{user_password}")
-async def create_user(account_unique_id: str, user_email: str, user_password: str, session: Session = Depends(get_session)):
+async def create_user(account_unique_id: str, user_email: str, user_password: str,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      session: Session = Depends(get_session)):
     """
     Create User
     """
+    user_password = get_password_hash(user_password)
     user = create_new_user_in_db(user_email, user_password, account_unique_id, session)
     
     return {"response": "success",
@@ -367,7 +522,9 @@ async def create_user(account_unique_id: str, user_email: str, user_password: st
 
 
 @app.put("/api/v1/users/{account_unique_id}/{user_id}", response_model=Union[User, dict])
-async def edit_user(account_unique_id: str, user_id: int, updated_user: User, session: Session = Depends(get_session)):
+async def edit_user(account_unique_id: str, user_id: int, updated_user: User,
+                    current_user: Annotated[User, Depends(get_current_active_user)],
+                    session: Session = Depends(get_session)):
     """
     Edit User
     """
@@ -383,7 +540,9 @@ async def edit_user(account_unique_id: str, user_id: int, updated_user: User, se
 
 
 @app.delete("/api/v1/users/{account_unique_id}/{user_id}")
-async def delete_user(account_unique_id: str, user_id: int, session: Session = Depends(get_session)):
+async def delete_user(account_unique_id: str, user_id: int,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      session: Session = Depends(get_session)):
     """
     Delete User
     """
@@ -394,7 +553,9 @@ async def delete_user(account_unique_id: str, user_id: int, session: Session = D
 
 
 @app.get("/api/v1/users/{account_unique_id}/{user_id}")
-async def get_user(account_unique_id: str, user_id: int, session: Session = Depends(get_session)):
+async def get_user(account_unique_id: str, user_id: int,
+                   current_user: Annotated[User, Depends(get_current_active_user)],
+                   session: Session = Depends(get_session)):
     """
     Get User By ID
     """
