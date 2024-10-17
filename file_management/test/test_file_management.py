@@ -1,3 +1,4 @@
+from contextlib import AbstractContextManager
 import unittest
 import asyncio
 from unittest.mock import AsyncMock, patch
@@ -137,6 +138,18 @@ class TestFileManagement(unittest.TestCase):
         self.assertIn("file", file)
         self.assertIsInstance(file["file"], dict)
     
+    def test_get_files_in_folder_returns_files_when_found(self):
+        """
+        Test get_files_in_folder
+        """
+        account_unique_id = "18a318b688b04fa4"
+        folder_id = 1
+        response = self.client.get(f"/api/v1/files/{account_unique_id}/{folder_id}")
+        files = response.json()
+        self.assertIsInstance(files, dict)
+        self.assertIn("files", files)
+        self.assertIsInstance(files["files"], list)
+    
     def test_update_file_returns_file_in_success_response(self):
         """
         Test update_file
@@ -183,7 +196,9 @@ class TestFileManagement(unittest.TestCase):
         self.assertEqual(deleted_account['response'], "success")
         self.assertTrue(deleted_account['file_id'])
     
+    ############################
     # Web URL to Files
+    ############################
     
     def test_get_text_from_url_returns_success_response(self):
         """
@@ -197,3 +212,118 @@ class TestFileManagement(unittest.TestCase):
         
         # Then check if the response is in the expected format
         self.assertIsInstance(response.json(), dict)
+    
+    ############################
+    # Folders
+    ############################
+    
+    def test_get_folders_returns_folders_when_found(self):
+        """
+        Test get_folders
+        """
+        account_unique_id = "c94d82587aea5298"
+        response = self.client.get(f"/api/v1/folders/{account_unique_id}")
+        folders = response.json()
+        self.assertIsInstance(folders, dict)
+        self.assertIn("folders", folders)
+        self.assertIsInstance(folders["folders"], list)
+    
+    def test_get_folders_returns_error_response_if_no_folders_found(self):
+        """
+        Test get_folders with no folders found
+        """
+        account_unique_id = "18a318b688b04fa4"
+        response = self.client.get(f"/api/v1/folders/{account_unique_id}")
+        folders = response.json()
+        self.assertIsInstance(folders, dict)
+        self.assertEqual(folders, {"error": "No folders found"})
+        
+    def test_get_folder_returns_folder_when_found(self):
+        """
+        Test get_folder
+        """
+        account_unique_id = "c94d82587aea5298"
+        folder_id = 1
+        response = self.client.get(f"/api/v1/folder/{account_unique_id}/{folder_id}")
+        folder = response.json()
+        self.assertIsInstance(folder, dict)
+        self.assertIn("folder", folder)
+        self.assertIsInstance(folder["folder"], list)
+    
+    def test_get_folder_returns_error_response_if_no_folder_found(self):
+        """
+        Test get_folder with no folder found
+        """
+        account_unique_id = "18a318b688b04fa4"
+        folder_id = 100
+        response = self.client.get(f"/api/v1/folder/{account_unique_id}/{folder_id}")
+        folder = response.json()
+        self.assertIsInstance(folder, dict)
+        self.assertEqual(folder, {"error": "No folder found"})
+
+    def test_post_folders_returns_success_response(self):
+        """
+        Test post_folders
+        """
+        folder_name = "Test Folder"
+        account_unique_id = "18a318b688b04fa4"
+        response = self.client.post(f"/api/v1/folders/{account_unique_id}/{folder_name}")
+        folder = response.json()
+        self.assertIsInstance(folder, dict)
+        self.assertIn("response", folder)
+        self.assertEqual(folder["response"], "success")
+    
+    def test_post_folders_returns_error_response_if_folder_already_exists(self):
+        """
+        Test post_folders with folder already exists
+        """
+        folder_name = "Test Folder"
+        account_unique_id = "18a318b688b04fa4"
+        response = self.client.post(f"/api/v1/folders/{account_unique_id}/{folder_name}")
+        folder = response.json()
+        self.assertIsInstance(folder, dict)
+        self.assertEqual(folder, {"error": "Folder already exists"})
+    
+    def test_put_folders_returns_success_response(self):
+        """
+        Test put_folders
+        """
+        folder_name = "Test Folder"
+        account_unique_id = "18a318b688b04fa4"
+        response = self.client.put(f"/api/v1/folders/{account_unique_id}/{folder_name}")
+        folder = response.json()
+        self.assertIsInstance(folder, dict)
+        self.assertIn("response", folder)
+        self.assertEqual(folder["response"], "success")
+    
+    def test_put_folders_returns_error_response_if_folder_not_found(self):
+        """
+        Test put_folders with folder not found
+        """
+        folder_name = "Test Folder"
+        account_unique_id = "18a318b688b04fa4"
+        response = self.client.put(f"/api/v1/folders/{account_unique_id}/{folder_name}")
+        folder = response.json()
+        self.assertIsInstance(folder, dict)
+        self.assertEqual(folder, {"error": "Folder not found"})
+        
+    def test_delete_folders_returns_success_response(self):
+        """
+        Test delete_folders
+        """
+        folder_id = 1
+        response = self.client.delete(f"/api/v1/folder/{folder_id}")
+        folder = response.json()
+        self.assertIsInstance(folder, dict)
+        self.assertIn("response", folder)
+        self.assertEqual(folder["response"], "success")
+        
+    def test_delete_folders_returns_error_response_if_folder_not_found(self):
+        """
+        Test delete_folders with folder not found
+        """
+        folder_id = 100
+        response = self.client.delete(f"/api/v1/folder/{folder_id}")
+        folder = response.json()
+        self.assertIsInstance(folder, dict)
+        self.assertEqual(folder, {"error": "Folder not found", "folder_id": folder_id})

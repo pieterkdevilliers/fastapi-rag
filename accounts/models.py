@@ -16,13 +16,14 @@ class Account(AccountBase, table=True):
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     users: List["User"] = Relationship(back_populates="account")
+    folders: List["Folder"] = Relationship(back_populates="account")
     source_files: List["SourceFile"] = Relationship(back_populates="account")
     relevance_score: float = Field(default=0.7, nullable=True)
     k_value: int = Field(default=3, nullable=True)
     chunk_size: int = Field(default=1000, nullable=True)
     chunk_overlap: int = Field(default=500, nullable=True)
 
-from file_management.models import SourceFile
+from file_management.models import SourceFile, Folder
 
 
 class UserBase(SQLModel):

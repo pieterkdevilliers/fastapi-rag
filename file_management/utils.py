@@ -2,7 +2,7 @@ import os
 import boto3
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
-from file_management.models import SourceFile
+from file_management.models import SourceFile, Folder
 from secrets import token_hex
 from fastapi import HTTPException, Request
 from pydantic import BaseModel
@@ -17,12 +17,13 @@ s3 = boto3.client('s3')
 BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
         
 
-def save_file_to_db(filename: str, file_path: str, file_account: str, session: Session):
+def save_file_to_db(filename: str, file_path: str, file_account: str, folder_id: int, session: Session):
     """
     Save Source File to DB
     """
     filename = filename.lower().replace(" ", "_")
     db_file = SourceFile(file_name=filename,
+                         folder_id=folder_id,
                          file_path=file_path,
                          account_unique_id=file_account,
                          included_in_source_data=True)
@@ -154,4 +155,53 @@ async def save_text_to_file(text, title, account_unique_id: str, url: str, sessi
     return {"message": "Text successfully extracted and saved", "file_path": file_path}
 
 
+def create_new_folder_in_db(account_unique_id: str, folder_name: str, session: Session):
+    """
+    Save New Folder to DB
+    """
+
+    folder = Folder(account_unique_id=account_unique_id,
+                      folder_name=folder_name)
+    session.add(folder)
+    session.commit()
+    session.refresh(folder)
     
+    return folder
+
+
+def update_folder_in_db(folder_id: int, updated_folder: Folder, session: Session):
+    """
+    Update Folder in DB
+    """
+    folder = session.exec(select(Folder).where(Folder.id == folder_id)).first()
+    
+    if not folder:
+        return {"error": "Folder not found"}
+    
+    updated_folder_dict = updated_folder.model_dump(exclude_unset=True, exclude={"id"})
+    for key, value in updated_folder_dict.items():
+        setattr(folder, key, value)
+    session.add(folder)
+    session.commit()
+    session.refresh(folder)
+    
+    return folder
+
+
+def delete_folder_from_db(folder_id: str, session: Session):
+    """
+    Delete Account from DB
+    """
+    statement = select(Folder).filter(Folder.id == folder_id)
+    result = session.exec(statement)
+    folder = result.first()
+    
+    if not folder:
+        return {"error": "Folder not found",
+                "folder_id": folder_id}
+    
+    session.delete(folder)
+    session.commit()
+    
+    return {"response": "success",
+            "folder_id": folder_id}

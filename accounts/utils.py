@@ -22,10 +22,7 @@ def update_account_in_db(account_unique_id: str, updated_account: Account, sessi
     """
     Update Account in DB
     """
-    print('******************account_unique_id:', account_unique_id)
-    print('******************updated_account:', updated_account)
     account = session.exec(select(Account).where(Account.account_unique_id == account_unique_id)).first()
-    print('***********************account:', account)
     
     if not account:
         return {"error": "Account not found"}
