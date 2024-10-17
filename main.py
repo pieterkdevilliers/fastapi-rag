@@ -9,9 +9,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import select, Session
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from pydantic import BaseModel
-from file_management.models import SourceFile
+from file_management.models import SourceFile, Folder
 from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db, \
-    fetch_html_content, extract_text_from_html, prepare_for_s3_upload
+    fetch_html_content, extract_text_from_html, prepare_for_s3_upload, create_new_folder_in_db, \
+    update_folder_in_db, delete_folder_from_db
 from accounts.models import Account, User
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db
@@ -121,13 +122,36 @@ async def clear_chroma_db_datastore(account_unique_id: str, current_user: Annota
 ############################################
 
 @app.get("/api/v1/files/{account_unique_id}")
-async def get_files(account_unique_id: str, current_user: Annotated[User, Depends(get_current_active_user)],
+async def get_files(account_unique_id: str,
+                    current_user: Annotated[User, Depends(get_current_active_user)],
                     session: Session = Depends(get_session)):
     """
     Get All Files
     """
     returned_files = []
     statement = select(SourceFile).filter(SourceFile.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    files = result.all()
+    for file in files:
+        returned_files.append(file)
+    print(type(returned_files))
+
+    if not returned_files:
+        return {"error": "No files found",
+                "files": returned_files}
+    
+    return {"files": returned_files}
+
+
+@app.get("/api/v1/files/{account_unique_id}/{folder_id}")
+async def get_files_in_folder(account_unique_id: str, folder_id: int,
+                              current_user: Annotated[User, Depends(get_current_active_user)],
+                              session: Session = Depends(get_session)):
+    """
+    Get All Files in a Folder
+    """
+    returned_files = []
+    statement = select(SourceFile).filter(SourceFile.account_unique_id == account_unique_id, SourceFile.folder_id == folder_id)
     result = session.exec(statement)
     files = result.all()
     for file in files:
@@ -160,8 +184,9 @@ async def get_file(account_unique_id: str, file_id: int,
             "file": file}
 
 
-@app.post("/api/v1/files/{account_unique_id}")
+@app.post("/api/v1/files/{account_unique_id}/{folder_id}")
 async def upload_files(account_unique_id: str,
+                       folder_id: int,
                        current_user: Annotated[User, Depends(get_current_active_user)],
                        files: list[UploadFile] = File(...),
                        session: Session = Depends(get_session)):
@@ -201,7 +226,7 @@ async def upload_files(account_unique_id: str,
             file_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
 
             # Save file information to the database (adjust this function to your schema)
-            db_file = save_file_to_db(unique_file_name, file_url, file_account, session)
+            db_file = save_file_to_db(unique_file_name, file_url, file_account, folder_id, session)
 
             # Collect file details for response
             uploaded_files_info.append({
@@ -279,6 +304,106 @@ async def get_text_from_url(request: URLRequest, account_unique_id: str,
     print(f"Received request to get text from URL: {request.url}")
     return {"response": "success", "url": request.url}
 
+
+@app.get("/api/v1/folders/{account_unique_id}")
+async def get_folders(account_unique_id: str,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      session: Session = Depends(get_session)):
+    """
+    Get Folders
+    """
+    statement = select(Folder).filter(Folder.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    folders = []
+    for item in result:
+        folders.append(item)
+    
+    if not folders:
+        return {"error": "No folders found"}
+    
+    if folders:
+        return {"response": "success",
+                "folders": folders}
+
+
+@app.get("/api/v1/folders/{account_unique_id}/{folder_id}")
+async def get_folder(account_unique_id: str,
+                     folder_id: int,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      session: Session = Depends(get_session)):
+    """
+    Get Folders
+    """
+    statement = select(Folder).filter(Folder.account_unique_id == account_unique_id, Folder.id == folder_id)
+    result = session.exec(statement)
+    folder = result.first()
+    
+    if not folder:
+        return {"error": "No folder found"}
+    
+    if folder:
+        return {"response": "success",
+                "folder": folder}
+
+
+@app.post("/api/v1/folders/{account_unique_id}/{folder_name}")
+async def create_folder(account_unique_id: str,
+                        folder_name: str,
+                          current_user: Annotated[User, Depends(get_current_active_user)],
+                        session: Session = Depends(get_session)):
+    """
+    Create Account
+    """
+    statement = select(Folder).filter(Folder.account_unique_id == account_unique_id, Folder.folder_name == folder_name)
+    result = session.exec(statement)
+    folder = result.first()
+    
+    if folder:
+        return {"error": "Folder already exists",
+                "folder_name": folder_name,
+                "folder_id": folder.id,
+                "account_unique_id": account_unique_id}
+        
+    folder = create_new_folder_in_db(account_unique_id, folder_name, session)
+    
+    return {"response": "success",
+            "folder": folder,
+            "folder_name": folder.folder_name,
+            "account_unique_id": folder.account_unique_id}
+    
+
+@app.put("/api/v1/folders/{account_unique_id}/{folder_id}", response_model=Union[Folder, dict])
+async def edit_folder(account_unique_id: str, folder_id: int, updated_folder: Folder,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      session: Session = Depends(get_session)):
+    """
+    Edit Folder
+    """
+    folder = session.get(Folder, folder_id)
+    
+    if not folder:
+        return {"error": "Folder not found",
+                "folder_id": folder_id}
+    
+    updated_folder = update_folder_in_db(folder_id, updated_folder, session)
+    
+    return updated_folder
+
+
+@app.delete("/api/v1/folder/{folder_id}")
+async def delete_folder(folder_id: int,
+                         current_user: Annotated[User, Depends(get_current_active_user)],
+                         session: Session = Depends(get_session)):
+    """
+    Delete Folder
+    """
+    response = delete_folder_from_db(folder_id, session)
+    if response.get('error'):
+        return {"error": response['error'],
+                'folder_id': response['folder_id']}
+    
+    return {'response': 'success',
+            'folder_id': response['folder_id']}
 
 
 ############################################

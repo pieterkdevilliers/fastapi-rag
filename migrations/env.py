@@ -5,7 +5,7 @@ from pathlib import Path
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 from alembic import context
-from file_management.models import SourceFile
+from file_management.models import SourceFile, Folder
 from accounts.models import Account, User
 
 
