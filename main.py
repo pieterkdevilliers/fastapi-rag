@@ -20,7 +20,7 @@ from accounts.utils import create_new_account_in_db, update_account_in_db, delet
 from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
-from authentication import oauth2_scheme, Token, authenticate_user, create_access_token, \
+from authentication import oauth2_scheme, Token, authenticate_user, get_password_hash, create_access_token, \
     get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES
 from dependencies import get_session
     
