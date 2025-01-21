@@ -6,6 +6,7 @@ import boto3
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import select, Session
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from pydantic import BaseModel
@@ -32,6 +33,15 @@ BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
 
 
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Replace with your frontend's origin
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 
 ############################################
