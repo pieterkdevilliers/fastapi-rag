@@ -73,7 +73,9 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     access_token = create_access_token(
         data={"sub": user['user_email']}, expires_delta=access_token_expires
     )
-    return Token(access_token=access_token, token_type="bearer")
+    else:
+    account_unique_id = user['account_unique_id']
+    return Token(access_token=access_token, token_type="bearer", account_unique_id=account_unique_id)
 
 
 ############################################
