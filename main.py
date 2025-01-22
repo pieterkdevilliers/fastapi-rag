@@ -199,13 +199,13 @@ async def get_account(account_unique_id: str, session: Session = Depends(get_ses
 # Users Routes
 ############################################
 
-@app.get("/api/v1/users")
-async def get_users(session: Session = Depends(get_session)):
+@app.get("/api/v1/users/{account_unique_id}")
+async def get_users(account_unique_id: str, session: Session = Depends(get_session)):
     """
     Get all Users
     """
     returned_users = []
-    statement = select(User).filter()
+    statement = select(User).filter(User.account_unique_id == account_unique_id)
     result = session.exec(statement)
     users = result.all()
     
