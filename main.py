@@ -530,7 +530,7 @@ async def get_users(current_user: Annotated[User, Depends(get_current_active_use
 
 @app.post("/api/v1/users/{account_unique_id}/{user_email}/{user_password}")
 async def create_user(account_unique_id: str, user_email: str, user_password: str,
-                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      current_user: Annotated[User, Depends()],
                       session: Session = Depends(get_session)):
     """
     Create User
