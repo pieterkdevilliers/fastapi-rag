@@ -510,7 +510,8 @@ async def get_users(current_user: Annotated[User, Depends(get_current_active_use
     Get all Users
     """
     returned_users = []
-    statement = select(User).filter()
+    account_unique_id = current_user['account_unique_id']
+    statement = select(User).filter(User.account_unique_id == account_unique_id)
     result = session.exec(statement)
     users = result.all()
     
