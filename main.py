@@ -74,7 +74,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
         data={"sub": user['user_email']}, expires_delta=access_token_expires
     )
 
-    account_unique_id = user['account_unique_id']
+    account_unique_id = user.get('account_unique_id')
     return Token(account_unique_id=account_unique_id, access_token=access_token, token_type="bearer")
 
 
