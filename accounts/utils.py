@@ -2,6 +2,7 @@ from secrets import token_hex
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
 from accounts.models import Account, User
+from authentication import get_password_hash
 
 
 def create_new_account_in_db(account_organisation: str, session: Session):
@@ -78,6 +79,9 @@ def update_user_in_db(account_unique_id: str, user_id: int, updated_user: User, 
     
     updated_user_dict = updated_user.model_dump(exclude_unset=True)
     for key, value in updated_user_dict.items():
+        if key == "password":
+            hashed_password = get_password_hash(value)
+            value = hashed_password
         setattr(user, key, value)
         
     session.add(user)
