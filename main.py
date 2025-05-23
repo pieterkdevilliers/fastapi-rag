@@ -218,6 +218,7 @@ async def upload_files(account_unique_id: str,
             # Generate unique file name
             file_name = file.filename.rsplit('.', 1)[0]
             unique_file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
+            unique_file_name = unique_file_name.lower()
             file_account = account_unique_id
 
             # Simulate the subfolder by including account_unique_id in the S3 key
