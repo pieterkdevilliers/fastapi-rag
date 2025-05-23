@@ -79,7 +79,7 @@ def update_user_in_db(account_unique_id: str, user_id: int, updated_user: User, 
     
     updated_user_dict = updated_user.model_dump(exclude_unset=True)
     for key, value in updated_user_dict.items():
-        if key == "password":
+        if key == "user_password":
             hashed_password = get_password_hash(value)
             value = hashed_password
         setattr(user, key, value)
