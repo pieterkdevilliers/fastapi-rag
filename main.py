@@ -10,6 +10,7 @@ from datetime import timedelta
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from sqlmodel import select, Session
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from pydantic import BaseModel
@@ -381,6 +382,58 @@ async def delete_file(account_unique_id: str, file_id: int,
     response = delete_file_from_db(account_unique_id, file_id, session)
     return {'response': 'success',
             'file_id': response['file_id']}
+
+
+@app.get("/api/v1/files/view/{account_unique_id}/{file_identifier}",
+                    response_class=StreamingResponse,,
+                    summary="View a specific document from S3",
+                    tags=["Documents"])
+async def stream_file_from_s3(account_unique_id: str, file_identifier: str,
+                   current_user: Annotated[User, Depends(get_current_active_user)],
+                   session: Session = Depends(get_session)):
+    """
+    Get File By S3 key identifier
+    """
+    if hasattr(current_user, 'account_unique_id') and current_user.account_unique_id != account_unique_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: You are not authorized to access files for this account."
+        )
+    
+
+    # Construct the S3 key
+    s3_key = f"{account_unique_id}/{file_identifier}"
+
+    print(f"Attempting to fetch S3 object: Bucket='{BUCKET_NAME}', Key='{s3_key}'")
+
+    try:
+        s3_object = s3.get_object(Bucket=BUCKET_NAME, Key=s3_key)
+    except s3.exceptions.NoSuchKey:
+        print(f"S3 Error: NoSuchKey for Key='{s3_key}'")
+        raise HTTPException(status_code=404, detail=f"File '{file_identifier}' not found.")
+    except Exception as e:
+        print(f"S3 Error fetching Key='{s3_key}': {e}")
+        raise HTTPException(status_code=500, detail=f"Error accessing file: {str(e)}")
+
+    file_content_bytes = s3_object['Body'].read()
+    
+    # Assuming all files retrieved via this endpoint are PDFs due to earlier conversion
+    content_type = s3_object.get('ContentType', 'application/pdf') # Default to application/pdf
+    if not content_type.lower().startswith('application/pdf'):
+        print(f"Warning: S3 ContentType for '{s3_key}' is '{content_type}'. Forcing 'application/pdf' for response.")
+        content_type = 'application/pdf'
+
+
+    response_headers = {
+        "Content-Disposition": f"inline; filename=\"{file_identifier}\"", # Use the identifier as filename
+        "Content-Type": content_type
+    }
+
+    return StreamingResponse(
+        io.BytesIO(file_content_bytes),
+        media_type=content_type,
+        headers=response_headers
+    )
     
     
 class URLRequest(BaseModel):
