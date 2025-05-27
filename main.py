@@ -246,7 +246,7 @@ async def upload_files(account_unique_id: str,
                         converted_pdf_path = convert_to_pdf.convert_to_pdf_pandoc(
                             input_path=temp_input_file_path,
                             output_dir=temp_output_dir,
-                            input_format_ext=original_file_ext # Pass the original extension
+                            input_format=original_file_ext # Pass the original extension
                         )
                         
                         with open(converted_pdf_path, 'rb') as f_pdf:
