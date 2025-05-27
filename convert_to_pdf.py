@@ -1,6 +1,8 @@
 import os
 import subprocess
 import tempfile
+from weasyprint import HTML, CSS
+from weasyprint.fonts import FontConfiguration
 
 def convert_to_html_pandoc(input_path: str, output_dir: str, input_format: str = "docx") -> str:
     """Converts a document to HTML using Pandoc.
@@ -36,6 +38,34 @@ def convert_to_html_pandoc(input_path: str, output_dir: str, input_format: str =
         raise Exception(f"Pandoc conversion seemed to succeed but HTML file {html_filename} not found.")
             
     return html_filename
+
+
+def convert_html_to_pdf_weasyprint(html_input: str, output_pdf_path: str, is_file_path: bool = False):
+    """
+    Converts HTML content or an HTML file to a PDF file using WeasyPrint.
+
+    :param html_input: HTML content as a string OR path to an HTML file.
+    :param output_pdf_path: The full path where the output PDF should be saved.
+    :param is_file_path: Set to True if html_input is a file path, False if it's an HTML string.
+    """
+    try:
+        # font_config = FontConfiguration() # Optional: for custom font configurations
+        # css = CSS(string='@page { size: A4; margin: 2cm }', font_config=font_config) # Example CSS
+
+        if is_file_path:
+            HTML(filename=html_input).write_pdf(output_pdf_path) #, stylesheets=[css])
+        else:
+            # Ensure the HTML string is properly encoded for WeasyPrint if necessary
+            # Pandoc usually outputs UTF-8, which should be fine.
+            HTML(string=html_input).write_pdf(output_pdf_path) #, stylesheets=[css])
+        
+        if not os.path.exists(output_pdf_path):
+            raise Exception(f"WeasyPrint conversion: PDF file {output_pdf_path} was not created.")
+
+    except Exception as e:
+        error_message = f"WeasyPrint HTML to PDF conversion failed for input. Error: {str(e)}"
+        print(error_message) # Log for debugging
+        raise Exception(error_message) # Re-raise to be caught by the calling function
 
 
 def convert_text_to_pdf(text_content: str, output_path: str):
