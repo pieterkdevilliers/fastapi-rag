@@ -247,7 +247,7 @@ async def upload_files(account_unique_id: str,
                         temp_html_file_path = convert_to_pdf.convert_to_html_pandoc(
                             input_path=temp_input_file_path,
                             output_dir=temp_output_dir,
-                            input_format_ext=original_file_ext
+                            input_format=original_file_ext
                         )
                         
                         # 3. Convert the HTML (from Pandoc) to PDF using WeasyPrint
