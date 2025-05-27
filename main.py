@@ -199,7 +199,7 @@ async def get_file(account_unique_id: str, file_id: int,
             "file": file}
 
 
-app.post("/api/v1/files/{account_unique_id}/{folder_id}")
+@app.post("/api/v1/files/{account_unique_id}/{folder_id}")
 async def upload_files(account_unique_id: str,
                        folder_id: int,
                        current_user: Annotated[User, Depends(get_current_active_user)],
