@@ -385,7 +385,7 @@ async def delete_file(account_unique_id: str, file_id: int,
 
 
 @app.get("/api/v1/files/view/{account_unique_id}/{file_identifier}",
-                    response_class=StreamingResponse,,
+                    response_class=StreamingResponse,
                     summary="View a specific document from S3",
                     tags=["Documents"])
 async def stream_file_from_s3(account_unique_id: str, file_identifier: str,
