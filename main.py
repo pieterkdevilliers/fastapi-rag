@@ -236,18 +236,34 @@ async def upload_files(account_unique_id: str,
                 temp_input_file_path = None
 
                 if original_file_ext in ['doc', 'docx']: # Add other Pandoc supported types
-                        # Write original content to a temporary file for Pandoc
+                        # 1. Write original content to a temporary file for Pandoc
                         # Ensure the suffix matches the original file extension for Pandoc to potentially auto-detect
                         with tempfile.NamedTemporaryFile(delete=False, suffix=f".{original_file_ext}", dir=temp_output_dir) as temp_input_file_obj:
                             temp_input_file_obj.write(original_content)
                             temp_input_file_path = temp_input_file_obj.name
+
                         
-                        # Call the Pandoc conversion function, passing the original extension
-                        converted_pdf_path = convert_to_pdf.convert_to_pdf_pandoc(
+                        # 2. Convert DOCX/DOC/etc. to HTML using Pandoc
+                        temp_html_file_path = convert_to_pdf.convert_to_html_pandoc(
                             input_path=temp_input_file_path,
                             output_dir=temp_output_dir,
-                            input_format=original_file_ext # Pass the original extension
+                            input_format_ext=original_file_ext
                         )
+                        
+                        # 3. Convert the HTML (from Pandoc) to PDF using WeasyPrint
+                        final_temp_pdf_path = os.path.join(temp_output_dir, "final_converted_document.pdf")
+                        convert_to_pdf.convert_html_to_pdf_weasyprint(
+                            html_input=temp_html_file_path, # Pass the path to the HTML file
+                            output_pdf_path=final_temp_pdf_path,
+                            is_file_path=True # Indicate that html_input is a file path
+                        )
+                        
+                        # # Call the Pandoc conversion function, passing the original extension
+                        # converted_pdf_path = convert_to_pdf.convert_to_html_pandoc(
+                        #     input_path=temp_input_file_path,
+                        #     output_dir=temp_output_dir,
+                        #     input_format=original_file_ext # Pass the original extension
+                        # )
                         
                         with open(converted_pdf_path, 'rb') as f_pdf:
                             pdf_content_bytes = f_pdf.read()

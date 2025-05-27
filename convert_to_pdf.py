@@ -2,14 +2,14 @@ import os
 import subprocess
 import tempfile
 
-def convert_to_pdf_pandoc(input_path: str, output_dir: str, input_format: str = "docx") -> str:
-    """Converts a document to PDF using Pandoc.
-    Returns the path to the converted PDF file.
+def convert_to_html_pandoc(input_path: str, output_dir: str, input_format: str = "docx") -> str:
+    """Converts a document to HTML using Pandoc.
+    Returns the path to the converted HTML file.
     Raises Exception if conversion fails.
     """
     os.makedirs(output_dir, exist_ok=True)
     base_name = os.path.splitext(os.path.basename(input_path))[0]
-    pdf_filename = os.path.join(output_dir, f"{base_name}.pdf")
+    html_filename = os.path.join(output_dir, f"{base_name}.html")
 
     # Check if pandoc command is available
     try:
@@ -21,13 +21,9 @@ def convert_to_pdf_pandoc(input_path: str, output_dir: str, input_format: str = 
         "pandoc",
         input_path,
         "-f", input_format, # Specify input format
-        "-t", "pdf",       # Specify output format
-        "-o", pdf_filename
+        "-t", "html5",       # Specify output format
+        "-o", html_filename
     ]
-    # For better PDF output, Pandoc often uses a LaTeX engine by default (e.g., pdflatex).
-    # Ensure a LaTeX distribution is installed if you need high-quality PDF output,
-    # or specify a different PDF engine if available and simpler (e.g., --pdf-engine=weasyprint, if pandoc supports it and weasyprint is installed)
-    # cmd.extend(["--pdf-engine=pdflatex"]) # Example
 
     process = subprocess.run(cmd, capture_output=True, text=True, timeout=120) # 2 min timeout
 
@@ -36,10 +32,10 @@ def convert_to_pdf_pandoc(input_path: str, output_dir: str, input_format: str = 
         print(error_message) # Log for debugging
         raise Exception(error_message)
 
-    if not os.path.exists(pdf_filename):
-        raise Exception(f"Pandoc conversion seemed to succeed but PDF file {pdf_filename} not found.")
+    if not os.path.exists(html_filename):
+        raise Exception(f"Pandoc conversion seemed to succeed but HTML file {html_filename} not found.")
             
-    return pdf_filename
+    return html_filename
 
 
 def convert_text_to_pdf(text_content: str, output_path: str):
