@@ -6,6 +6,7 @@ from secrets import token_hex
 import shutil
 import boto3
 import convert_to_pdf
+import io
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
