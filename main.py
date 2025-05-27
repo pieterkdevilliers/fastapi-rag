@@ -258,13 +258,6 @@ async def upload_files(account_unique_id: str,
                             is_file_path=True # Indicate that html_input is a file path
                         )
                         
-                        # # Call the Pandoc conversion function, passing the original extension
-                        # converted_pdf_path = convert_to_pdf.convert_to_html_pandoc(
-                        #     input_path=temp_input_file_path,
-                        #     output_dir=temp_output_dir,
-                        #     input_format=original_file_ext # Pass the original extension
-                        # )
-                        
                         with open(final_temp_pdf_path, 'rb') as f_pdf:
                             pdf_content_bytes = f_pdf.read()
                         final_content_type = 'application/pdf' # Output is always PDF
@@ -350,67 +343,6 @@ async def upload_files(account_unique_id: str,
 
 
     return {"response": "success", "uploaded_files": uploaded_files_info}
-
-# @app.post("/api/v1/files/{account_unique_id}/{folder_id}")
-# async def upload_files(account_unique_id: str,
-#                        folder_id: int,
-#                        current_user: Annotated[User, Depends(get_current_active_user)],
-#                        files: list[UploadFile] = File(...),
-#                        session: Session = Depends(get_session)):
-#     """
-#     Upload Multiple Files to S3 in a subfolder for the given account_unique_id,
-#     and store metadata in the database.
-#     """
-#     if not files:
-#         return {"error": "No files provided"}
-    
-#     uploaded_files_info = []  # To store information about all uploaded files
-
-#     for file in files:
-#         try:
-#             file_ext = file.filename.split('.')[-1]
-            
-#             # Generate unique file name
-#             file_name = file.filename.rsplit('.', 1)[0]
-#             unique_file_name = f'{file_name}_{token_hex(8)}.{file_ext}'
-#             unique_file_name = unique_file_name.lower()
-#             file_account = account_unique_id
-
-#             # Simulate the subfolder by including account_unique_id in the S3 key
-#             s3_key = f"{account_unique_id}/{unique_file_name}"
-
-#             # Read the file content
-#             content = await file.read()
-
-#             # Upload file to S3, saving it under the account_unique_id "folder"
-#             s3.put_object(
-#                 Bucket=BUCKET_NAME,
-#                 Key=s3_key,  # Upload to account subfolder
-#                 Body=content,
-#                 ContentType=file.content_type
-#             )
-
-#             # Get the S3 file URL
-#             file_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
-
-#             # Save file information to the database (adjust this function to your schema)
-#             db_file = save_file_to_db(unique_file_name, file_url, file_account, folder_id, session)
-
-#             # Collect file details for response
-#             uploaded_files_info.append({
-#                 "file_name": unique_file_name,
-#                 "file_url": file_url,
-#                 "file_id": db_file.id
-#             })
-        
-#         except NoCredentialsError:
-#             raise HTTPException(status_code=400, detail="AWS credentials not found")
-#         except PartialCredentialsError:
-#             raise HTTPException(status_code=400, detail="Incomplete AWS credentials")
-#         except Exception as e:
-#             raise HTTPException(status_code=500, detail=str(e))
-
-#     return {"response": "success", "uploaded_files": uploaded_files_info}
 
 
 @app.put("/api/v1/files/{account_unique_id}/{file_id}", response_model=Union[SourceFile, dict])
