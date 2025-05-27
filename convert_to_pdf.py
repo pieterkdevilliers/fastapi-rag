@@ -2,6 +2,7 @@ import os
 import subprocess
 import tempfile
 from weasyprint import HTML, CSS
+from markdown_it import MarkdownIt
 
 def convert_to_html_pandoc(input_path: str, output_dir: str, input_format: str = "docx") -> str:
     """Converts a document to HTML using Pandoc.
