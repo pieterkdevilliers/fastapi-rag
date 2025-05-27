@@ -403,7 +403,7 @@ async def stream_file_from_s3(account_unique_id: str, file_identifier: str,
         )
     
 
-        try:
+    try:
         # For a HEAD request, we only need metadata, not the whole body initially.
         # However, to get ContentLength and ContentType reliably for the response headers,
         # S3's head_object is more efficient than get_object if we only need headers.
