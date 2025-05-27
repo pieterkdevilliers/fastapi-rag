@@ -8,7 +8,7 @@ import boto3
 import convert_to_pdf
 import io
 from datetime import timedelta
-from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status
+from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -385,10 +385,11 @@ async def delete_file(account_unique_id: str, file_id: int,
             'file_id': response['file_id']}
 
 
-@app.get("/api/v1/files/view/{account_unique_id}/{file_identifier}",
+@app.api_route("/api/v1/files/view/{account_unique_id}/{file_identifier}",
                     response_class=StreamingResponse,
                     summary="View a specific document from S3",
-                    tags=["Documents"])
+                    tags=["Documents"],
+                    methods=["GET", "HEAD"])
 async def stream_file_from_s3(account_unique_id: str, file_identifier: str,
                    current_user: Annotated[User, Depends(get_current_active_user)],
                    session: Session = Depends(get_session)):
@@ -402,39 +403,92 @@ async def stream_file_from_s3(account_unique_id: str, file_identifier: str,
         )
     
 
-    # Construct the S3 key
-    s3_key = f"{account_unique_id}/{file_identifier}"
+        try:
+        # For a HEAD request, we only need metadata, not the whole body initially.
+        # However, to get ContentLength and ContentType reliably for the response headers,
+        # S3's head_object is more efficient than get_object if we only need headers.
+        if request.method == "HEAD":
+            s3_metadata = s3.head_object(Bucket=BUCKET_NAME, Key=s3_key)
+            content_type = s3_metadata.get('ContentType', 'application/pdf')
+            content_length = s3_metadata.get('ContentLength', 0)
 
-    print(f"Attempting to fetch S3 object: Bucket='{BUCKET_NAME}', Key='{s3_key}'")
+            if not content_type.lower().startswith('application/pdf'):
+                content_type = 'application/pdf'
 
-    try:
+            response_headers = {
+                "Content-Disposition": f"inline; filename=\"{file_identifier}\"",
+                "Content-Type": content_type,
+                "Content-Length": str(content_length) # Good to include for HEAD
+            }
+            # For HEAD, FastAPI/Starlette will automatically strip the body
+            # We just need to provide the headers.
+            # Returning an empty StreamingResponse or even just a Response with headers is fine.
+            return StreamingResponse(io.BytesIO(b''), media_type=content_type, headers=response_headers)
+
+        # For GET request, proceed as before
         s3_object = s3.get_object(Bucket=BUCKET_NAME, Key=s3_key)
+        file_content_bytes = s3_object['Body'].read()
+        content_type = s3_object.get('ContentType', 'application/pdf')
+        if not content_type.lower().startswith('application/pdf'):
+            content_type = 'application/pdf'
+
+        response_headers = {
+            "Content-Disposition": f"inline; filename=\"{file_identifier}\"",
+            "Content-Type": content_type
+            # Content-Length will be added automatically by StreamingResponse for GET
+        }
+        return StreamingResponse(
+            io.BytesIO(file_content_bytes),
+            media_type=content_type,
+            headers=response_headers
+        )
+
     except s3.exceptions.NoSuchKey:
         print(f"S3 Error: NoSuchKey for Key='{s3_key}'")
         raise HTTPException(status_code=404, detail=f"File '{file_identifier}' not found.")
-    except Exception as e:
-        print(f"S3 Error fetching Key='{s3_key}': {e}")
+    except Exception as e: # Catch other Boto3 errors that might indicate permission issues etc.
+        # Specifically for head_object, a 403 from S3 might come as ClientError
+        if hasattr(e, 'response') and 'Error' in e.response and e.response['Error']['Code'] == '403':
+            print(f"S3 Permission Error (403) for Key='{s3_key}': {e}")
+            raise HTTPException(status_code=403, detail="Access denied to the file in storage.")
+        print(f"S3 Error processing Key='{s3_key}': {e}")
         raise HTTPException(status_code=500, detail=f"Error accessing file: {str(e)}")
 
-    file_content_bytes = s3_object['Body'].read()
+
+    # # Construct the S3 key
+    # s3_key = f"{account_unique_id}/{file_identifier}"
+    # print(f"Request method: {request.method} for S3 Key: {s3_key}")
+
+    # print(f"Attempting to fetch S3 object: Bucket='{BUCKET_NAME}', Key='{s3_key}'")
+
+    # try:
+    #     s3_object = s3.get_object(Bucket=BUCKET_NAME, Key=s3_key)
+    # except s3.exceptions.NoSuchKey:
+    #     print(f"S3 Error: NoSuchKey for Key='{s3_key}'")
+    #     raise HTTPException(status_code=404, detail=f"File '{file_identifier}' not found.")
+    # except Exception as e:
+    #     print(f"S3 Error fetching Key='{s3_key}': {e}")
+    #     raise HTTPException(status_code=500, detail=f"Error accessing file: {str(e)}")
+
+    # file_content_bytes = s3_object['Body'].read()
     
-    # Assuming all files retrieved via this endpoint are PDFs due to earlier conversion
-    content_type = s3_object.get('ContentType', 'application/pdf') # Default to application/pdf
-    if not content_type.lower().startswith('application/pdf'):
-        print(f"Warning: S3 ContentType for '{s3_key}' is '{content_type}'. Forcing 'application/pdf' for response.")
-        content_type = 'application/pdf'
+    # # Assuming all files retrieved via this endpoint are PDFs due to earlier conversion
+    # content_type = s3_object.get('ContentType', 'application/pdf') # Default to application/pdf
+    # if not content_type.lower().startswith('application/pdf'):
+    #     print(f"Warning: S3 ContentType for '{s3_key}' is '{content_type}'. Forcing 'application/pdf' for response.")
+    #     content_type = 'application/pdf'
 
 
-    response_headers = {
-        "Content-Disposition": f"inline; filename=\"{file_identifier}\"", # Use the identifier as filename
-        "Content-Type": content_type
-    }
+    # response_headers = {
+    #     "Content-Disposition": f"inline; filename=\"{file_identifier}\"", # Use the identifier as filename
+    #     "Content-Type": content_type
+    # }
 
-    return StreamingResponse(
-        io.BytesIO(file_content_bytes),
-        media_type=content_type,
-        headers=response_headers
-    )
+    # return StreamingResponse(
+    #     io.BytesIO(file_content_bytes),
+    #     media_type=content_type,
+    #     headers=response_headers
+    # )
     
     
 class URLRequest(BaseModel):
