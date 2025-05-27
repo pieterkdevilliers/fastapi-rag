@@ -391,7 +391,7 @@ async def delete_file(account_unique_id: str, file_id: int,
                     tags=["Documents"],
                     methods=["GET", "HEAD"])
 async def stream_file_from_s3(request: Request, account_unique_id: str, file_identifier: str,
-                   current_user: Annotated[User, Depends(get_current_active_user)],
+                #    current_user: Annotated[User, Depends(get_current_active_user)],
                    session: Session = Depends(get_session)):
     """
     Get File By S3 key identifier
