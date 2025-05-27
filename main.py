@@ -265,13 +265,13 @@ async def upload_files(account_unique_id: str,
                         #     input_format=original_file_ext # Pass the original extension
                         # )
                         
-                        with open(converted_pdf_path, 'rb') as f_pdf:
+                        with open(final_temp_pdf_path, 'rb') as f_pdf:
                             pdf_content_bytes = f_pdf.read()
                         final_content_type = 'application/pdf' # Output is always PDF
                         
                         # Clean up the converted PDF immediately after reading
-                        if os.path.exists(converted_pdf_path):
-                            os.remove(converted_pdf_path)
+                        if os.path.exists(final_temp_pdf_path):
+                            os.remove(final_temp_pdf_path)
 
                 elif original_file_ext == 'txt':
                     converted_pdf_path = os.path.join(temp_output_dir, "converted.pdf")
