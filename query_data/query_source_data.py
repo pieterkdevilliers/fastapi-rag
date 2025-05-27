@@ -168,11 +168,9 @@ def search_db(db, query, relevance_score, k_value, account_unique_id):
 
     # Collect source metadata from the first element of metadatas
     sources = [meta.get("source", None) for meta in results.get("metadatas", [[]])[0]]
-    sources_url = [meta.get("source", None) for meta in results.get("metadatas", [[]])[1]]
 
     return {
         "query": query,
         "response_text": response_text,
         "sources": sources,
-        "sources_url": sources_url
     }
