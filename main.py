@@ -396,12 +396,6 @@ async def stream_file_from_s3(request: Request, account_unique_id: str, file_ide
     """
     Get File By S3 key identifier
     """
-    if hasattr(current_user, 'account_unique_id') and current_user.account_unique_id != account_unique_id:
-        raise HTTPException(
-            status_code=403,
-            detail="Forbidden: You are not authorized to access files for this account."
-        )
-    
 
     try:
         # For a HEAD request, we only need metadata, not the whole body initially.
