@@ -397,6 +397,12 @@ async def stream_file_from_s3(request: Request, account_unique_id: str, file_ide
     Get File By S3 key identifier
     """
 
+        # Construct the S3 key
+    s3_key = f"{account_unique_id}/{file_identifier}"
+    print(f"Request method: {request.method} for S3 Key: {s3_key}")
+
+    print(f"Attempting to fetch S3 object: Bucket='{BUCKET_NAME}', Key='{s3_key}'")
+
     try:
         # For a HEAD request, we only need metadata, not the whole body initially.
         # However, to get ContentLength and ContentType reliably for the response headers,
@@ -449,11 +455,11 @@ async def stream_file_from_s3(request: Request, account_unique_id: str, file_ide
         raise HTTPException(status_code=500, detail=f"Error accessing file: {str(e)}")
 
 
-    # # Construct the S3 key
-    # s3_key = f"{account_unique_id}/{file_identifier}"
-    # print(f"Request method: {request.method} for S3 Key: {s3_key}")
+    # Construct the S3 key
+    s3_key = f"{account_unique_id}/{file_identifier}"
+    print(f"Request method: {request.method} for S3 Key: {s3_key}")
 
-    # print(f"Attempting to fetch S3 object: Bucket='{BUCKET_NAME}', Key='{s3_key}'")
+    print(f"Attempting to fetch S3 object: Bucket='{BUCKET_NAME}', Key='{s3_key}'")
 
     # try:
     #     s3_object = s3.get_object(Bucket=BUCKET_NAME, Key=s3_key)
