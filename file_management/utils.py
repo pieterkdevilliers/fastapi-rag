@@ -5,6 +5,7 @@ from sqlmodel.sql.expression import select
 from file_management.models import SourceFile, Folder
 from secrets import token_hex
 from fastapi import HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 import httpx
 from bs4 import BeautifulSoup
@@ -143,9 +144,55 @@ async def delete_file_from_s3(account_unique_id: str, file, session: Session):
     """
     Delete file from S3 bucket account
     """
-
+    file_path = file.file_path
     print( '**********File Object: ', file)
-    return 200
+    if not file_path:
+        raise HTTPException(status_code=404, detail={"error": "file_path not found in DB", "file_path": file_path})
+    
+    # 1. Construct the S3 object key
+    # Ensure this matches exactly how keys are constructed during upload and read
+    s3_object_key = f"{file.account_unique_id}/{file.file_name}"
+    original_file_name_for_logging = file.file_name # For logging/response
+
+
+    # 2. Attempt to delete from S3
+    # Using the synchronous S3 delete. If your endpoint is async,
+    # and this is a blocking call, you might want to run it in a thread pool.
+    # For aiobotocore, you would 'await delete_file_from_s3_async(...)'
+    
+    # For now, let's assume S3_CLIENT and BUCKET_NAME are accessible
+    # (e.g., global, or obtained via app state or dependency injection)
+    if not s3 or not BUCKET_NAME: # Basic check
+        # Log this critical misconfiguration
+        logger.error("S3 client or Bucket Name is not configured. Cannot delete from S3.")
+        raise HTTPException(status_code=500, detail="S3 storage not configured for deletion.")
+
+    # If using the synchronous delete_file_from_s3_sync in an async route:
+    # To avoid blocking the event loop, run sync I/O in a thread pool
+
+    s3_deleted_successfully = await run_in_threadpool(
+        delete_file_from_s3_sync, # The synchronous function
+        s3_client=s3,      # Pass your S3 client
+        bucket_name=BUCKET_NAME,  # Pass your bucket name
+        object_key=s3_object_key
+    )
+    
+    # s3_deleted_successfully = delete_file_from_s3_sync(S3_CLIENT, BUCKET_NAME, s3_object_key) # If endpoint was synchronous
+
+    s3_message = ""
+    if s3_deleted_successfully:
+        s3_message = f"File '{original_file_name_for_logging}' also deleted from S3."
+        logger.info(f"S3 Deletion successful for key: {s3_object_key}")
+        return 200
+    else:
+        # S3 deletion failed. Decide on behavior:
+        # Option A: Stop here and return an error (more atomic, S3 is the source of truth for file content)
+        # Option B: Log the S3 error and proceed to delete from DB (DB reflects intent, S3 might need manual cleanup)
+        # s3_message = f"Failed to delete file '{original_file_name_for_logging}' from S3. Key: {s3_object_key}. Check logs. DB record will still be deleted."
+        # logger.error(f"S3 Deletion failed for key: {s3_object_key}. Proceeding with DB deletion.")
+        # For this example, let's choose Option B (log and proceed)
+        # If you choose Option A, you would do:
+        raise HTTPException(status_code=500, detail={"error": "Failed to delete file from S3 storage", "s3_key": s3_object_key})
 
 
 async def save_text_to_file(text, title, account_unique_id: str, url: str, session: Session):
