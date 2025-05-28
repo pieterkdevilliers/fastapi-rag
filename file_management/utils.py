@@ -110,7 +110,7 @@ async def extract_text_from_html(html_content):
     return content
 
 
-async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_unique_id: str, session: Session):
+async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_unique_id: str, folder_id: int, session: Session):
     """
     Prepare File for S3 Upload
     """
@@ -138,7 +138,7 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
     file_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
 
     # Save file information to the database (adjust this function to your schema)
-    db_file = save_file_to_db(unique_file_name, file_url, file_account, session)
+    db_file = save_file_to_db(unique_file_name, file_url, file_account, folder_id, session)
             
     return {"message": "File successfully prepared for S3 upload", "file": unique_file_name}
 

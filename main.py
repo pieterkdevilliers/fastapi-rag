@@ -473,9 +473,10 @@ async def get_text_from_url(request: URLRequest, account_unique_id: str,
     Get Text from URL
     """
     url = request.url
+    folder_id = request.folder_id
     html_content = await fetch_html_content(url)
     extracted_text = await extract_text_from_html(html_content)
-    saved_file = await prepare_for_s3_upload(extracted_text['text'], extracted_text['title'], account_unique_id, session)
+    saved_file = await prepare_for_s3_upload(extracted_text['text'], extracted_text['title'], account_unique_id, folder_id, session)
     # saved_file = await save_text_to_file(extracted_text['text'], extracted_text['title'], account_unique_id, url, session)
     print(f"Received request to get text from URL: {request.url}")
     return {"response": "success", "url": request.url}
