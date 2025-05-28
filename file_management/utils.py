@@ -139,6 +139,15 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
     return {"message": "File successfully prepared for S3 upload", "file": unique_file_name}
 
 
+async def delete_file_from_s3(account_unique_id: str, file, session: Session):
+    """
+    Delete file from S3 bucket account
+    """
+
+    print( '**********File Object: ', file)
+    return 200
+
+
 async def save_text_to_file(text, title, account_unique_id: str, url: str, session: Session):
     """
     Save Text to File
