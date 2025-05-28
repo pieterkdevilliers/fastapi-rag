@@ -1,5 +1,7 @@
 import os
 import boto3
+from botocore.exceptions import ClientError
+import logging
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
 from file_management.models import SourceFile, Folder
