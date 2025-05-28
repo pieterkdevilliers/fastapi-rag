@@ -381,7 +381,7 @@ async def delete_file(account_unique_id: str, file_id: int,
                 "file_id": file_id}
     
     s3_response = await delete_file_from_s3(account_unique_id, file, session)
-    if s3_response = True
+    if s3_response == True
         response = delete_file_from_db(account_unique_id, file_id, session)
         return {'response': 'success',
                 'file_id': response['file_id']}
