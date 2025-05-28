@@ -19,6 +19,7 @@ s3 = boto3.client('s3')
 # The name of your S3 bucket
 BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
         
+logger = logging.getLogger(__name__)
 
 def save_file_to_db(filename: str, file_path: str, file_account: str, folder_id: int, session: Session):
     """
