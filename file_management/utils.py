@@ -169,12 +169,12 @@ async def delete_file_from_s3(account_unique_id: str, file, session: Session):
         # If the error is NoSuchKey, it means the file wasn't there anyway,
         # which can be considered a "successful" deletion in some contexts.
         if e.response['Error']['Code'] == 'NoSuchKey':
-            logger.warning(f"Object {object_key} not found in bucket {bucket_name} during delete attempt. Assuming already deleted.")
+            logger.warning(f"Object {s3_object_key} not found in bucket {BUCKET_NAME} during delete attempt. Assuming already deleted.")
             return True 
-        logger.error(f"Failed to delete {object_key} from S3 bucket {bucket_name}: {e}")
+        logger.error(f"Failed to delete {s3_object_key} from S3 bucket {BUCKET_NAME}: {e}")
         return False
     except Exception as e:
-        logger.error(f"An unexpected error occurred while deleting {object_key} from S3: {e}")
+        logger.error(f"An unexpected error occurred while deleting {s3_object_key} from S3: {e}")
         return False
 
 
