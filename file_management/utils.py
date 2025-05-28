@@ -161,7 +161,7 @@ async def delete_file_from_s3(account_unique_id: str, file, session: Session):
         raise HTTPException(status_code=500, detail="S3 storage not configured for deletion.")
 
     try:
-        s3_client.delete_object(Bucket=BUCKET_NAME, Key=s3_object_key)
+        s3.delete_object(Bucket=BUCKET_NAME, Key=s3_object_key)
         logger.info(f"Successfully deleted {s3_object_key} from bucket {BUCKET_NAME}")
         return True
 
