@@ -466,7 +466,7 @@ class URLRequest(BaseModel):
     url: str
     
 @app.post("/api/v1/get-text-from-url/{account_unique_id}/{folder_id}")
-async def get_text_from_url(request: URLRequest, account_unique_id: str, folder_id: int
+async def get_text_from_url(request: URLRequest, account_unique_id: str, folder_id: int,
                             current_user: Annotated[User, Depends(get_current_active_user)],
                             session: Session = Depends(get_session)):
     """
