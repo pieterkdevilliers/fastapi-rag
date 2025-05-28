@@ -381,11 +381,12 @@ async def delete_file(account_unique_id: str, file_id: int,
                 "file_id": file_id}
     
     s3_response = await delete_file_from_s3(account_unique_id, file, session)
-        
-    response = delete_file_from_db(account_unique_id, file_id, session)
-    return {'response': 'success',
-            'file_id': response['file_id']}
-
+    if s3_response = True
+        response = delete_file_from_db(account_unique_id, file_id, session)
+        return {'response': 'success',
+                'file_id': response['file_id']}
+    else:
+        raise HTTPException(status_code=404, detail={"error": "File could not be deleted", "file_id": file_id})
 
 @app.api_route("/api/v1/files/view/{account_unique_id}/{file_identifier}",
                     response_class=StreamingResponse,
