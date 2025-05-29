@@ -127,7 +127,7 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
 
     # Step 2: Convert the extracted text to PDF bytes
     try:
-        pdf_content_bytes = convert_text_to_pdf(extracted_text)
+        pdf_content_bytes = convert_to_pdf.convert_text_to_pdf(extracted_text)
     except HTTPException: # Re-raise if convert_text_to_pdf_bytes raised it
         raise
     except Exception as e: # Catch any other unexpected errors from conversion
