@@ -77,7 +77,16 @@ def convert_text_to_pdf(text_content: str, output_path: str):
       <body><pre style="white-space: pre-wrap; word-wrap: break-word; font-family: monospace;">{text_content}</pre></body>
     </html>
     """
-    HTML(string=html_content).write_pdf(output_path)
+        # WeasyPrint can write directly to a byte string
+    try:
+        pdf_bytes = HTML(string=html_content).write_pdf()
+        if not pdf_bytes:
+            raise ValueError("WeasyPrint returned empty PDF bytes.")
+        return pdf_bytes
+    except Exception as e:
+        print(f"Error during PDF conversion with WeasyPrint: {e}")
+        # Consider more specific error handling or re-raising a custom exception
+        raise HTTPException(status_code=500, detail=f"Failed to convert text to PDF: {e}")
 
 
 def convert_markdown_to_pdf(md_content: str, output_path: str):
