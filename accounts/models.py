@@ -1,5 +1,5 @@
 from typing import Optional, List
-import datetime
+import datetime, timezone
 from sqlalchemy import Column
 from sqlalchemy.sql.sqltypes import JSON
 from sqlmodel import SQLModel, Field, Relationship
@@ -69,7 +69,7 @@ class WidgetAPIKey(WidgetAPIKeyBase, table=True):
         description="Hash of the full API key."
     )
 
-    created_at: datetime.datetime = Field(default_factory=datetime.datetime.now(datetime.timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_used_at: Optional[datetime.datetime] = Field(default=None, nullable=True)
     is_active: bool = Field(default=True)
     allowed_origins: List[str] = Field(
