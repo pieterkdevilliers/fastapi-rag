@@ -1,5 +1,5 @@
 from typing import Optional, List
-import datetime, timezone
+from datetime import datetime, timezone
 from sqlalchemy import Column
 from sqlalchemy.sql.sqltypes import JSON
 from sqlmodel import SQLModel, Field, Relationship
