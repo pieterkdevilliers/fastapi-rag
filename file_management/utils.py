@@ -117,7 +117,7 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
     print("Preparing file for S3 upload...")
     # Step 5: Prepare the File for S3 Upload
     # Generate unique file name
-    unique_file_name = f'{file_name}_{token_hex(8)}.pdf'.lower().replace(" ", "_")
+    unique_file_name = f'{file_name}_{token_hex(8)}.txt'.lower().replace(" ", "_")
     file_account = account_unique_id
     converted_file = await convert_file_to_pdf(extracted_text)
     # Simulate the subfolder by including account_unique_id in the S3 key
@@ -131,7 +131,7 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
         Bucket=BUCKET_NAME,
         Key=s3_key,  # Upload to account subfolder
         Body=converted_file,
-        ContentType="application/pdf"
+        ContentType="text/plain"
     )
 
     # Get the S3 file URL
@@ -198,8 +198,10 @@ async def convert_file_to_pdf(original_file):
     """
     Convert permitted file types to pdf before saving
     """
-
-    original_content = await original_file.read()
+    print('***************** Original file', original_file)
+    # original_content = await original_file.read()
+    original_filename = original_file.filename
+    original_file_ext = original_filename.split('.')[-1].lower()
 
     if original_file_ext == 'pdf':
         pdf_content_bytes = original_content
