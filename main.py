@@ -269,7 +269,7 @@ async def upload_files(account_unique_id: str,
                             os.remove(final_temp_pdf_path)
 
                 elif original_file_ext == 'txt':
-                    converted_pdf_path = os.path.join(temp_output_dir, "converted.pdf")
+                    final_content_type = 'application/pdf'
                     pdf_content_bytes = convert_to_pdf.convert_text_to_pdf(original_content.decode('utf-8', errors='replace')) # Ensure decoding
 
 
