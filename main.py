@@ -270,11 +270,8 @@ async def upload_files(account_unique_id: str,
 
                 elif original_file_ext == 'txt':
                     converted_pdf_path = os.path.join(temp_output_dir, "converted.pdf")
-                    convert_to_pdf.convert_text_to_pdf(original_content.decode('utf-8', errors='replace'), converted_pdf_path) # Ensure decoding
-                    with open(converted_pdf_path, 'rb') as f_pdf:
-                        pdf_content_bytes = f_pdf.read()
-                    final_content_type = 'application/pdf'
-                    if os.path.exists(converted_pdf_path): os.remove(converted_pdf_path)
+                    pdf_content_bytes = convert_to_pdf.convert_text_to_pdf(original_content.decode('utf-8', errors='replace')) # Ensure decoding
+
 
                 elif original_file_ext == 'md':
                     converted_pdf_path = os.path.join(temp_output_dir, "converted.pdf")
