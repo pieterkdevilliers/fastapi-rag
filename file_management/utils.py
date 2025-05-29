@@ -119,30 +119,54 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
     print("Preparing file for S3 upload...")
     # Step 5: Prepare the File for S3 Upload
     # Generate unique file name
-    unique_file_name = f'{file_name}_{token_hex(8)}.txt'.lower().replace(" ", "_")
+    unique_file_name = f'{file_name}_{token_hex(8)}.pdf'.lower().replace(" ", "_")
     file_account = account_unique_id
     converted_file = convert_file_to_pdf(extracted_text, unique_file_name)
     # Simulate the subfolder by including account_unique_id in the S3 key
     s3_key = f"{account_unique_id}/{unique_file_name}"
 
-    # Read the file content
-    # content = await file.read()
+    # Step 2: Convert the extracted text to PDF bytes
+    try:
+        pdf_content_bytes = convert_text_to_pdf(extracted_text)
+    except HTTPException: # Re-raise if convert_text_to_pdf_bytes raised it
+        raise
+    except Exception as e: # Catch any other unexpected errors from conversion
+        print(f"Unexpected error during PDF conversion: {e}")
+        raise HTTPException(status_code=500, detail="Failed to prepare PDF content for upload.")
 
-    # Upload file to S3, saving it under the account_unique_id "folder"
-    s3.put_object(
-        Bucket=BUCKET_NAME,
-        Key=s3_key,  # Upload to account subfolder
-        Body=converted_file,
-        ContentType="text/plain"
-    )
+    # Step 4: Upload PDF file to S3
+    print(f"Uploading to S3. Bucket: {BUCKET_NAME}, Key: {s3_key}, ContentType: application/pdf")
+    try:
+        s3.put_object(
+            Bucket=BUCKET_NAME,
+            Key=s3_key,
+            Body=pdf_content_bytes,
+            ContentType="application/pdf" # CRITICAL: Set to PDF
+        )
+    except Exception as e: # Catch Boto3 ClientError or other S3 upload issues
+        print(f"Failed to upload {s3_key} to S3: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload file to S3 storage: {e}")
 
     # Get the S3 file URL
     file_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
 
-    # Save file information to the database (adjust this function to your schema)
-    db_file = save_file_to_db(unique_file_name, file_url, file_account, folder_id, session)
+    # Step 6: Save file information to the database
+    # Ensure save_file_to_db stores unique_pdf_file_name
+    try:
+        db_file = save_file_to_db(unique_pdf_file_name, file_url, account_unique_id, folder_id, session)
+        # Make sure this function commits the session or the calling function does.
+    except Exception as e:
+        print(f"Failed to save file metadata for {unique_pdf_file_name} to DB: {e}")
+        # CRITICAL: If DB save fails after S3 upload, you have an orphaned S3 object.
+        Consider deleting the S3 object if DB save fails:
+        try:
+            s3.delete_object(Bucket=BUCKET_NAME, Key=s3_key)
+            print(f"Rolled back S3 upload for {s3_key} due to DB error.")
+        except Exception as s3_del_err:
+            print(f"Failed to rollback S3 upload for {s3_key}: {s3_del_err}")
             
-    return {"message": "File successfully prepared for S3 upload", "file": unique_file_name}
+    return {"message": "File successfully converted to PDF and uploaded to S3", "file_name_on_s3": unique_pdf_file_name, "s3_key": s3_key}
+            
 
 
 async def delete_file_from_s3(account_unique_id: str, file, session: Session):
@@ -195,37 +219,6 @@ async def save_text_to_file(text, title, account_unique_id: str, url: str, sessi
 
     return {"message": "Text successfully extracted and saved", "file_path": file_path}
 
-
-def convert_file_to_pdf(original_file, file_name):
-    """
-    Convert permitted file types to pdf before saving
-    """
-    print('***************** Original file', original_file)
-    # original_content = await original_file.read()
-    original_filename = file_name
-    original_file_ext = original_filename.split('.')[-1].lower()
-
-    temp_output_dir = tempfile.mkdtemp()
-    temp_input_file_path = None
-
-    converted_pdf_path = os.path.join(temp_output_dir, "converted.pdf")
-    convert_to_pdf.convert_text_to_pdf(original_file, converted_pdf_path)
-    with open(converted_pdf_path, 'rb') as f_pdf:
-        pdf_content_bytes = f_pdf.read()
-    final_content_type = 'application/pdf'
-    if os.path.exists(converted_pdf_path): os.remove(converted_pdf_path)
-
-    # Clean up temporary input file if created
-    if temp_input_file_path and os.path.exists(temp_input_file_path):
-        os.remove(temp_input_file_path)
-
-
-    if not pdf_content_bytes:
-        raise HTTPException(status_code=500, detail=f"Failed to obtain PDF content for {original_filename}")
-
-    else:
-        print('******** pdf', pdf_content_bytes)
-        return pdf_content_bytes
 
 
 def create_new_folder_in_db(account_unique_id: str, folder_name: str, session: Session):

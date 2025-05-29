@@ -475,10 +475,18 @@ async def get_text_from_url(request: URLRequest, account_unique_id: str, folder_
     url = request.url
     html_content = await fetch_html_content(url)
     extracted_text = await extract_text_from_html(html_content)
-    saved_file = await prepare_for_s3_upload(extracted_text['text'], extracted_text['title'], account_unique_id, folder_id, session)
-    # saved_file = await save_text_to_file(extracted_text['text'], extracted_text['title'], account_unique_id, url, session)
-    print(f"Received request to get text from URL: {request.url}")
-    return {"response": "success", "url": request.url}
+
+    # Call the updated prepare_for_s3_upload
+    s3_upload_result = await prepare_for_s3_upload(
+        extracted_text_info['text'],
+        extracted_text_info['title'], # Pass the title for filename generation
+        account_unique_id,
+        folder_id,
+        session
+    )
+    
+    print(f"Received request to get text from URL: {request.url}, processed as PDF: {s3_upload_result.get('file_name_on_s3')}")
+    return {"response": "success", "url": request.url, "s3_details": s3_upload_result}
 
 
 @app.get("/api/v1/folders/{account_unique_id}")
