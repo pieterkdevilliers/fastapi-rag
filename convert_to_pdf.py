@@ -68,7 +68,7 @@ def convert_html_to_pdf_weasyprint(html_input: str, output_pdf_path: str, is_fil
         raise Exception(error_message) # Re-raise to be caught by the calling function
 
 
-def convert_text_to_pdf(text_content: str, output_path: str):
+def convert_text_to_pdf(text_content: str):
     """Converts plain text to a simple PDF."""
     # A very basic HTML wrapper for text to make it look reasonable in PDF
     html_content = f"""

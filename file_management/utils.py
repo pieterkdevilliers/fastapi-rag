@@ -117,11 +117,11 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
     Prepare File for S3 Upload
     """
     print("Preparing file for S3 upload...")
-    # Step 5: Prepare the File for S3 Upload
+
     # Generate unique file name
     unique_file_name = f'{file_name}_{token_hex(8)}.pdf'.lower().replace(" ", "_")
     file_account = account_unique_id
-    # converted_file = convert_file_to_pdf(extracted_text, unique_file_name)
+
     # Simulate the subfolder by including account_unique_id in the S3 key
     s3_key = f"{account_unique_id}/{unique_file_name}"
 
