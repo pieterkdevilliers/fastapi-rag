@@ -117,7 +117,7 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
     print("Preparing file for S3 upload...")
     # Step 5: Prepare the File for S3 Upload
     # Generate unique file name
-    unique_file_name = f'{file_name}_{token_hex(8)}.txt'
+    unique_file_name = f'{file_name}_{token_hex(8)}.txt'.lower()
     file_account = account_unique_id
     
     # Simulate the subfolder by including account_unique_id in the S3 key
