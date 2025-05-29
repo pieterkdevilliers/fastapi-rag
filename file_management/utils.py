@@ -119,7 +119,7 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
     # Generate unique file name
     unique_file_name = f'{file_name}_{token_hex(8)}.txt'.lower().replace(" ", "_")
     file_account = account_unique_id
-    converted_file = await convert_file_to_pdf(extracted_text)
+    converted_file = await convert_file_to_pdf(extracted_text, file_name)
     # Simulate the subfolder by including account_unique_id in the S3 key
     s3_key = f"{account_unique_id}/{unique_file_name}"
 
@@ -194,13 +194,13 @@ async def save_text_to_file(text, title, account_unique_id: str, url: str, sessi
     return {"message": "Text successfully extracted and saved", "file_path": file_path}
 
 
-async def convert_file_to_pdf(original_file):
+async def convert_file_to_pdf(original_file, file_name):
     """
     Convert permitted file types to pdf before saving
     """
     print('***************** Original file', original_file)
     # original_content = await original_file.read()
-    original_filename = original_file.filename
+    original_filename = filename
     original_file_ext = original_filename.split('.')[-1].lower()
 
     if original_file_ext == 'pdf':
