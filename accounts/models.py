@@ -70,7 +70,7 @@ class WidgetAPIKey(WidgetAPIKeyBase, table=True):
     )
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    last_used_at: Optional[datetime.datetime] = Field(default=None, nullable=True)
+    last_used_at: Optional[datetime] = Field(default=None, nullable=True)
     is_active: bool = Field(default=True)
     allowed_origins: List[str] = Field(
         default_factory=list,
