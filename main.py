@@ -218,7 +218,7 @@ async def upload_files(account_unique_id: str,
         file_base_name = original_filename.rsplit('.', 1)[0]
 
         # New unique filename will always have .pdf extension
-        unique_pdf_filename = f'{file_base_name}_{token_hex(8)}.pdf'.lower()
+        unique_pdf_filename = f'{file_base_name}_{token_hex(8)}.pdf'.lower().replace(" ", "_")
         s3_key = f"{account_unique_id}/{unique_pdf_filename}"
         
         pdf_content_bytes = None
