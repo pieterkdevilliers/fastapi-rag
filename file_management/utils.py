@@ -200,7 +200,7 @@ async def convert_file_to_pdf(original_file, file_name):
     """
     print('***************** Original file', original_file)
     # original_content = await original_file.read()
-    original_filename = filename
+    original_filename = file_name
     original_file_ext = original_filename.split('.')[-1].lower()
 
     if original_file_ext == 'pdf':
