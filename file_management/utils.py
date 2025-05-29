@@ -120,7 +120,7 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
     # Generate unique file name
     unique_file_name = f'{file_name}_{token_hex(8)}.txt'.lower().replace(" ", "_")
     file_account = account_unique_id
-    converted_file = await convert_file_to_pdf(extracted_text, file_name)
+    converted_file = await convert_file_to_pdf(extracted_text, unique_file_name)
     # Simulate the subfolder by including account_unique_id in the S3 key
     s3_key = f"{account_unique_id}/{unique_file_name}"
 
