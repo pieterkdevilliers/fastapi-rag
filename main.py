@@ -478,8 +478,8 @@ async def get_text_from_url(request: URLRequest, account_unique_id: str, folder_
 
     # Call the updated prepare_for_s3_upload
     s3_upload_result = await prepare_for_s3_upload(
-        extracted_text_info['text'],
-        extracted_text_info['title'], # Pass the title for filename generation
+        extracted_text['text'],
+        extracted_text['title'], # Pass the title for filename generation
         account_unique_id,
         folder_id,
         session
