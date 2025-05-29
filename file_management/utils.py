@@ -153,10 +153,10 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
     # Step 6: Save file information to the database
     # Ensure save_file_to_db stores unique_pdf_file_name
     try:
-        db_file = save_file_to_db(unique_pdf_file_name, file_url, account_unique_id, folder_id, session)
+        db_file = save_file_to_db(unique_file_name, file_url, account_unique_id, folder_id, session)
         # Make sure this function commits the session or the calling function does.
     except Exception as e:
-        print(f"Failed to save file metadata for {unique_pdf_file_name} to DB: {e}")
+        print(f"Failed to save file metadata for {unique_file_name} to DB: {e}")
         # CRITICAL: If DB save fails after S3 upload, you have an orphaned S3 object.
         # Consider deleting the S3 object if DB save fails:
         try:
@@ -165,7 +165,7 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
         except Exception as s3_del_err:
             print(f"Failed to rollback S3 upload for {s3_key}: {s3_del_err}")
             
-    return {"message": "File successfully converted to PDF and uploaded to S3", "file_name_on_s3": unique_pdf_file_name, "s3_key": s3_key}
+    return {"message": "File successfully converted to PDF and uploaded to S3", "file_name_on_s3": unique_file_name, "s3_key": s3_key}
             
 
 
