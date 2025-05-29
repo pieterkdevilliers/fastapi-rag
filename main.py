@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from file_management.models import SourceFile, Folder
 from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db, \
     fetch_html_content, extract_text_from_html, prepare_for_s3_upload, create_new_folder_in_db, \
-    update_folder_in_db, delete_folder_from_db, delete_file_from_s3
+    update_folder_in_db, delete_folder_from_db, delete_file_from_s3, convert_file_to_pdf
 from accounts.models import Account, User
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db

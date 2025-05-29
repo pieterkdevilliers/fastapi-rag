@@ -117,7 +117,7 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
     print("Preparing file for S3 upload...")
     # Step 5: Prepare the File for S3 Upload
     # Generate unique file name
-    unique_file_name = f'{file_name}_{token_hex(8)}.txt'.lower().replace(" ", "_")
+    unique_file_name = f'{file_name}_{token_hex(8)}.pdf'.lower().replace(" ", "_")
     file_account = account_unique_id
     
     # Simulate the subfolder by including account_unique_id in the S3 key
@@ -131,7 +131,7 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
         Bucket=BUCKET_NAME,
         Key=s3_key,  # Upload to account subfolder
         Body=extracted_text,
-        ContentType="text/plain"
+        ContentType="application/pdf"
     )
 
     # Get the S3 file URL
@@ -192,6 +192,88 @@ async def save_text_to_file(text, title, account_unique_id: str, url: str, sessi
     # save_file_to_db(filename, file_path, file_account, session)
 
     return {"message": "Text successfully extracted and saved", "file_path": file_path}
+
+
+async def convert_file_to_pdf(original_file):
+    """
+    Convert permitted file types to pdf before saving
+    """
+
+    original_content = await original_file.read()
+
+    if original_file_ext == 'pdf':
+        pdf_content_bytes = original_content
+        final_content_type = 'application/pdf'
+    else:
+        # For non-PDFs, we need to convert
+        # Create a temporary directory for input and output of conversion
+        temp_output_dir = tempfile.mkdtemp()
+        temp_input_file_path = None
+
+        if original_file_ext in ['doc', 'docx']: # Add other Pandoc supported types
+                # 1. Write original content to a temporary file for Pandoc
+                # Ensure the suffix matches the original file extension for Pandoc to potentially auto-detect
+                with tempfile.NamedTemporaryFile(delete=False, suffix=f".{original_file_ext}", dir=temp_output_dir) as temp_input_file_obj:
+                    temp_input_file_obj.write(original_content)
+                    temp_input_file_path = temp_input_file_obj.name
+
+                
+                # 2. Convert DOCX/DOC/etc. to HTML using Pandoc
+                temp_html_file_path = convert_to_pdf.convert_to_html_pandoc(
+                    input_path=temp_input_file_path,
+                    output_dir=temp_output_dir,
+                    input_format=original_file_ext
+                )
+                
+                # 3. Convert the HTML (from Pandoc) to PDF using WeasyPrint
+                final_temp_pdf_path = os.path.join(temp_output_dir, "final_converted_document.pdf")
+                convert_to_pdf.convert_html_to_pdf_weasyprint(
+                    html_input=temp_html_file_path, # Pass the path to the HTML file
+                    output_pdf_path=final_temp_pdf_path,
+                    is_file_path=True # Indicate that html_input is a file path
+                )
+                
+                with open(final_temp_pdf_path, 'rb') as f_pdf:
+                    pdf_content_bytes = f_pdf.read()
+                final_content_type = 'application/pdf' # Output is always PDF
+                
+                # Clean up the converted PDF immediately after reading
+                if os.path.exists(final_temp_pdf_path):
+                    os.remove(final_temp_pdf_path)
+
+        elif original_file_ext == 'txt':
+            converted_pdf_path = os.path.join(temp_output_dir, "converted.pdf")
+            convert_to_pdf.convert_text_to_pdf(original_content.decode('utf-8', errors='replace'), converted_pdf_path) # Ensure decoding
+            with open(converted_pdf_path, 'rb') as f_pdf:
+                pdf_content_bytes = f_pdf.read()
+            final_content_type = 'application/pdf'
+            if os.path.exists(converted_pdf_path): os.remove(converted_pdf_path)
+
+        elif original_file_ext == 'md':
+            converted_pdf_path = os.path.join(temp_output_dir, "converted.pdf")
+            convert_to_pdf.convert_markdown_to_pdf(original_content.decode('utf-8', errors='replace'), converted_pdf_path) # Ensure decoding
+            with open(converted_pdf_path, 'rb') as f_pdf:
+                pdf_content_bytes = f_pdf.read()
+            final_content_type = 'application/pdf'
+            if os.path.exists(converted_pdf_path): os.remove(converted_pdf_path)
+        
+        else:
+            # If format is not supported for conversion, you can choose to:
+            # 1. Reject the file
+            # 2. Upload as-is (but then frontend needs to handle it)
+            # For this strategy, we'll reject unsupported types for PDF conversion
+            raise HTTPException(status_code=400, detail=f"File type '.{original_file_ext}' is not supported for PDF conversion.")
+
+        # Clean up temporary input file if created
+        if temp_input_file_path and os.path.exists(temp_input_file_path):
+            os.remove(temp_input_file_path)
+
+
+    if not pdf_content_bytes:
+        raise HTTPException(status_code=500, detail=f"Failed to obtain PDF content for {original_filename}")
+
+    else:
+        return pdf_content_bytes
 
 
 def create_new_folder_in_db(account_unique_id: str, folder_name: str, session: Session):
