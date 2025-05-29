@@ -158,7 +158,7 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
     except Exception as e:
         print(f"Failed to save file metadata for {unique_pdf_file_name} to DB: {e}")
         # CRITICAL: If DB save fails after S3 upload, you have an orphaned S3 object.
-        Consider deleting the S3 object if DB save fails:
+        # Consider deleting the S3 object if DB save fails:
         try:
             s3.delete_object(Bucket=BUCKET_NAME, Key=s3_key)
             print(f"Rolled back S3 upload for {s3_key} due to DB error.")
