@@ -3,6 +3,7 @@ import boto3
 import tempfile
 from botocore.exceptions import ClientError
 import logging
+import convert_to_pdf
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
 from file_management.models import SourceFile, Folder
