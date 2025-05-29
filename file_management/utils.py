@@ -209,7 +209,7 @@ def convert_file_to_pdf(original_file, file_name):
     temp_input_file_path = None
 
     converted_pdf_path = os.path.join(temp_output_dir, "converted.pdf")
-    convert_to_pdf.convert_text_to_pdf(original_file.decode('utf-8', errors='replace'), converted_pdf_path) # Ensure decoding
+    convert_to_pdf.convert_text_to_pdf(original_file, converted_pdf_path) # Ensure decoding
     with open(converted_pdf_path, 'rb') as f_pdf:
         pdf_content_bytes = f_pdf.read()
     final_content_type = 'application/pdf'
