@@ -1,5 +1,6 @@
 import os
 import boto3
+import tempfile
 from botocore.exceptions import ClientError
 import logging
 from sqlmodel import Session
