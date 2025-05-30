@@ -127,14 +127,15 @@ async def list_api_keys(account_unique_id: str,
     return {"api_keys": api_keys}
 
 
-@app.delete("/api/v1/delete-api-key/{api_key_id}")
-async def delete_api_key(api_key_id: str,
+@app.delete("/api/v1/delete-api-key/{account_unique_id}/{api_key_id}")
+async def delete_api_key(account_unique_id: str,
+                          api_key_id: str,
                           current_user: Annotated[User, Depends(get_current_active_user)],
                           session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Delete API Key
     """
-    statement = select(WidgetAPIKey).where(WidgetAPIKey.id == api_key_id)
+    statement = select(WidgetAPIKey).where(WidgetAPIKey.id == api_key_id, WidgetAPIKey.account_unique_id == account_unique_id)
     result = session.exec(statement)
     api_key = result.first()
     if not api_key:
