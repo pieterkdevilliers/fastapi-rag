@@ -8,7 +8,7 @@ import boto3
 import convert_to_pdf
 import io
 from datetime import timedelta
-from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request
+from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request, Security
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -26,7 +26,7 @@ from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
 from authentication import oauth2_scheme, Token, authenticate_user, get_password_hash, create_access_token, \
-    get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES
+    get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user
 from dependencies import get_session
     
 
@@ -93,6 +93,27 @@ async def query_data(query: str, account_unique_id: str, session: Session = Depe
     """
     Query Data
     """
+    if not query:
+        return {"error": "No query provided"}
+    
+    response = query_source_data.query_source_data(query, account_unique_id, session)
+    return response
+
+
+class WidgetQueryPayload(BaseModel):
+    query: str
+
+
+# Queries received from the web widget
+@app.get("/api/v1/widget/query") # Or your existing endpoint
+async def process_widget_query(
+                                payload: WidgetQueryPayload,
+                                auth_info: dict = Security(get_widget_api_key_user),
+                                session: Session = Depends(get_session)
+                                ):
+    account_unique_id = auth_info["account_unique_id"]
+    query = payload.query.strip() if payload.query else None
+
     if not query:
         return {"error": "No query provided"}
     
