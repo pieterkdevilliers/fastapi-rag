@@ -19,6 +19,7 @@ ALGORITHM = os.environ.get('ALGORITHM')
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get('ACCESS_TOKEN_EXPIRE_MINUTES'))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+api_key_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
@@ -85,6 +86,12 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 
+def get_api_key_hash(api_key: str):
+    """
+    Get API Key Hash
+    """
+    return api_key_context.hash(api_key)
+
 def get_api_key(api_key_prefix: str, session: Session = Depends(get_session)):
     """
     Get API Key by Prefix
@@ -101,7 +108,7 @@ def validate_api_key_against_hash(api_key: str, api_key_hash: str):
     """
     Validate API Key against stored hash
     """
-    return pwd_context.verify(api_key, api_key_hash)
+    return api_key_context.verify(api_key, api_key_hash)
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], session: Session = Depends(get_session)):
