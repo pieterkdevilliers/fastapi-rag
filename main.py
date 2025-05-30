@@ -93,7 +93,10 @@ class APIKeyCreateRequest(BaseModel):
     allowed_origins: List[str]
 
 @app.post("/api/v1/create-api-key/{account_unique_id}")
-async def create_api_key(account_unique_id: str, api_key_create_request: APIKeyCreateRequest, session: Session = Depends(get_session)) -> dict[str, Any]:
+async def create_api_key(
+                        account_unique_id: str,
+                        api_key_create_request: APIKeyCreateRequest,
+                        session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Create API Key
     """
