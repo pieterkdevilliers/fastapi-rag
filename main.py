@@ -145,12 +145,16 @@ async def delete_api_key(account_unique_id: str,
     return {"message": "API Key deleted successfully"}
 
 
+class APIKeyUpdateRequest(BaseModel):
+    name: str = None
+    allowed_origins: List[str] = None
+
+
 @app.put("/api/v1/update-api-key/{account_unique_id}/{api_key_id}")
 async def update_api_key(account_unique_id: str,
                          current_user: Annotated[User, Depends(get_current_active_user)],
                          api_key_id: str,
-                         name: str = None,
-                         allowed_origins: list[str] = None, 
+                         api_key_update_request: APIKeyUpdateRequest,
                          session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Update API Key
@@ -162,11 +166,11 @@ async def update_api_key(account_unique_id: str,
     if not api_key:
         return {"error": "API Key not found"}
     
-    if name is not None:
-        api_key.name = name
-    if allowed_origins is not None:
-        api_key.allowed_origins = allowed_origins
-    
+    if api_key_update_request.name is not None:
+        api_key.name = api_key_update_request.name
+    if api_key_update_request.allowed_origins is not None:
+        api_key.allowed_origins = api_key_update_request.allowed_origins
+
     session.add(api_key)
     session.commit()
     
