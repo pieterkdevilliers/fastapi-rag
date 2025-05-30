@@ -88,8 +88,12 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 ############################################
 
 
+class APIKeyCreateRequest(BaseModel):
+    name: str
+    allowed_origins: List[str]
+
 @app.post("/api/v1/create-api-key/{account_unique_id}")
-async def create_api_key(account_unique_id: str, name: str, allowed_origins: list[str], session: Session = Depends(get_session)) -> dict[str, Any]:
+async def create_api_key(account_unique_id: str, api_key_create_request: APIKeyCreateRequest, session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Create API Key
     """
@@ -98,13 +102,13 @@ async def create_api_key(account_unique_id: str, name: str, allowed_origins: lis
     display_prefix = api_key[:8]  # Use the first 8 characters as the display prefix
     api_key_hash = get_api_key_hash(api_key)  # Generate a secure random API key hash
     new_api_key = WidgetAPIKey(account_unique_id=account_unique_id,
-                               name=name,
-                               allowed_origins=allowed_origins,
+                               name=api_key_create_request.name,
+                               allowed_origins=api_key_create_request.allowed_origins,
                                api_key_hash=api_key_hash,
                                display_prefix=display_prefix)
     session.add(new_api_key)
     session.commit()
-    return {"api_key": api_key, "account_unique_id": account_unique_id, "allowed_origins": allowed_origins}
+    return {"api_key": api_key, "account_unique_id": account_unique_id, "allowed_origins": api_key_create_request.allowed_origins}
 
 
 @app.get("/api/v1/list-api-keys/{account_unique_id}")
