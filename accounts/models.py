@@ -22,6 +22,7 @@ class Account(AccountBase, table=True):
     users: List["User"] = Relationship(back_populates="account")
     folders: List["Folder"] = Relationship(back_populates="account")
     source_files: List["SourceFile"] = Relationship(back_populates="account")
+    widget_api_keys: List["WidgetAPIKey"] = Relationship(back_populates="account")
     relevance_score: float = Field(default=0.7, nullable=True)
     k_value: int = Field(default=3, nullable=True)
     chunk_size: int = Field(default=1000, nullable=True)
