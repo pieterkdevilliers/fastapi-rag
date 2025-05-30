@@ -19,14 +19,14 @@ from file_management.models import SourceFile, Folder
 from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db, \
     fetch_html_content, extract_text_from_html, prepare_for_s3_upload, create_new_folder_in_db, \
     update_folder_in_db, delete_folder_from_db, delete_file_from_s3
-from accounts.models import Account, User
+from accounts.models import Account, User, WidgetAPIKey
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db
 from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
 from authentication import oauth2_scheme, Token, authenticate_user, get_password_hash, create_access_token, \
-    get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user
+    get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user, get_api_key_hash
 from dependencies import get_session
     
 
@@ -81,6 +81,25 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 
     account_unique_id = user.get('account_unique_id')
     return Token(account_unique_id=account_unique_id, access_token=access_token, token_type="bearer")
+
+
+@app.post("/api/v1/create-api-key/{account_unique_id}")
+async def create_api_key(account_unique_id: str, name: str, allowed_origins: list[str], session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    Create API Key
+    """
+    # Your logic to create an API key
+    api_key = token_hex(32)  # Generate a secure random API key
+    display_prefix = api_key[:8]  # Use the first 8 characters as the display prefix
+    api_key_hash = get_api_key_hash(api_key)  # Generate a secure random API key hash
+    new_api_key = WidgetAPIKey(account_unique_id=account_unique_id,
+                               name=name,
+                               allowed_origins=allowed_origins,
+                               api_key_hash=api_key_hash,
+                               display_prefix=display_prefix)
+    session.add(new_api_key)
+    session.commit()
+    return {"api_key": api_key, "account_unique_id": account_unique_id, "allowed_origins": allowed_origins}
 
 
 ############################################
