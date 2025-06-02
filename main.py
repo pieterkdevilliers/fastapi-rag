@@ -198,7 +198,7 @@ class WidgetQueryPayload(BaseModel):
 
 
 # Queries received from the web widget
-@app.get("/api/v1/widget/query") # Or your existing endpoint
+@app.post("/api/v1/widget/query") # Or your existing endpoint
 async def process_widget_query(
                                 payload: WidgetQueryPayload,
                                 auth_info: dict = Security(get_widget_api_key_user),
