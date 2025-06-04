@@ -80,20 +80,6 @@ def prepare_db_and_perform_query(query, account_unique_id, session: Session):
     return result
 
 
-# def query_source_data(query, account_unique_id, session: Session):
-#     """
-#     Query Source Data
-#     """
-#     if not query:
-#         return {"error": "No query provided"}
-    
-#     response = prepare_db_and_perform_query(query, account_unique_id, session)
-#     print(f"Response: {response}")
-#     return {
-#         "query": query,
-#         "response": response
-#         }
-
 def query_source_data(query: str, account_unique_id: str, session: Session):
     """
     Query Source Data and de-duplicate sources.
@@ -104,9 +90,6 @@ def query_source_data(query: str, account_unique_id: str, session: Session):
     # This variable holds the entire dictionary returned by your query engine
     query_engine_response = prepare_db_and_perform_query(query, account_unique_id, session)
     
-    # This print statement shows the raw response from prepare_db_and_perform_query
-    # which is similar to your original print statement.
-    print(f"Raw response from prepare_db_and_perform_query: {query_engine_response}")
     
     # Check if query_engine_response is a dictionary and has a 'sources' key,
     # and if 'sources' is a list. This makes the de-duplication robust.
@@ -123,7 +106,6 @@ def query_source_data(query: str, account_unique_id: str, session: Session):
             
             # Update the 'sources' in the query_engine_response dictionary
             query_engine_response['sources'] = unique_sources
-            print(f"Response after de-duplicating sources: {query_engine_response}")
         else:
             print("Sources list is empty, no de-duplication needed.")
             
