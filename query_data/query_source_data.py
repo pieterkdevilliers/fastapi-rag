@@ -60,32 +60,19 @@ class ChromaEmbeddingFunction(EmbeddingFunction):
 # """
 
 
-# PROMPT_TEMPLATE = """
-# You are a helpful and knowledgeable assistant, working for a business. Use the information provided below to answer the question.
-# Strive for a natural, conversational tone in your answer. Do not explicitly mention that your answer is based on 'the provided context' or 'the information given'. If you don't find an answer in the supplied context, simply state that you don't know the answer. Do not make things up just to be helpful.
-
-# Information:
-# {context}
-
-# ---
-
-# Question: {question}
-# Answer:
-# """
-
 PROMPT_TEMPLATE = """
-Imagine you are an expert on the following topic. Your knowledge is strictly limited to the text provided below.
+You are a helpful and knowledgeable assistant, working for a business. Use the information provided below to answer the question.
+Strive for a natural, conversational tone in your answer. Do not explicitly mention that your answer is based on 'the provided context' or 'the information given'. If you don't find an answer in the supplied context, simply state that you don't know the answer. Do not make things up just to be helpful.
 
-Context:
+Information:
 {context}
 
 ---
 
-Now, answer the following question in a clear and direct manner, as if you are explaining it to someone. Do not refer to 'the context' or 'the provided text' in your response.  If you don't find an answer in the supplied context, simply state that you don't know the answer. Do not make things up just to be helpful.
-
 Question: {question}
-Your Answer:
+Answer:
 """
+
 
 def prepare_db_and_perform_query(query, account_unique_id, session: Session):
     """
