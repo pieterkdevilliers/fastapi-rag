@@ -61,8 +61,8 @@ class ChromaEmbeddingFunction(EmbeddingFunction):
 
 
 PROMPT_TEMPLATE = """
-You are a helpful and knowledgeable assistant. Use the information provided below to answer the question.
-Strive for a natural, conversational tone in your answer. Do not explicitly mention that your answer is based on 'the provided context' or 'the information given'.
+You are a helpful and knowledgeable assistant, working for a business. Use the information provided below to answer the question.
+Strive for a natural, conversational tone in your answer. Do not explicitly mention that your answer is based on 'the provided context' or 'the information given'. If you don't find an answer in the supplied context, simply state that you don't know the answer. Do not make things up just to be helpful.
 
 Information:
 {context}
