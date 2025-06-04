@@ -86,6 +86,7 @@ def query_source_data(query, account_unique_id, session: Session):
         return {"error": "No query provided"}
     
     response = prepare_db_and_perform_query(query, account_unique_id, session)
+    print(f"Response: {response}")
     return {
         "query": query,
         "response": response
