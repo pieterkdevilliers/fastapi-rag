@@ -4,6 +4,7 @@ import requests
 # from dataclasses import dataclass
 from sqlmodel import select, Session
 from accounts.models import Account
+from typing import List
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
@@ -12,6 +13,7 @@ from chromadb.api.types import EmbeddingFunction
 import chromadb
 import openai 
 from dotenv import load_dotenv
+
 
 load_dotenv()
 
@@ -78,19 +80,63 @@ def prepare_db_and_perform_query(query, account_unique_id, session: Session):
     return result
 
 
-def query_source_data(query, account_unique_id, session: Session):
+# def query_source_data(query, account_unique_id, session: Session):
+#     """
+#     Query Source Data
+#     """
+#     if not query:
+#         return {"error": "No query provided"}
+    
+#     response = prepare_db_and_perform_query(query, account_unique_id, session)
+#     print(f"Response: {response}")
+#     return {
+#         "query": query,
+#         "response": response
+#         }
+
+def query_source_data(query: str, account_unique_id: str, session: Session):
     """
-    Query Source Data
+    Query Source Data and de-duplicate sources.
     """
     if not query:
         return {"error": "No query provided"}
     
-    response = prepare_db_and_perform_query(query, account_unique_id, session)
-    print(f"Response: {response}")
+    # This variable holds the entire dictionary returned by your query engine
+    query_engine_response = prepare_db_and_perform_query(query, account_unique_id, session)
+    
+    # This print statement shows the raw response from prepare_db_and_perform_query
+    # which is similar to your original print statement.
+    print(f"Raw response from prepare_db_and_perform_query: {query_engine_response}")
+    
+    # Check if query_engine_response is a dictionary and has a 'sources' key,
+    # and if 'sources' is a list. This makes the de-duplication robust.
+    if isinstance(query_engine_response, dict) and \
+       'sources' in query_engine_response and \
+       isinstance(query_engine_response.get('sources'), list):
+        
+        original_sources: List[str] = query_engine_response['sources']
+        
+        if original_sources: # Only process if the list is not empty
+            # For Python 3.7+, dict.fromkeys preserves insertion order and creates unique keys.
+            # Converting it back to a list gives unique sources in their original order of appearance.
+            unique_sources = list(dict.fromkeys(original_sources))
+            
+            # Update the 'sources' in the query_engine_response dictionary
+            query_engine_response['sources'] = unique_sources
+            print(f"Response after de-duplicating sources: {query_engine_response}")
+        else:
+            print("Sources list is empty, no de-duplication needed.")
+            
+    else:
+        # This handles cases where query_engine_response is not a dict, 
+        # 'sources' key is missing, or 'sources' is not a list.
+        print(f"Warning: 'sources' key not found, not a list, or response is not a dict. Skipping de-duplication. query_engine_response: {query_engine_response}")
+
+    # Return the final structure with the query and the (potentially modified) response
     return {
         "query": query,
-        "response": response
-        }
+        "response": query_engine_response 
+    }
 
 
 def prepare_db(account_unique_id):
