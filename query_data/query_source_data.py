@@ -49,16 +49,29 @@ class ChromaEmbeddingFunction(EmbeddingFunction):
         return self.embedding_function.get_dimension()
     
 
-PROMPT_TEMPLATE = """
-Answer the question based only on the following context:
+# PROMPT_TEMPLATE = """
+# Answer the question based only on the following context:
 
+# {context}
+
+# ---
+
+# Answer the question based on the above context: {question}
+# """
+
+
+PROMPT_TEMPLATE = """
+You are a helpful and knowledgeable assistant. Use the information provided below to answer the question.
+Strive for a natural, conversational tone in your answer. Do not explicitly mention that your answer is based on 'the provided context' or 'the information given'.
+
+Information:
 {context}
 
 ---
 
-Answer the question based on the above context: {question}
+Question: {question}
+Answer:
 """
-
 
 def prepare_db_and_perform_query(query, account_unique_id, session: Session):
     """
