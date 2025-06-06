@@ -852,8 +852,25 @@ class UserCreatePayload(BaseModel):
 
 
 @app.post("/api/v1/users/{account_unique_id}")
-async def create_user(account_unique_id: str, payload: UserCreatePayload,
+async def create_user(account_unique_id: str, 
                       current_user: Annotated[User, Depends()],
+                      payload: UserCreatePayload = Body(...),
+                      session: Session = Depends(get_session)):
+    """
+    Create User
+    """
+    user_password = get_password_hash(payload.user_password)
+    user = create_new_user_in_db(payload.user_email, user_password, account_unique_id, session)
+
+    return {"response": "success",
+            "user": user,
+            "user_email": user.user_email,
+            "user_id": user.id}
+
+
+@app.post("/api/v1/users/{account_unique_id}")
+async def create_first_user(account_unique_id: str, 
+                      payload: UserCreatePayload = Body(...),
                       session: Session = Depends(get_session)):
     """
     Create User
