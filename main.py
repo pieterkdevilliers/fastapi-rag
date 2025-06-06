@@ -868,7 +868,7 @@ async def create_user(account_unique_id: str,
             "user_id": user.id}
 
 
-@app.post("/api/v1/users/{account_unique_id}")
+@app.post("/api/v1/first-user/{account_unique_id}")
 async def create_first_user(account_unique_id: str, 
                       payload: UserCreatePayload = Body(...),
                       session: Session = Depends(get_session)):
