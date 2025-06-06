@@ -261,7 +261,7 @@ class SESEmail(BaseModel):
 
 @app.post("/api/v1/send-email/{account_unique_id}")
 async def send_ses_email(accout_unique_id: str,
-                         payload: SESEmail)
+                         payload: SESEmail):
     """
     Send an email via AWS SES
     
