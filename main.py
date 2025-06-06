@@ -853,7 +853,7 @@ class UserCreatePayload(BaseModel):
 
 @app.post("/api/v1/users/{account_unique_id}")
 async def create_user(account_unique_id: str, 
-                      current_user: Annotated[User, Depends()],
+                      current_user: Annotated[User, Depends(get_current_active_user)],
                       payload: UserCreatePayload = Body(...),
                       session: Session = Depends(get_session)):
     """
