@@ -7,6 +7,7 @@ import shutil
 import boto3
 import convert_to_pdf
 import io
+import aws_ses_service
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request, Security
 from fastapi.security import OAuth2PasswordRequestForm
@@ -247,6 +248,31 @@ async def clear_chroma_db_datastore(account_unique_id: str, current_user: Annota
     
     else:
         return {"error": "Chroma DB not found"}
+    
+
+############################################
+# AWS SES Routes
+############################################
+
+class SESEmail(BaseModel):
+    to_email: str
+    subject: str
+    message: str
+
+@app.post("/api/v1/send-email/{account_unique_id}")
+async def send_ses_email(accout_unique_id: str,
+                         payload: SESEmail)
+    """
+    Send an email via AWS SES
+    
+    """
+    aws_ses_service.EmailService.send_email(
+        to_email=payload.to_email,
+        subject=payload.subject,
+        message=payload.message
+    )
+
+    return {"response": "Email sent successfully", "to_email": payload.to_email, "subject": payload.subject}
 
 ############################################
 # File Management Routes
