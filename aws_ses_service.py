@@ -20,11 +20,11 @@ class EmailService:
     def __init__(self):
         self.ses = boto3.client(
             "ses",
-            region_name=os.environ("AWS_SES_REGION"),
-            aws_access_key_id=os.environ("AWS_ACCESS_KEY"),
-            aws_secret_access_key=os.environ("AWS_SECRET_KEY"),
+            region_name=os.environ.get("AWS_SES_REGION"),
+            aws_access_key_id=os.environ.get("AWS_ACCESS_KEY"),
+            aws_secret_access_key=os.environ.get("AWS_SECRET_KEY"),
         )
-        self.sender_email = os.environ("AWS_SES_VERIFIED_MAIL")
+        self.sender_email = os.environ.get("AWS_SES_VERIFIED_MAIL")
 
     def send_email(self, to_email: str, subject: str, message: str):
         try:
