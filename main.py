@@ -258,15 +258,17 @@ class SESEmail(BaseModel):
     to_email: str
     subject: str
     message: str
+    account_unique_id: str = None
 
-@app.post("/api/v1/send-email/{account_unique_id}")
-async def send_ses_email(account_unique_id: str,
-                         payload: SESEmail,
+@app.post("/api/v1/send-email")
+async def send_ses_email(payload: SESEmail,
                          email_service: EmailService = Depends(get_email_service)):
     """
     Send an email via AWS SES
     
     """
+    if payload.account_unique_id is None or not payload.account_unique_id.strip():
+        raise HTTPException(status_code=400, detail="Account unique ID is required")
     try:
         email_service.send_email(
             to_email=payload.to_email,
