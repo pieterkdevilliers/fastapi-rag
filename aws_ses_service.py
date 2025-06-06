@@ -7,6 +7,14 @@ from pathlib import Path
 env_path = Path(".") / ".env"
 load_dotenv(dotenv_path=env_path)
 
+# A dependency provider function
+_email_service_singleton = None
+
+def get_email_service():
+    global _email_service_singleton
+    if _email_service_singleton is None:
+        _email_service_singleton = EmailService()
+    return _email_service_singleton
 
 class EmailService:
     def __init__(self):
