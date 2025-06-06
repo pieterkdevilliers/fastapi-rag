@@ -7,7 +7,7 @@ import shutil
 import boto3
 import convert_to_pdf
 import io
-import aws_ses_service
+from aws_ses_service import EmailService, get_email_service
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request, Security
 from fastapi.security import OAuth2PasswordRequestForm
@@ -260,19 +260,26 @@ class SESEmail(BaseModel):
     message: str
 
 @app.post("/api/v1/send-email/{account_unique_id}")
-async def send_ses_email(accout_unique_id: str,
-                         payload: SESEmail):
+async def send_ses_email(account_unique_id: str,
+                         payload: SESEmail,
+                         email_service: EmailService = Depends(get_email_service)):
     """
     Send an email via AWS SES
     
     """
-    aws_ses_service.EmailService.send_email(
-        to_email=payload.to_email,
-        subject=payload.subject,
-        message=payload.message
-    )
+    try:
+        email_service.send_email(
+            to_email=payload.to_email,
+            subject=payload.subject,
+            message=payload.message
+        )
 
-    return {"response": "Email sent successfully", "to_email": payload.to_email, "subject": payload.subject}
+        return {"response": "Email sent successfully", "to_email": payload.to_email, "subject": payload.subject}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    
 
 ############################################
 # File Management Routes
