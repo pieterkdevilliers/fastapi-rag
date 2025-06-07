@@ -250,6 +250,22 @@ async def clear_chroma_db_datastore(account_unique_id: str, current_user: Annota
         return {"error": "Chroma DB not found"}
     
 
+class WidgetEmailPayload(BaseModel):
+    name: str
+    email: str
+    message: str
+
+@app.get("/api/v1/widget/contact-us")
+async def widget_contact_us(
+                        payload: WidgetEmailPayload, 
+                        auth_info: dict = Security(get_widget_api_key_user),
+                        session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    Contact Us
+    """
+    return {"message": "Contact Us", "account_unique_id": auth_info["account_unique_id"], "payload": payload}
+
+
 ############################################
 # AWS SES Routes
 ############################################
