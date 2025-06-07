@@ -894,8 +894,9 @@ async def create_user(account_unique_id: str,
     """
     Create User
     """
+    receive_notifications = False  # Default to False for subsequent users
     user_password = get_password_hash(payload.user_password)
-    user = create_new_user_in_db(payload.user_email, user_password, account_unique_id, session)
+    user = create_new_user_in_db(payload.user_email, user_password, account_unique_id, session, receive_notifications)
 
     return {"response": "success",
             "user": user,
@@ -910,8 +911,9 @@ async def create_first_user(account_unique_id: str,
     """
     Create User
     """
+    receive_notifications = True  # Default to True for first user
     user_password = get_password_hash(payload.user_password)
-    user = create_new_user_in_db(payload.user_email, user_password, account_unique_id, session)
+    user = create_new_user_in_db(payload.user_email, user_password, account_unique_id, session, receive_notifications)
 
     return {"response": "success",
             "user": user,
