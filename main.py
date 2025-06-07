@@ -255,7 +255,7 @@ class WidgetEmailPayload(BaseModel):
     email: str
     message: str
 
-@app.get("/api/v1/widget/contact-us")
+@app.post("/api/v1/widget/contact-us")
 async def widget_contact_us(
                         payload: WidgetEmailPayload, 
                         auth_info: dict = Security(get_widget_api_key_user),
