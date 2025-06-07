@@ -22,7 +22,7 @@ from file_management.utils import save_file_to_db, update_file_in_db, delete_fil
     update_folder_in_db, delete_folder_from_db, delete_file_from_s3
 from accounts.models import Account, User, WidgetAPIKey
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
-    create_new_user_in_db, update_user_in_db, delete_user_from_db
+    create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users
 from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
@@ -263,6 +263,25 @@ async def widget_contact_us(
     """
     Contact Us
     """
+
+    if not payload.name or not payload.email or not payload.message:
+        raise HTTPException(status_code=400, detail="Name, email, and message are required fields")
+    
+    recipients = get_notification_users(auth_info["account_unique_id"], session)
+    if not recipients:
+        raise HTTPException(status_code=404, detail="No notification users found for this account")
+    email_service = get_email_service()
+    print(f"Sending contact us email to {len(recipients)} recipients for account {auth_info['account_unique_id']}")
+    try:
+        for recipient in recipients:
+            email_service.send_email(
+                to_email=recipient.user_email,
+                subject=f"Contact Us from {payload.name}",
+                message=f"Name: {payload.name}\nEmail: {payload.email}\nMessage: {payload.message}"
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
     return {"message": "Contact Us", "account_unique_id": auth_info["account_unique_id"], "payload": payload}
 
 

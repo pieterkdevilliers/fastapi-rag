@@ -107,3 +107,17 @@ def delete_user_from_db(account_unique_id: str, user_id: int,  session: Session)
     
     return {"response": "success",
             "user_id": user_id}
+
+
+def get_notification_users(account_unique_id: str, session: Session):
+    """
+    Get Users who should receive notifications
+    """
+    statement = select(User).filter(User.account_unique_id == account_unique_id, User.receive_notifications == True)
+    result = session.exec(statement)
+    users = result.all()
+    
+    if not users:
+        return {"error": "No users found"}
+    
+    return [user.model_dump() for user in users]
