@@ -4,6 +4,7 @@ from sqlalchemy import Column
 from sqlalchemy.sql.sqltypes import JSON
 from sqlmodel import SQLModel, Field, Relationship
 from file_management.models import SourceFile, Folder
+from chat_messages.models import ChatSession
 
 
 class AccountBase(SQLModel):
@@ -23,6 +24,7 @@ class Account(AccountBase, table=True):
     folders: List["Folder"] = Relationship(back_populates="account")
     source_files: List["SourceFile"] = Relationship(back_populates="account")
     widget_api_keys: List["WidgetAPIKey"] = Relationship(back_populates="account")
+    chat_sessions: List["ChatSession"] = Relationship(back_populates="account")
     relevance_score: float = Field(default=0.7, nullable=True)
     k_value: int = Field(default=3, nullable=True)
     chunk_size: int = Field(default=1000, nullable=True)
