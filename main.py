@@ -1004,7 +1004,7 @@ async def process_widget_message(
     
     # Process the chat message
     print(f"Processing chat message: {payload.message_text} from {payload.sender_type}")
-    chat_session = create_or_identify_chat_session(account_unique_id, session)
+    chat_session = create_or_identify_chat_session(account_unique_id, payload.visitor_uuid, session)
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found or could not be created")
     print(f"Chat session created or identified: {chat_session.id} for account {account_unique_id}")
