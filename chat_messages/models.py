@@ -19,7 +19,7 @@ class ChatSession(ChatSessionBase, table=True):
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     account: "Account" = Relationship(back_populates="chat_sessions")
-    visitor_uuid: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    visitor_uuid: str = Field(default=None, nullable=False, index=True)
     start_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     end_time: Optional[datetime] = Field(default=None, nullable=True)
 
