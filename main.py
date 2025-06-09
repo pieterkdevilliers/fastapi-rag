@@ -29,6 +29,7 @@ import query_data.query_source_data as query_source_data
 from authentication import oauth2_scheme, Token, authenticate_user, get_password_hash, create_access_token, \
     get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user, get_api_key_hash
 from dependencies import get_session
+from chat_messages.models import ChatSession, ChatMessage
     
 
 # Initialize the S3 client
