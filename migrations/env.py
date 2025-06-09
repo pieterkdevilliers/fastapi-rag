@@ -7,6 +7,7 @@ from sqlmodel import SQLModel
 from alembic import context
 from file_management.models import SourceFile, Folder
 from accounts.models import Account, User, WidgetAPIKey
+from chat_messages.models import ChatSession, ChatMessage
 
 
 # this is the Alembic Config object, which provides
