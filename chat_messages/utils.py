@@ -15,9 +15,6 @@ def create_or_identify_chat_session(account_unique_id: str, session: Session):
 
     if not chat_session:
         chat_session = ChatSession(account_unique_id=account_unique_id)
-        chat_session.account = session.exec(
-            select(Account).where(Account.account_unique_id == account_unique_id)
-        ).first().account_organisation
         session.add(chat_session)
         session.commit()
         session.refresh(chat_session)
