@@ -30,6 +30,7 @@ from authentication import oauth2_scheme, Token, authenticate_user, get_password
     get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user, get_api_key_hash
 from dependencies import get_session
 from chat_messages.models import ChatSession, ChatMessage
+from chat_messages.utils import create_or_identify_chat_session
     
 
 # Initialize the S3 client
@@ -992,7 +993,22 @@ async def process_widget_message(
                                     ):
     account_unique_id = auth_info["account_unique_id"]
     print(f"Received chat message from widget for account {account_unique_id}: {payload.message_text}")
-    # Process the chat message here
+    # Validate the chat message here
+    if not payload.message_text or not payload.chat_session_id or not payload.visitor_uuid:
+        raise HTTPException(status_code=400, detail="chat_session_id, visitor_uuid, and message_text are required fields")
+    if payload.sender_type not in ['user', 'bot']:
+        raise HTTPException(status_code=400, detail="sender_type must be 'user' or 'bot'")
+    # Validate the chat session ID and visitor UUID
+    if not isinstance(payload.chat_session_id, int) or not payload.visitor_uuid:
+        raise HTTPException(status_code=400, detail="Invalid chat_session_id or visitor_uuid format")
+    
+    # Process the chat message
+    print(f"Processing chat message: {payload.message_text} from {payload.sender_type}")
+    chat_session = create_or_identify_chat_session(account_unique_id, session)
+    if not chat_session:
+        raise HTTPException(status_code=404, detail="Chat session not found or could not be created")
+    print(f"Chat session created or identified: {chat_session.id} for account {account_unique_id}")
+
 
     try:
         # Here you would typically save the message to the database
