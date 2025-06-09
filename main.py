@@ -969,3 +969,27 @@ async def get_user(account_unique_id: str, user_id: int,
     
     return {"response": "success",
             "user": user}
+
+
+
+############################################
+# Chat Messages Routes
+############################################
+
+class ChatMessagePayload(BaseModel):
+    chat_session_id: int
+    visitor_uuid: str
+    sender_type: str  # 'user' or 'bot'
+    message_text: str
+
+
+@app.post("/api/v1/widget/messages")
+async def process_widget_message(
+                                    payload: ChatMessagePayload,
+                                    auth_info: dict = Security(get_widget_api_key_user),
+                                    session: Session = Depends(get_session)
+                                    ):
+    account_unique_id = auth_info["account_unique_id"]
+    print(f"Received chat message from widget for account {account_unique_id}: {payload.message_text}")
+    # Process the chat message here
+    return {"response": "success"}
