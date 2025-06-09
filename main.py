@@ -993,4 +993,17 @@ async def process_widget_message(
     account_unique_id = auth_info["account_unique_id"]
     print(f"Received chat message from widget for account {account_unique_id}: {payload.message_text}")
     # Process the chat message here
-    return {"response": "success"}
+
+    try:
+        # Here you would typically save the message to the database
+        # and possibly trigger a response from a bot or other service
+        # For now, we'll just return a success response
+        print(f"Processing message: {payload.message_text} from {payload.sender_type}")
+        
+        # You can add logic to handle the message, e.g., save to DB, trigger bot response, etc.
+
+        return {"response": "success"}
+    except Exception as e:
+        print(f"Error processing chat message: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
