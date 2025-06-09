@@ -999,6 +999,8 @@ async def process_widget_message(
         # and possibly trigger a response from a bot or other service
         # For now, we'll just return a success response
         print(f"Processing message: {payload.message_text} from {payload.sender_type}")
+        print(f"Chat session ID: {payload.chat_session_id}, Visitor UUID: {payload.visitor_uuid}")
+        print(f"Account Unique ID: {account_unique_id}, Sender Type: {payload.sender_type}")
         
         # You can add logic to handle the message, e.g., save to DB, trigger bot response, etc.
 
