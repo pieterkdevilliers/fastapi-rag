@@ -1,5 +1,6 @@
 from sqlmodel import select, Session
 from chat_messages.models import ChatSession
+from accounts.models import Account
 from typing import Optional
 from datetime import datetime, timezone
 
@@ -14,6 +15,9 @@ def create_or_identify_chat_session(account_unique_id: str, session: Session):
 
     if not chat_session:
         chat_session = ChatSession(account_unique_id=account_unique_id)
+        chat_session.account = session.exec(
+            select(Account).where(Account.account_unique_id == account_unique_id)
+        ).first()
         session.add(chat_session)
         session.commit()
         session.refresh(chat_session)
