@@ -1,10 +1,12 @@
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime, timezone
 from sqlalchemy import Column
 from sqlalchemy.sql.sqltypes import JSON
 from sqlmodel import SQLModel, Field, Relationship
 from file_management.models import SourceFile, Folder
-from chat_messages.models import ChatSession
+# Conditional import for type checking
+if TYPE_CHECKING:
+    from chat_messages.models import ChatSession
 
 
 class AccountBase(SQLModel):
