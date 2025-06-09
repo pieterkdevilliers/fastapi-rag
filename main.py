@@ -30,7 +30,7 @@ from authentication import oauth2_scheme, Token, authenticate_user, get_password
     get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user, get_api_key_hash
 from dependencies import get_session
 from chat_messages.models import ChatSession, ChatMessage
-from chat_messages.utils import create_or_identify_chat_session
+from chat_messages.utils import create_or_identify_chat_session, create_chat_message
     
 
 # Initialize the S3 client
@@ -1004,24 +1004,15 @@ async def process_widget_message(
     
     # Process the chat message
     print(f"Processing chat message: {payload.message_text} from {payload.sender_type}")
-    chat_session = create_or_identify_chat_session(account_unique_id, payload.visitor_uuid, session)
-    if not chat_session:
-        raise HTTPException(status_code=404, detail="Chat session not found or could not be created")
-    print(f"Chat session created or identified: {chat_session.id} for account {account_unique_id}")
-
+    try:
+        chat_session = create_or_identify_chat_session(account_unique_id, payload.visitor_uuid, session)
+    except Exception as e:
+        print(f"Error creating or identifying chat session: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create or identify chat session")
 
     try:
-        # Here you would typically save the message to the database
-        # and possibly trigger a response from a bot or other service
-        # For now, we'll just return a success response
-        print(f"Processing message: {payload.message_text} from {payload.sender_type}")
-        print(f"Chat session ID: {payload.chat_session_id}, Visitor UUID: {payload.visitor_uuid}")
-        print(f"Account Unique ID: {account_unique_id}, Sender Type: {payload.sender_type}")
-        
-        # You can add logic to handle the message, e.g., save to DB, trigger bot response, etc.
-
-        return {"response": "success"}
+        chat_message = create_chat_message(chat_session.id, payload.message_text, payload.sender_type, session)
     except Exception as e:
-        print(f"Error processing chat message: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
+        print(f"Error creating chat message: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create chat message")
+    print(f"Chat message processed successfully: {chat_message.message_text} from {chat_message.sender_type}")

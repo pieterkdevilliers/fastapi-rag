@@ -1,5 +1,5 @@
 from sqlmodel import select, Session
-from chat_messages.models import ChatSession
+from chat_messages.models import ChatSession, ChatMessage
 from accounts.models import Account
 from typing import Optional
 from datetime import datetime, timezone
@@ -26,3 +26,22 @@ def create_or_identify_chat_session(account_unique_id: str, visitor_uuid: str, s
         session.refresh(chat_session)
 
     return chat_session
+
+
+def create_chat_message(chat_session_id: int, message_text: str, sender_type: str, session: Session) -> Optional[ChatSession]:
+    """
+    Create a new chat message in the session
+    """
+    chat_message = ChatMessage(
+        chat_session_id=chat_session_id,
+        message_text=message_text,
+        sender_type=sender_type,
+        timestamp=datetime.now(timezone.utc)
+    )
+    
+    session.add(chat_message)
+    session.commit()
+    session.refresh(chat_message)
+
+    # Optionally return the updated chat session
+    return chat_message
