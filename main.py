@@ -256,6 +256,8 @@ class WidgetEmailPayload(BaseModel):
     name: str
     email: str
     message: str
+    sessionId: str | None = None  # Optional session ID for tracking
+    visitorUuid: str | None = None  # Optional visitor UUID for tracking
 
 @app.post("/api/v1/widget/contact-us")
 async def widget_contact_us(
@@ -265,7 +267,7 @@ async def widget_contact_us(
     """
     Contact Us
     """
-
+    print(f"Received email for session {payload.sessionId} from visitor {payload.visitorUuid} for account {auth_info['account_unique_id']}")
     if not payload.name or not payload.email or not payload.message:
         raise HTTPException(status_code=400, detail="Name, email, and message are required fields")
     
