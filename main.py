@@ -258,7 +258,6 @@ class WidgetEmailPayload(BaseModel):
     message: str
     sessionId: str
     visitorUuid: str
-    accountId: str = None
 
 @app.post("/api/v1/widget/contact-us")
 async def widget_contact_us(
