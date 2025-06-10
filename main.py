@@ -256,8 +256,8 @@ class WidgetEmailPayload(BaseModel):
     name: str
     email: str
     message: str
-    sessionId: str | None = None  # Optional session ID for tracking
-    visitorUuid: str | None = None  # Optional visitor UUID for tracking
+    sessionId: str
+    visitorUuid: str
 
 @app.post("/api/v1/widget/contact-us")
 async def widget_contact_us(
