@@ -256,7 +256,7 @@ class WidgetEmailPayload(BaseModel):
     name: str
     email: str
     message: str
-    sessionId: str
+    sessionId: int
     visitorUuid: str
 
 @app.post("/api/v1/widget/contact-us")
