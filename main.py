@@ -1132,6 +1132,24 @@ async def get_chat_session(account_unique_id: str, session_id: int,
             "chat_session": chat_session}
 
 
+@app.get("/api/v1/chat-messages/{account_unique_id}/{session_id}")
+async def get_chat_messages(account_unique_id: str, session_id: int,
+                            current_user: Annotated[User, Depends(get_current_active_user)],
+                            session: Session = Depends(get_session)):
+    """
+    Get Chat Messages for a Session
+    """
+    
+    chat_messages = get_chat_messages_by_session_id(session_id, session)
+    
+    if not chat_messages:
+        return {"error": "No chat messages found for this session",
+                "session_id": session_id}
+    
+    return {"response": "success",
+            "chat_messages": chat_messages}
+
+
 # @app.get("/api/v1/accounts")
 # async def get_accounts(current_user: Annotated[User, Depends(get_current_active_user)],
 #                        session: Session = Depends(get_session)):
