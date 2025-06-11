@@ -52,8 +52,8 @@ def get_chat_messages_by_session_id(chat_session_id: int, session: Session) -> l
     messages = {}
     for message in chat_messages:
         messages = {
-            "sender_type": message.sender_type,
-            "message_text": message.message_text,
+            "sender_type": message['sender_type'],
+            "message_text": message['message_text'],
         }
         chat_messages.append(messages)
     
