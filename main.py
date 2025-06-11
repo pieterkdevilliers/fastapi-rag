@@ -286,13 +286,13 @@ async def widget_contact_us(
         raise HTTPException(status_code=404, detail="Chat session not found for the provided visitor UUID")
     
     chat_messages = get_chat_messages_by_session_id(
-        session_id=chat_session_id,
+        chat_session_id=chat_session_id,
         session=session
     )
     if not chat_messages:
         raise HTTPException(status_code=404, detail="No chat messages found for the provided session ID")
     print(f"Found {len(chat_messages)} chat messages for session {chat_session_id}")
-    
+
 
     email_service = get_email_service()
     print(f"Sending contact us email to {len(recipients)} recipients for account {auth_info['account_unique_id']}")
