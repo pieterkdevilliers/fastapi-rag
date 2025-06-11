@@ -30,7 +30,8 @@ from authentication import oauth2_scheme, Token, authenticate_user, get_password
     get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user, get_api_key_hash
 from dependencies import get_session
 from chat_messages.models import ChatSession, ChatMessage
-from chat_messages.utils import create_or_identify_chat_session, create_chat_message
+from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
+    get_chat_messages_by_session_id
     
 
 # Initialize the S3 client
@@ -274,6 +275,25 @@ async def widget_contact_us(
     recipients = get_notification_users(auth_info["account_unique_id"], session)
     if not recipients:
         raise HTTPException(status_code=404, detail="No notification users found for this account")
+    
+    chat_session_id = get_session_id_by_visitor_uuid(
+        account_unique_id=auth_info["account_unique_id"],
+        visitor_uuid=payload.visitorUuid,
+        session=session
+    )
+
+    if not chat_session_id:
+        raise HTTPException(status_code=404, detail="Chat session not found for the provided visitor UUID")
+    
+    chat_messages = get_chat_messages_by_session_id(
+        session_id=chat_session_id,
+        session=session
+    )
+    if not chat_messages:
+        raise HTTPException(status_code=404, detail="No chat messages found for the provided session ID")
+    print(f"Found {len(chat_messages)} chat messages for session {chat_session_id}")
+    
+
     email_service = get_email_service()
     print(f"Sending contact us email to {len(recipients)} recipients for account {auth_info['account_unique_id']}")
     try:
