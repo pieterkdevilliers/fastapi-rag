@@ -44,11 +44,9 @@ def get_chat_messages_by_session_id(chat_session_id: int, session: Session) -> l
     """
     chat_messages = session.exec(
         select(ChatMessage).where(ChatMessage.chat_session_id == chat_session_id)
-    ).all().order_by(ChatMessage.timestamp.asc())
+    ).all()
     if not chat_messages:
         return []
-    # Convert to list if needed
-    chat_messages = list(chat_messages)
     
     return chat_messages
 
