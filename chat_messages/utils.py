@@ -49,15 +49,7 @@ def get_chat_messages_by_session_id(chat_session_id: int, session: Session) -> l
         return []
     
     chat_messages.sort(key=lambda x: x.timestamp)  # Sort messages by timestamp
-    messages = {}
-    for message in chat_messages:
-        messages = {
-            "sender_type": message['sender_type'],
-            "message_text": message['message_text'],
-        }
-        chat_messages.append(messages)
-    
-    print(f"Chat messages for session {chat_session_id}: {chat_messages}")
+    print('chat_messages:', chat_messages)
     return chat_messages
 
 
