@@ -289,25 +289,65 @@ async def widget_contact_us(
         chat_session_id=chat_session_id,
         session=session
     )
-    if not chat_messages:
-        raise HTTPException(status_code=404, detail="No chat messages found for the provided session ID")
-    print(f"Found {len(chat_messages)} chat messages for session {chat_session_id}")
 
+    # 1. Format the initial contact message from the user payload
+    contact_info_html = (
+        f"<b>Name:</b> {payload.name}<br>"
+        f"<b>Email:</b> {payload.email}<br>"
+        f"<b>Message:</b><br>{payload.message}"
+    )
+    contact_info_text = (
+        f"Name: {payload.name}\n"
+        f"Email: {payload.email}\n"
+        f"Message:\n{payload.message}"
+    )
+
+    # 2. Format the list of ChatMessage objects into a transcript
+    transcript_html_lines = []
+    transcript_text_lines = []
+
+    if chat_messages:
+        print(f"Found {len(chat_messages)} chat messages. Formatting transcript...")
+        # Use a list comprehension to format each message object into a string
+        for msg in chat_messages:
+            # Format timestamp for readability, e.g., "2025-06-11 06:58"
+            formatted_time = msg.timestamp.strftime('%Y-%m-%d %H:%M')
+            sender = msg.sender_type.title() # "user" -> "User"
+
+            # Create the HTML line with bolding and good spacing
+            transcript_html_lines.append(
+                f"[{formatted_time}] <b>{sender}:</b> {msg.message_text}"
+            )
+            # Create the plain text line
+            transcript_text_lines.append(
+                f"[{formatted_time}] {sender}: {msg.message_text}"
+            )
+
+    # 3. Combine the parts into final email bodies
+    html_body = contact_info_html
+    text_body = contact_info_text
+
+    if transcript_html_lines:
+        html_body += "<br><hr><h3>Chat Transcript</h3>" + "<br>".join(transcript_html_lines)
+        text_body += "\n\n--- Chat Transcript ---\n" + "\n".join(transcript_text_lines)
 
     email_service = get_email_service()
     print(f"Sending contact us email to {len(recipients)} recipients for account {auth_info['account_unique_id']}")
     try:
         for recipient in recipients:
+            # 4. Call the new, cleaner email service method
             email_service.send_email(
                 to_email=recipient['user_email'],
                 subject=f"Contact Us from {payload.name}",
-                message=f"Name: {payload.name}\nEmail: {payload.email}\nMessage: {payload.message}",
-                chat_messages=chat_messages,
+                html_body=html_body,
+                text_body=text_body
             )
     except Exception as e:
+        # Log the actual exception for better debugging
+        print(f"ERROR sending email: {e}") 
         raise HTTPException(status_code=500, detail=str(e))
     
-    return {"message": "Contact Us", "account_unique_id": auth_info["account_unique_id"], "payload": payload}
+    return {"message": "Contact Us", "account_unique_id": auth_info["account_unique_id"]}
 
 
 ############################################
