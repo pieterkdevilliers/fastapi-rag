@@ -354,6 +354,9 @@ async def widget_contact_us(
 # AWS SES Routes
 ############################################
 
+# In your main FastAPI file
+
+# The Pydantic model remains the same
 class SESEmail(BaseModel):
     to_email: str
     subject: str
@@ -364,21 +367,31 @@ class SESEmail(BaseModel):
 async def send_ses_email(payload: SESEmail,
                          email_service: EmailService = Depends(get_email_service)):
     """
-    Send an email via AWS SES
-    
+    Send an email via AWS SES.
+    This endpoint sends a simple text/html email.
     """
     if payload.account_unique_id is None or not payload.account_unique_id.strip():
         raise HTTPException(status_code=400, detail="Account unique ID is required")
+    
     try:
+
+        text_body = payload.message
+
+        html_body = payload.message.replace('\n', '<br>')
+
+        # Call the updated email service method with both body arguments.
         email_service.send_email(
             to_email=payload.to_email,
             subject=payload.subject,
-            message=payload.message
+            text_body=text_body,  # Pass the plain text version
+            html_body=html_body   # Pass the HTML version
         )
 
         return {"response": "Email sent successfully", "to_email": payload.to_email, "subject": payload.subject}
     
     except Exception as e:
+        # It's good practice to log the error on the server for debugging.
+        print(f"ERROR in send_ses_email: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
     
