@@ -1092,3 +1092,43 @@ async def process_widget_message(
         print(f"Error creating chat message: {e}")
         raise HTTPException(status_code=500, detail="Failed to create chat message")
     print(f"Chat message processed successfully: {chat_message.message_text} from {chat_message.sender_type}")
+
+
+@app.get("/api/v1/chat-sessions/{account_unique_id}")
+async def get_chat_sessions(account_unique_id: str,
+                            current_user: Annotated[User, Depends(get_current_active_user)],
+                            session: Session = Depends(get_session)):
+    """
+    Get All Chat Sessions for an Account
+    """
+    statement = select(ChatSession).filter(ChatSession.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    chat_sessions = result.all()
+    
+    if not chat_sessions:
+        return {"error": "No chat sessions found",
+                "chat_sessions": []}
+    
+    return {"response": "success",
+            "chat_sessions": chat_sessions}
+
+# @app.get("/api/v1/accounts")
+# async def get_accounts(current_user: Annotated[User, Depends(get_current_active_user)],
+#                        session: Session = Depends(get_session)):
+#     """
+#     Get All Accounts
+#     """
+#     returned_accounts = []
+#     account_unique_id = current_user['account_unique_id']
+#     statement = select(Account).filter(Account.account_unique_id == account_unique_id)
+#     result = session.exec(statement)
+#     accounts = result.all()
+    
+#     if not accounts:
+#         return {"error": "No accounts found",
+#                 "accounts": returned_accounts}
+        
+#     for account in accounts:
+#         returned_accounts.append(account)
+#     return {"response": "success",
+#             "accounts": returned_accounts}
