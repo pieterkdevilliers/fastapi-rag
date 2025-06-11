@@ -16,6 +16,7 @@ def get_email_service():
         _email_service_singleton = EmailService()
     return _email_service_singleton
 
+
 class EmailService:
     def __init__(self):
         self.ses = boto3.client(
@@ -26,19 +27,25 @@ class EmailService:
         )
         self.sender_email = os.environ.get("AWS_SES_VERIFIED_MAIL")
 
-    def send_email(self, to_email: str, subject: str, message: str, chat_messages: list = None):
+    def send_email(self, to_email: str, subject: str, text_body: str, html_body: str):
+        """
+        Sends an email with both HTML and plain text content.
+        """
         try:
             response = self.ses.send_email(
                 Source=self.sender_email,
                 Destination={"ToAddresses": [to_email]},
                 Message={
                     "Subject": {"Data": subject},
-                    "Body": {"Text": {"Data": message}},
-                    "Html": {"Data": "<br>".join(chat_messages)} if chat_messages else None,
-                }
+                    "Body": {
+                        "Text": {"Data": text_body},
+                        "Html": {"Data": html_body},
+                    },
+                },
             )
-            print(response["MessageId"])
+            print(f"Email sent successfully. MessageId: {response['MessageId']}")
             return response["MessageId"]
         except ClientError as e:
-            raise Exception(f"Email sending failed: {str(e)}")
+            print(f"Email sending failed: {e.response['Error']['Message']}")
+            raise Exception(f"Email sending failed: {e.response['Error']['Message']}")
 
