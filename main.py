@@ -283,7 +283,7 @@ async def widget_contact_us(
     )
 
     if not chat_session_id:
-        raise HTTPException(status_code=404, detail="Chat session not found for the provided visitor UUID")
+        print(f"No chat session found for visitor UUID {payload.visitorUuid} in account {auth_info['account_unique_id']}.")
     
     chat_messages = get_chat_messages_by_session_id(
         chat_session_id=chat_session_id,
