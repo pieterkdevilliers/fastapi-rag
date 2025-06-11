@@ -34,13 +34,7 @@ class EmailService:
                 Message={
                     "Subject": {"Data": subject},
                     "Body": {"Text": {"Data": message}},
-                }
-                if chat_messages is None else {
-                    "Subject": {"Data": subject},
-                    "Body": {
-                        "Text": {"Data": message},
-                        "Html": {"Data": "<br>".join(chat_messages)},
-                    },
+                    "Html": {"Data": "<br>".join(chat_messages)} if chat_messages else None,
                 }
             )
             print(response["MessageId"])
