@@ -301,7 +301,8 @@ async def widget_contact_us(
             email_service.send_email(
                 to_email=recipient['user_email'],
                 subject=f"Contact Us from {payload.name}",
-                message=f"Name: {payload.name}\nEmail: {payload.email}\nMessage: {payload.message}"
+                message=f"Name: {payload.name}\nEmail: {payload.email}\nMessage: {payload.message}",
+                chat_messages=chat_messages,
             )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
