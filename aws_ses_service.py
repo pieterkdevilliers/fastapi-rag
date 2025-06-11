@@ -26,7 +26,7 @@ class EmailService:
         )
         self.sender_email = os.environ.get("AWS_SES_VERIFIED_MAIL")
 
-    def send_email(self, to_email: str, subject: str, message: str):
+    def send_email(self, to_email: str, subject: str, message: str, chat_messages: list = None):
         try:
             response = self.ses.send_email(
                 Source=self.sender_email,
@@ -34,7 +34,14 @@ class EmailService:
                 Message={
                     "Subject": {"Data": subject},
                     "Body": {"Text": {"Data": message}},
-                },
+                }
+                if chat_messages is None else {
+                    "Subject": {"Data": subject},
+                    "Body": {
+                        "Text": {"Data": message},
+                        "Html": {"Data": "<br>".join(chat_messages)},
+                    },
+                }
             )
             print(response["MessageId"])
             return response["MessageId"]

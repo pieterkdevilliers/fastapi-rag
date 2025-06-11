@@ -27,6 +27,31 @@ def create_or_identify_chat_session(account_unique_id: str, visitor_uuid: str, s
 
     return chat_session
 
+def get_session_id_by_visitor_uuid(account_unique_id: str, visitor_uuid: str, session: Session) -> Optional[int]:
+    """
+    Get Chat Session ID by Visitor UUID
+    """
+    chat_session = session.exec(
+        select(ChatSession.id).where(ChatSession.visitor_uuid == visitor_uuid, ChatSession.account_unique_id == account_unique_id)
+    ).first()
+    
+    return chat_session.id if chat_session else None
+
+
+def get_chat_messages_by_session_id(chat_session_id: int, session: Session) -> list[ChatMessage]:
+    """
+    Get Chat Messages by Session ID
+    """
+    chat_messages = session.exec(
+        select(ChatMessage).where(ChatMessage.chat_session_id == chat_session_id)
+    ).all().order_by(ChatMessage.timestamp.asc())
+    if not chat_messages:
+        return []
+    # Convert to list if needed
+    chat_messages = list(chat_messages)
+    
+    return chat_messages
+
 
 def create_chat_message(chat_session_id: int, message_text: str, sender_type: str, session: Session) -> Optional[ChatSession]:
     """
