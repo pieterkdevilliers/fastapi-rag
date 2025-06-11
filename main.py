@@ -1112,6 +1112,26 @@ async def get_chat_sessions(account_unique_id: str,
     return {"response": "success",
             "chat_sessions": chat_sessions}
 
+
+@app.get("/api/v1/chat-sessions/{account_unique_id}/{session_id}")
+async def get_chat_session(account_unique_id: str, session_id: int,
+                           current_user: Annotated[User, Depends(get_current_active_user)],
+                           session: Session = Depends(get_session)):
+    """
+    Get Chat Session By ID
+    """
+    statement = select(ChatSession).filter(ChatSession.account_unique_id == account_unique_id, ChatSession.id == session_id)
+    result = session.exec(statement)
+    chat_session = result.first()
+    
+    if not chat_session:
+        return {"error": "Chat session not found",
+                "session_id": session_id}
+    
+    return {"response": "success",
+            "chat_session": chat_session}
+
+
 # @app.get("/api/v1/accounts")
 # async def get_accounts(current_user: Annotated[User, Depends(get_current_active_user)],
 #                        session: Session = Depends(get_session)):
