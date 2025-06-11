@@ -1101,7 +1101,11 @@ async def get_chat_sessions(account_unique_id: str,
     """
     Get All Chat Sessions for an Account
     """
-    statement = select(ChatSession).filter(ChatSession.account_unique_id == account_unique_id)
+    statement = (
+        select(ChatSession)
+        .filter(ChatSession.account_unique_id == account_unique_id)
+        .order_by(ChatSession.start_time.desc())
+    )
     result = session.exec(statement)
     chat_sessions = result.all()
     
