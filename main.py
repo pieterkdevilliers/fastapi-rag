@@ -1103,7 +1103,7 @@ async def get_chat_sessions(account_unique_id: str,
     """
     statement = select(ChatSession).filter(ChatSession.account_unique_id == account_unique_id)
     result = session.exec(statement)
-    chat_sessions = result.all().sort(key=lambda x: x.start_time, reverse=True)
+    chat_sessions = result.all()
     
     if not chat_sessions:
         return {"error": "No chat sessions found",
