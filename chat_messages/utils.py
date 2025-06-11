@@ -35,7 +35,7 @@ def get_session_id_by_visitor_uuid(account_unique_id: str, visitor_uuid: str, se
         select(ChatSession.id).where(ChatSession.visitor_uuid == visitor_uuid, ChatSession.account_unique_id == account_unique_id)
     ).first()
     
-    return chat_session.id if chat_session else None
+    return chat_session if chat_session else None
 
 
 def get_chat_messages_by_session_id(chat_session_id: int, session: Session) -> list[ChatMessage]:
