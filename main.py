@@ -1207,3 +1207,23 @@ async def get_stripe_subscriptions(account_unique_id: str,
     
     return {"response": "success",
             "subscriptions": subscriptions}
+
+
+@app.get("/api/v1/stripe-subscriptions-id/{account_unique_id}/{subscription_id}")
+async def get_stripe_subscription_by_id(account_unique_id: str, subscription_id: int,
+                                   current_user: Annotated[User, Depends(get_current_active_user)],
+                                   session: Session = Depends(get_session)):
+    """
+    Get a Stripe Subscription by ID
+    """
+    statement = select(StripeSubscription).filter(StripeSubscription.account_unique_id == account_unique_id,
+                                                  StripeSubscription.id == subscription_id)
+    result = session.exec(statement)
+    subscription = result.first()
+
+    if not subscription:
+        return {"error": "Subscription not found",
+                "subscription_id": subscription_id}
+
+    return {"response": "success",
+            "subscription": subscription}
