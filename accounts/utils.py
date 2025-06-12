@@ -143,7 +143,7 @@ def update_stripe_subscription_in_db(account_unique_id: str, subscription_id: st
     
     statement = session.exec(select(StripeSubscription).where(
         StripeSubscription.account_unique_id == account_unique_id,
-        StripeSubscription.subscription_id == subscription_id
+        StripeSubscription.id == subscription_id
     )).first()
     
     if not statement:
