@@ -21,7 +21,7 @@ from file_management.models import SourceFile, Folder
 from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db, \
     fetch_html_content, extract_text_from_html, prepare_for_s3_upload, create_new_folder_in_db, \
     update_folder_in_db, delete_folder_from_db, delete_file_from_s3
-from accounts.models import Account, User, WidgetAPIKey
+from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, create_stripe_subscription_in_db
 from create_database import generate_chroma_db
@@ -1188,3 +1188,22 @@ async def create_stripe_subscription(account_unique_id: str,
 
     return {"response": "success",
             "subscription": subscription}
+
+
+@app.get("/api/v1/stripe-subscriptions/{account_unique_id}")
+async def get_stripe_subscriptions(account_unique_id: str,
+                                   current_user: Annotated[User, Depends(get_current_active_user)],
+                                   session: Session = Depends(get_session)):
+    """
+    Get All Stripe Subscriptions for an Account
+    """
+    statement = select(StripeSubscription).filter(StripeSubscription.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    subscriptions = result.all()
+    
+    if not subscriptions:
+        return {"error": "No subscriptions found",
+                "subscriptions": []}
+    
+    return {"response": "success",
+            "subscriptions": subscriptions}
