@@ -1180,7 +1180,8 @@ async def create_stripe_subscription(account_unique_id: str,
     Create a New Subscription
     """
     try:
-        subscription = create_stripe_subscription_in_db(account_unique_id, subscription_data, session)
+        subscription_dict = subscription_data.model_dump()
+        subscription = create_stripe_subscription_in_db(account_unique_id, subscription_dict, session)
     except Exception as e:
         print(f"Error creating subscription: {e}")
         raise HTTPException(status_code=500, detail="Failed to create subscription")
