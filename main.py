@@ -1250,9 +1250,16 @@ async def get_stripe_subscription_by_ref(account_unique_id: str, stripe_subscrip
             "subscription": subscription}
 
 
+class SubscriptionUpdate(BaseModel):
+    status: str = Field(default="active", nullable=True)
+    current_period_end: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    type: str = Field(default="monthly", nullable=True)  # 'monthly' or 'yearly'
+    subscription_start: Optional[datetime] = Field(default=None, nullable=True)
+
+
 @app.put("/api/v1/stripe-subscriptions/{account_unique_id}/{subscription_id}", response_model=Union[StripeSubscription, dict])
 async def update_stripe_subscription(account_unique_id: str, subscription_id: int,
-                                      updated_subscription: SubscriptionCreate,
+                                      updated_subscription: SubscriptionUpdate,
                                       current_user: Annotated[User, Depends(get_current_active_user)],
                                       session: Session = Depends(get_session)):
     """
