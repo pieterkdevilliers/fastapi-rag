@@ -1,7 +1,8 @@
 import os
 import subprocess
 import tempfile
-from typing import Any, Union, Annotated, List
+from typing import Any, Union, Annotated, List, Optional
+from datetime import datetime, timezone
 from secrets import token_hex
 import shutil
 import boto3
@@ -13,7 +14,7 @@ from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, sta
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from sqlmodel import select, Session
+from sqlmodel import select, Session, Field
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from pydantic import BaseModel
 from file_management.models import SourceFile, Folder
@@ -22,7 +23,7 @@ from file_management.utils import save_file_to_db, update_file_in_db, delete_fil
     update_folder_in_db, delete_folder_from_db, delete_file_from_s3
 from accounts.models import Account, User, WidgetAPIKey
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
-    create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users
+    create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, create_stripe_subscription_in_db
 from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
@@ -1153,3 +1154,36 @@ async def get_chat_messages(account_unique_id: str, session_id: int,
     return {"response": "success",
             "chat_messages": chat_messages}
 
+
+############################################
+# Subscription Routes
+############################################
+
+class SubscriptionCreate(BaseModel):
+    stripe_subscription_id: str
+    stripe_customer_id: str
+    status: str = Field(default="active", nullable=True)
+    current_period_end: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    type: str = Field(default="monthly", nullable=True)  # 'monthly' or 'yearly'
+    trial_start: Optional[datetime] = Field(default=None, nullable=True)
+    trial_end: Optional[datetime] = Field(default=None, nullable=True)
+    subscripttion_start: Optional[datetime] = Field(default=None, nullable=True)
+    stripe_account_url: Optional[str] = Field(default=None, nullable=True, index=True)
+
+
+@app.post("/api/v1/stripe-subscriptions/{account_unique_id}")
+async def create_stripe_subscription(account_unique_id: str,
+                               subscription_data: SubscriptionCreate,
+                               current_user: Annotated[User, Depends(get_current_active_user)],
+                               session: Session = Depends(get_session)):
+    """
+    Create a New Subscription
+    """
+    try:
+        subscription = create_stripe_subscription_in_db(account_unique_id, subscription_data, session)
+    except Exception as e:
+        print(f"Error creating subscription: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create subscription")
+
+    return {"response": "success",
+            "subscription": subscription}

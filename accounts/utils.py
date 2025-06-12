@@ -1,7 +1,7 @@
 from secrets import token_hex
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
-from accounts.models import Account, User
+from accounts.models import Account, User, StripeSubscription
 from authentication import get_password_hash
 
 
@@ -121,3 +121,16 @@ def get_notification_users(account_unique_id: str, session: Session):
         return {"error": "No users found"}
     
     return [user.model_dump() for user in users]
+
+
+def create_stripe_subscription_in_db(account_unique_id: str, subscription_data: dict, session: Session):
+    """
+    Create a new subscription for an account
+    """
+    
+    statement = StripeSubscription(account_unique_id=account_unique_id, **subscription_data)
+    session.add(statement   )
+    session.commit()
+    session.refresh(statement)
+
+    return statement
