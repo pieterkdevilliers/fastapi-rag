@@ -134,3 +134,27 @@ def create_stripe_subscription_in_db(account_unique_id: str, subscription_data: 
     session.refresh(statement)
 
     return statement
+
+
+def update_stripe_subscription_in_db(account_unique_id: str, subscription_id: str, updated_data: dict, session: Session):
+    """
+    Update an existing subscription for an account
+    """
+    
+    statement = session.exec(select(StripeSubscription).where(
+        StripeSubscription.account_unique_id == account_unique_id,
+        StripeSubscription.subscription_id == subscription_id
+    )).first()
+    
+    if not statement:
+        return {"error": "Subscription not found"}
+    
+    updated_data_dict = {k: v for k, v in updated_data.items() if v is not None}
+    for key, value in updated_data_dict.items():
+        setattr(statement, key, value)
+        
+    session.add(statement)
+    session.commit()
+    session.refresh(statement)
+    
+    return statement

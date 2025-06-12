@@ -23,7 +23,8 @@ from file_management.utils import save_file_to_db, update_file_in_db, delete_fil
     update_folder_in_db, delete_folder_from_db, delete_file_from_s3
 from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
-    create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, create_stripe_subscription_in_db
+    create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, create_stripe_subscription_in_db, \
+    update_stripe_subscription_in_db
 from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
@@ -1247,3 +1248,22 @@ async def get_stripe_subscription_by_ref(account_unique_id: str, stripe_subscrip
 
     return {"response": "success",
             "subscription": subscription}
+
+
+@app.put("/api/v1/stripe-subscriptions/{account_unique_id}/{subscription_id}", response_model=Union[StripeSubscription, dict])
+async def update_stripe_subscription(account_unique_id: str, subscription_id: int,
+                                      updated_subscription: SubscriptionCreate,
+                                      current_user: Annotated[User, Depends(get_current_active_user)],
+                                      session: Session = Depends(get_session)):
+    """
+    Update a Stripe Subscription
+    """
+    subscription = session.get(StripeSubscription, subscription_id)
+    
+    if not subscription:
+        return {"error": "Subscription not found",
+                "subscription_id": subscription_id}
+    
+    updated_subscription = update_stripe_subscription_in_db(subscription_id, updated_subscription, session)
+    
+    return updated_subscription
