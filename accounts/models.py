@@ -27,6 +27,10 @@ class Account(AccountBase, table=True):
     source_files: List["SourceFile"] = Relationship(back_populates="account")
     widget_api_keys: List["WidgetAPIKey"] = Relationship(back_populates="account")
     chat_sessions: List["ChatSession"] = Relationship(back_populates="account")
+    stripe_subscription: Optional["StripeSubscription"] = Relationship(
+        back_populates="account",
+        sa_relationship_kwargs={"uselist": False}
+    )
     relevance_score: float = Field(default=0.7, nullable=True)
     k_value: int = Field(default=3, nullable=True)
     chunk_size: int = Field(default=1000, nullable=True)
@@ -85,3 +89,30 @@ class WidgetAPIKey(WidgetAPIKeyBase, table=True):
     )
 
     account: "Account" = Relationship(back_populates="widget_api_keys")
+
+
+class StripeSubscriptionBase(SQLModel):
+    """
+    Stripe Subscription Model Base
+    """
+    account_unique_id: str = Field(foreign_key="account.account_unique_id")
+    stripe_subscription_id: str = Field(unique=True, index=True)
+    stripe_customer_id: str = Field(unique=True, index=True)
+    status: str = Field(default="active", nullable=True)
+    current_period_end: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class StripeSubscription(StripeSubscriptionBase, table=True):
+    """
+    Stripe Subscription Model
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    account: Account = Relationship(back_populates="stripe_subscription")
+    type: Optional[str] = Field(default=None, nullable=True, index=True)
+    trial_start: Optional[datetime] = Field(default=None, nullable=True)
+    trial_end: Optional[datetime] = Field(default=None, nullable=True)
+    subscription_start: Optional[datetime] = Field(default=None, nullable=True)
+    stripe_account_url: Optional[str] = Field(default=None, nullable=True, index=True)
+
+    def __repr__(self):
+        return f"<StripeSubscription(id={self.id}, stripe_subscription_id={self.stripe_subscription_id}, status={self.status})>"
