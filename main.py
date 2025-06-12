@@ -1271,6 +1271,6 @@ async def update_stripe_subscription(account_unique_id: str, subscription_id: in
         return {"error": "Subscription not found",
                 "subscription_id": subscription_id}
     
-    updated_subscription = update_stripe_subscription_in_db(subscription_id, updated_subscription, session)
+    updated_subscription = update_stripe_subscription_in_db(account_unique_id, subscription_id, updated_subscription, session)
     
     return updated_subscription
