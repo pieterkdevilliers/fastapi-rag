@@ -136,25 +136,26 @@ def create_stripe_subscription_in_db(account_unique_id: str, subscription_data: 
     return statement
 
 
-def update_stripe_subscription_in_db(account_unique_id: str, subscription_id: str, updated_data: dict, session: Session):
+def update_stripe_subscription_in_db(account_unique_id: str, subscription_id: int, update_data: dict, session: Session):
     """
-    Update an existing subscription for an account
+    Update an existing subscription for an account using a dictionary of changes.
     """
     
-    statement = session.exec(select(StripeSubscription).where(
+    # You were querying the DB twice. Let's do it just once here.
+    subscription_to_update = session.exec(select(StripeSubscription).where(
         StripeSubscription.account_unique_id == account_unique_id,
         StripeSubscription.id == subscription_id
     )).first()
     
-    if not statement:
-        return {"error": "Subscription not found"}
+    if not subscription_to_update:
+        return None # The endpoint will handle the 404 error
     
-    updated_data_dict = {k: v for k, v in updated_data.items() if v is not None}
-    for key, value in updated_data_dict.items():
-        setattr(statement, key, value)
+    # The dictionary already contains only the fields to be updated
+    for key, value in update_data.items():
+        setattr(subscription_to_update, key, value)
         
-    session.add(statement)
+    session.add(subscription_to_update)
     session.commit()
-    session.refresh(statement)
+    session.refresh(subscription_to_update)
     
-    return statement
+    return subscription_to_update

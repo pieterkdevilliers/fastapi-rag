@@ -1257,20 +1257,27 @@ class SubscriptionUpdate(BaseModel):
     subscription_start: Optional[datetime] = Field(default=None, nullable=True)
 
 
-@app.put("/api/v1/stripe-subscriptions/{account_unique_id}/{subscription_id}", response_model=Union[StripeSubscription, dict])
+# The updated endpoint
+@app.put("/api/v1/stripe-subscriptions/{account_unique_id}/{subscription_id}", response_model=StripeSubscription)
 async def update_stripe_subscription(account_unique_id: str, subscription_id: int,
-                                      updated_subscription: SubscriptionUpdate,
+                                      subscription_update_data: SubscriptionUpdate, # Renamed for clarity
                                       current_user: Annotated[User, Depends(get_current_active_user)],
                                       session: Session = Depends(get_session)):
     """
     Update a Stripe Subscription
     """
-    subscription = session.get(StripeSubscription, subscription_id)
+    # 1. Convert the Pydantic model to a dictionary of *only the submitted fields*
+    update_dict = subscription_update_data.model_dump(exclude_unset=True)
+
+    # 2. Call the utility function with the dictionary
+    updated_subscription = update_stripe_subscription_in_db(
+        account_unique_id=account_unique_id, 
+        subscription_id=subscription_id, 
+        update_data=update_dict, # Pass the dictionary here
+        session=session
+    )
     
-    if not subscription:
-        return {"error": "Subscription not found",
-                "subscription_id": subscription_id}
-    
-    updated_subscription = update_stripe_subscription_in_db(account_unique_id, subscription_id, updated_subscription, session)
+    if not updated_subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
     
     return updated_subscription
