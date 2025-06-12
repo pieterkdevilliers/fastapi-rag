@@ -1167,7 +1167,7 @@ class SubscriptionCreate(BaseModel):
     type: str = Field(default="monthly", nullable=True)  # 'monthly' or 'yearly'
     trial_start: Optional[datetime] = Field(default=None, nullable=True)
     trial_end: Optional[datetime] = Field(default=None, nullable=True)
-    subscripttion_start: Optional[datetime] = Field(default=None, nullable=True)
+    subscription_start: Optional[datetime] = Field(default=None, nullable=True)
     stripe_account_url: Optional[str] = Field(default=None, nullable=True, index=True)
 
 
