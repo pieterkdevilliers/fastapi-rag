@@ -1,8 +1,8 @@
 """bfa-229 Add product model
 
-Revision ID: 908b3b49e14d
-Revises: 6a0c70ab3dc1
-Create Date: 2025-06-13 10:45:12.763245
+Revision ID: 599fc27c3217
+Revises: 908b3b49e14d
+Create Date: 2025-06-13 10:53:43.857360
 
 """
 from typing import Sequence, Union
@@ -13,8 +13,8 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = '908b3b49e14d'
-down_revision: Union[str, None] = '6a0c70ab3dc1'
+revision: str = '599fc27c3217'
+down_revision: Union[str, None] = '908b3b49e14d'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
