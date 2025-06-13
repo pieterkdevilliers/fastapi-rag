@@ -8,6 +8,8 @@ class Product(ProductBase, table=True):
     """
     Product Model
     """
+    __tablename__ = "product"
+    
     product_id: str = Field(default="", primary_key=True)
     product_description: str = Field(default="")
     product_statement_descriptor: str = Field(default="")
