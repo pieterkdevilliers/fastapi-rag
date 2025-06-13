@@ -1335,15 +1335,10 @@ async def stripe_webhook(request: Request):
         print("Invalid signature")
         raise HTTPException(status_code=400, detail="Invalid signature")
     
-    print("event received is", event)
-    if event["type"] == "checkout.session.completed":
-        payment = event["data"]["object"]
-        amount = payment["amount_total"]
-        currency = payment["currency"]
-        user_id = payment["metadata"]["user_id"] # get custom user id from metadata
-        user_email = payment["customer_details"]["email"]
-        user_name = payment["customer_details"]["name"]
-        order_id = payment["id"]
-        # save to db
-        # send email in background task
+    if event["type"] == "product.created":
+        print("Product created event received")
+    elif event["type"] == "product.updated":
+        print("Product updated event received")
+
+    print(f"Received event: {event}")
     return {}
