@@ -27,12 +27,12 @@ def upgrade() -> None:
         # This DROP command will ONLY run on PostgreSQL, where the constraint is named.
         # It will be skipped on SQLite, avoiding the "no such constraint" error.
         if dialect == 'postgresql':
-            batch_op.drop_constraint('product_pkey', type_='primary')
+            batch_op.drop_constraint('products_pkey', type_='primary')
 
         # This CREATE command will run on both.
         # On SQLite, it defines the PK for the new table.
         # On PostgreSQL, it adds the new PK to the existing table (which now works).
-        batch_op.create_primary_key('product_pkey', ['id'])
+        batch_op.create_primary_key('products_pkey', ['id'])
 
     # ### end Alembic commands ###
 
@@ -44,9 +44,9 @@ def downgrade() -> None:
     with op.batch_alter_table('product', schema=None) as batch_op:
         # This DROP command will ONLY run on PostgreSQL.
         if dialect == 'postgresql':
-            batch_op.drop_constraint('product_pkey', type_='primary')
+            batch_op.drop_constraint('products_pkey', type_='primary')
 
         # This CREATE command will run on both to restore the original state.
-        batch_op.create_primary_key('product_pkey', ['product_id'])
+        batch_op.create_primary_key('products_pkey', ['product_id'])
 
     # ### end Alembic commands ###
