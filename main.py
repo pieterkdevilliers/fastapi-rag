@@ -1314,8 +1314,8 @@ async def create_checkout_session(price: int = 10):
             "request_id": 1234567890
         },
         mode="payment",
-        success_url=os.getenv("BASE_URL") + "/accounts/",
-        cancel_url=os.getenv("BASE_URL") + "/accounts/",
+        success_url=os.getenv("BASE_URL") + "accounts/",
+        cancel_url=os.getenv("BASE_URL") + "accounts/",
         customer_email="ping@fastapitutorial.com",
     )
     return responses.RedirectResponse(checkout_session.url, status_code=303)
