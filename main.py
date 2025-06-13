@@ -35,7 +35,7 @@ from dependencies import get_session
 from chat_messages.models import ChatSession, ChatMessage
 from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
     get_chat_messages_by_session_id
-from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, \
+from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event
     
 
 # Initialize the S3 client
