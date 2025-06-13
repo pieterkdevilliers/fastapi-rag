@@ -36,6 +36,7 @@ from chat_messages.models import ChatSession, ChatMessage
 from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
     get_chat_messages_by_session_id
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event
+from core.models import Product
     
 
 # Initialize the S3 client
@@ -1288,6 +1289,28 @@ async def update_stripe_subscription(account_unique_id: str, subscription_id: in
     
     return updated_subscription
 
+
+############################################
+# Product Routes
+############################################
+
+
+@app.get("/api/v1/products")
+async def get_products(current_user: Annotated[User, Depends(get_current_active_user)],
+                       session: Session = Depends(get_session)):
+    """
+    Get All Products
+    """
+    statement = select(Product)
+    result = session.exec(statement)
+    products = result.all()
+    
+    if not products:
+        return {"error": "No products found",
+                "products": []}
+    
+    return {"response": "success",
+            "products": products}
 
 ############################################
 # Stripe Routes
