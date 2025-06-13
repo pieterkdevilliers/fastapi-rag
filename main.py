@@ -35,6 +35,7 @@ from dependencies import get_session
 from chat_messages.models import ChatSession, ChatMessage
 from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
     get_chat_messages_by_session_id
+from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, \
     
 
 # Initialize the S3 client
@@ -1325,6 +1326,7 @@ async def create_checkout_session(price: int = 10):
 async def stripe_webhook(request: Request):
     payload = await request.body()
     event = None
+    session = Depends(get_session)
 
     try:
         event = stripe.Event.construct_from(json.loads(payload), stripe.api_key)
@@ -1337,8 +1339,13 @@ async def stripe_webhook(request: Request):
     
     if event["type"] == "product.created":
         print("Product created event received")
+        new_product = process_stripe_product_created_event(event, session)
+        print(f"New product created: {new_product}")
+
     elif event["type"] == "product.updated":
         print("Product updated event received")
+        updated_product = process_stripe_product_updated_event(event, session)
+        print(f"Product updated: {updated_product}")
 
     print(f"Received event: {event}")
     return {}
