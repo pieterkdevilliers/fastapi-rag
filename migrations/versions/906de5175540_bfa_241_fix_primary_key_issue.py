@@ -20,19 +20,33 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # ### Manually corrected migration using BATCH MODE for SQLite ###
-    # For an unnamed PK, we only need to create the new one.
-    # The old one is implicitly replaced during the table recreation.
+    # ### Manually corrected migration with conditional logic for different DBs ###
+    dialect = op.get_bind().dialect.name
+
     with op.batch_alter_table('product', schema=None) as batch_op:
+        # This DROP command will ONLY run on PostgreSQL, where the constraint is named.
+        # It will be skipped on SQLite, avoiding the "no such constraint" error.
+        if dialect == 'postgresql':
+            batch_op.drop_constraint('product_pkey', type_='primary')
+
+        # This CREATE command will run on both.
+        # On SQLite, it defines the PK for the new table.
+        # On PostgreSQL, it adds the new PK to the existing table (which now works).
         batch_op.create_primary_key('product_pkey', ['id'])
 
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
-    # ### Manually corrected downgrade using BATCH MODE for SQLite ###
-    # The same logic applies in reverse for the downgrade.
+    # ### Manually corrected downgrade with conditional logic ###
+    dialect = op.get_bind().dialect.name
+
     with op.batch_alter_table('product', schema=None) as batch_op:
+        # This DROP command will ONLY run on PostgreSQL.
+        if dialect == 'postgresql':
+            batch_op.drop_constraint('product_pkey', type_='primary')
+
+        # This CREATE command will run on both to restore the original state.
         batch_op.create_primary_key('product_pkey', ['product_id'])
 
     # ### end Alembic commands ###
