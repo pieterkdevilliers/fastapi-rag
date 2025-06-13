@@ -17,21 +17,21 @@ def create_product_in_db(product: Product, session: Session):
     
     return product
 
-def update_product_in_db(product_id: str, product: Product, session: Session):
+def update_product_in_db(product_id: str, update_data: Product, session: Session):
     """
     Update Product in DB
     """
-    product = session.exec(select(Product).where(Product.product_id == product_id)).first()
-    
-    if not product:
+    product_in_db = session.exec(select(Product).where(Product.product_id == product_id)).first()
+
+    if not product_in_db:
         return {"error": "Product not found"}
-    
-    updated_product_dict = product.model_dump(exclude_unset=True, exclude={"id"})
+
+    updated_product_dict = update_data.model_dump(exclude_unset=True, exclude={"id"})
     for key, value in updated_product_dict.items():
-        setattr(product, key, value)
-    session.add(product)
+        setattr(product_in_db, key, value)
+    session.add(product_in_db)
     session.commit()
-    session.refresh(product)
-    
-    return product
+    session.refresh(product_in_db)
+
+    return product_in_db
 

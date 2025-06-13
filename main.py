@@ -1323,10 +1323,9 @@ async def create_checkout_session(price: int = 10):
 
 
 @app.post("/api/v1/webhook/")
-async def stripe_webhook(request: Request):
+async def stripe_webhook(request: Request, session: Session = Depends(get_session)):
     payload = await request.body()
     event = None
-    session = Depends(get_session)
 
     try:
         event = stripe.Event.construct_from(json.loads(payload), stripe.api_key)
