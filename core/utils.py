@@ -1,5 +1,6 @@
 from sqlmodel import select, Session
 from core.models import Product
+from accounts.models import StripeSubscription
 
 def create_product_in_db(product: Product, session: Session):
     """
@@ -35,3 +36,14 @@ def update_product_in_db(product_id: str, update_data: Product, session: Session
 
     return product_in_db
 
+
+def create_stripe_subscription_in_db(subscription_data: dict, session: Session):
+    """
+    Create Stripe Subscription in DB
+    """
+    subscription = StripeSubscription(**subscription_data)
+    session.add(subscription)
+    session.commit()
+    session.refresh(subscription)
+
+    return subscription

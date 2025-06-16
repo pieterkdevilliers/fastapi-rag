@@ -1,8 +1,9 @@
 import os
 import stripe
 from sqlmodel import select, Session
-from core.utils import create_product_in_db, update_product_in_db
+from core.utils import create_product_in_db, update_product_in_db, create_stripe_subscription_in_db
 from core.models import Product
+from accounts.models import StripeSubscription
 
 #Stripe Setup
 
@@ -74,3 +75,34 @@ def get_stripe_price_object_from_price_id(price_id: str):
     if not price_object:
         return {"error": "Price object not found"}
     return price_object
+
+
+def process_stripe_subscription_created_event(event: dict, session: Session):
+    """
+    Process Stripe Subscription Created Event
+    """
+    
+    subscription_data = event.get('data', {}).get('object', {})
+    account_unique_id = subscription_data.get('metadata', {}).get('account_unique_id', '')
+    stripe_subscription_id = subscription_data.get('subscription', '')
+    stripe_customer_id = subscription_data.get('customer', '')
+    status = subscription_data.get('status', 'active')
+    trial_start = subscription_data.get('trial_start', None)
+    trial_end = subscription_data.get('trial_end', None)
+    subcription_start = subscription_data.get('current_period_start', None)
+    stripe_account_url = subscription_data.get('url', None)
+
+    subscription = StripeSubscription(
+        account_unique_id=account_unique_id,
+        stripe_subscription_id=stripe_subscription_id,
+        stripe_customer_id=stripe_customer_id,
+        status=status,
+        trial_start=trial_start,
+        trial_end=trial_end,
+        subscription_start=subcription_start,
+        stripe_account_url=stripe_account_url
+    )
+
+    new_subscription = create_stripe_subscription_in_db(subscription, session)
+
+    return new_subscription

@@ -1,7 +1,7 @@
 from secrets import token_hex
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
-from accounts.models import Account, User, StripeSubscription
+from accounts.models import Account, User
 from authentication import get_password_hash
 
 
@@ -122,40 +122,3 @@ def get_notification_users(account_unique_id: str, session: Session):
     
     return [user.model_dump() for user in users]
 
-
-def create_stripe_subscription_in_db(account_unique_id: str, subscription_data: dict, session: Session):
-    """
-    Create a new subscription for an account
-    """
-    
-    statement = StripeSubscription(account_unique_id=account_unique_id, **subscription_data)
-    session.add(statement   )
-    session.commit()
-    session.refresh(statement)
-
-    return statement
-
-
-def update_stripe_subscription_in_db(account_unique_id: str, subscription_id: int, update_data: dict, session: Session):
-    """
-    Update an existing subscription for an account using a dictionary of changes.
-    """
-    
-    # You were querying the DB twice. Let's do it just once here.
-    subscription_to_update = session.exec(select(StripeSubscription).where(
-        StripeSubscription.account_unique_id == account_unique_id,
-        StripeSubscription.id == subscription_id
-    )).first()
-    
-    if not subscription_to_update:
-        return None # The endpoint will handle the 404 error
-    
-    # The dictionary already contains only the fields to be updated
-    for key, value in update_data.items():
-        setattr(subscription_to_update, key, value)
-        
-    session.add(subscription_to_update)
-    session.commit()
-    session.refresh(subscription_to_update)
-    
-    return subscription_to_update
