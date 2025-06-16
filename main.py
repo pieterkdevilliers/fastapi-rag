@@ -1367,8 +1367,8 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
         updated_product = process_stripe_product_updated_event(event, session)
 
     elif event["type"] == "invoice.paid":
-        mode = event["data"]["object"]["lines"]["data"][0]["price"]["type"]
-        if mode == "subscription":
+        price_type = event["data"]["object"]["lines"]["data"][0]["price"]["type"]
+        if price_type == "recurring":
             # Create initial subscription in DB
             subscription = process_stripe_subscription_invoice_paid_event(event, session)
             print(f"Created new subscription: {subscription.stripe_subscription_id} for account: {subscription.account_unique_id}")
