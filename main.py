@@ -35,7 +35,7 @@ from chat_messages.models import ChatSession, ChatMessage
 from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
     get_chat_messages_by_session_id
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
-    process_stripe_subscription_checkout_session_completed_event
+    process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, process_retrieved_stripe_subscription_data
 from core.models import Product
 from core.utils import create_stripe_subscription_in_db
     
@@ -1368,8 +1368,12 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
     elif event["type"] == "checkout.session.completed":
         mode = event.data.object.get("mode", "")
         if mode == "subscription":
+            # Create initial subscription in DB
             subscription = process_stripe_subscription_checkout_session_completed_event(event, session)
-            # refreshed_subscription = process_stripe_subscription_updated_event(event, session)
+            # Get subscription details from Stripe
+            stripe_subscription = get_stripe_subscription_from_subscription_id(subscription.stripe_subscription_id)
+            # Update subscription in DB with Stripe details
+            updated_subscription = process_retrieved_stripe_subscription_data(stripe_subscription, session)
 
     # elif event["type"] == "customer.subscription.updated":
     #     print(f"Processing subscription updated event: {event}")

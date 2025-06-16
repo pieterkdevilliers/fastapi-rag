@@ -86,6 +86,30 @@ def process_stripe_subscription_checkout_session_completed_event(event: dict, se
     return new_subscription
 
 
+def process_retrieved_stripe_subscription_data(subscription: dict, session: Session):
+    """
+    Process Retrieved Stripe Subscription Data
+    """
+    subscription_id = subscription.get('id', '')
+    subscription_data = subscription.get('data', {}).get('object', {})
+    status = subscription_data.get('status', '')
+    type = subscription_data.get('items', {}).get('data', {}).get('plan').get('interval', '')
+    current_period_end = datetime.fromtimestamp(current_period_end, tz=timezone.utc)
+    trial_start = datetime.fromtimestamp(subscription.get('trial_start', 0), tz=timezone.utc) if subscription.get('trial_start') else None
+    trial_end = datetime.fromtimestamp(subscription.get('trial_end', 0), tz=timezone.utc) if subscription.get('trial_end') else None
+
+    # Update the subscription in the database
+    updated_subscription = update_stripe_subscription_in_db(
+        subscription_id=subscription_id,
+        status=status,
+        current_period_end=current_period_end,
+        trial_start=trial_start,
+        trial_end=trial_end,
+        type=type,
+        session=session
+    )
+
+    return updated_subscription
 
 
 def get_stripe_price_object_from_price_id(price_id: str):
@@ -107,6 +131,19 @@ def get_stripe_customer_from_customer_id(customer_id: str):
         if not customer:
             return {"error": "Customer not found"}
         return customer
+    except stripe.error.StripeError as e:
+        return {"error": str(e)}
+
+
+def get_stripe_subscription_from_subscription_id(subscription_id: str):
+    """
+    Get Stripe Subscription from Subscription ID
+    """
+    try:
+        subscription = stripe.Subscription.retrieve(subscription_id)
+        if not subscription:
+            return {"error": "Subscription not found"}
+        return subscription
     except stripe.error.StripeError as e:
         return {"error": str(e)}
 
