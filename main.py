@@ -37,7 +37,7 @@ from chat_messages.utils import create_or_identify_chat_session, create_chat_mes
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
     process_stripe_subscription_created_event
 from core.models import Product
-from core.utils import create_stripe_subscription_in_db
+from core.utils import create_stripe_subscription_in_db, process_stripe_subscription_updated_event
     
 
 # Initialize the S3 client
@@ -1366,12 +1366,12 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
         updated_product = process_stripe_product_updated_event(event, session)
 
     elif event["type"] == "checkout.session.completed":
-        print("Checkout session completed event received")
-        print(f"Event data: {event}")
         mode = event.data.object.get("mode", "")
         if mode == "subscription":
             subscription = process_stripe_subscription_created_event(event, session)
-            print(f"Subscription created: {subscription}")
 
+    elif event["type"] == "customer.subscription.updated":
+        print(f"Processing subscription updated event: {event}")
+        subscription = process_stripe_subscription_updated_event(event, session)
     # print(f"Received event: {event}")
     return {}
