@@ -24,8 +24,7 @@ from file_management.utils import save_file_to_db, update_file_in_db, delete_fil
     update_folder_in_db, delete_folder_from_db, delete_file_from_s3
 from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
-    create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, create_stripe_subscription_in_db, \
-    update_stripe_subscription_in_db
+    create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users
 from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
@@ -38,6 +37,7 @@ from chat_messages.utils import create_or_identify_chat_session, create_chat_mes
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
     process_stripe_subscription_created_event
 from core.models import Product
+from core.utils import create_stripe_subscription_in_db
     
 
 # Initialize the S3 client
