@@ -68,6 +68,26 @@ def process_stripe_product_updated_event(event: dict, session: Session):
     return updated_product
 
 
+def process_stripe_subscription_checkout_session_completed_event(event: dict, session: Session):
+    """
+    Process Stripe Subscription Checkout Session Completed Event
+    """
+    session_data = event.get('data', {}).get('object', {})
+    stripe_customer_id = session_data.get('customer', '')
+    stripe_subscription_id = session_data.get('subscription', '')
+    account_unique_id = session_data.get('metadata', {}).get('account_unique_id', '')
+
+    subscription = StripeSubscription(
+        account_unique_id=account_unique_id,
+        stripe_subscription_id=stripe_subscription_id,
+        stripe_customer_id=stripe_customer_id
+    )
+    new_subscription = create_stripe_subscription_in_db(subscription, session)
+    return new_subscription
+
+
+
+
 def get_stripe_price_object_from_price_id(price_id: str):
     """
     Get Price Object from Price ID
@@ -91,69 +111,3 @@ def get_stripe_customer_from_customer_id(customer_id: str):
         return {"error": str(e)}
 
 
-def process_stripe_subscription_created_event(event: dict, session: Session):
-    """
-    Process Stripe Subscription Created Event
-    """
-    
-    subscription_data = event.get('data', {}).get('object', {})
-    stripe_subscription_id = subscription_data.get('subscription', '')
-    stripe_customer_id = subscription_data.get('customer', '')
-    status = subscription_data.get('active')
-    trial_start = subscription_data.get('trial_start', None)
-    trial_end = subscription_data.get('trial_end', None)
-    subscription_start = subscription_data.get('current_period_start', None)
-    stripe_account_url = subscription_data.get('url', None)
-    account_unique_id = subscription_data.get('metadata', {}).get('account_unique_id', '')
-    subscription_type = subscription_data.get('plan', {}).get('interval', 'month')
-    current_period_end = subscription_data.get('current_period_end', None)
-
-    subscription = StripeSubscription(
-        account_unique_id=account_unique_id,
-        stripe_subscription_id=stripe_subscription_id,
-        stripe_customer_id=stripe_customer_id,
-        status=status,
-        trial_start=datetime.fromtimestamp(trial_start, tz=timezone.utc) if trial_start else None,
-        trial_end=datetime.fromtimestamp(trial_end, tz=timezone.utc) if trial_end else None,
-        subscription_start=datetime.fromtimestamp(subscription_start, tz=timezone.utc) if subscription_start else None,
-        stripe_account_url=stripe_account_url,
-        type=subscription_type,
-        current_period_end=datetime.fromtimestamp(current_period_end, tz=timezone.utc) if current_period_end else None
-    )
-
-    new_subscription = create_stripe_subscription_in_db(subscription, session)
-
-    return new_subscription
-
-
-def process_stripe_subscription_updated_event(event: dict, session: Session):
-    """
-    Process Stripe Subscription Updated Event
-    """
-    
-    subscription_data = event.get('data', {}).get('object', {})
-    stripe_subscription_id = subscription_data.get('subscription', '')
-    status = subscription_data.get('active')
-    trial_start = subscription_data.get('trial_start', None)
-    trial_end = subscription_data.get('trial_end', None)
-    subscription_start = subscription_data.get('current_period_start', None)
-    stripe_account_url = subscription_data.get('url', None)
-    account_unique_id = subscription_data.get('metadata', {}).get('account_unique_id', '')
-    subscription_type = subscription_data.get('plan', {}).get('interval', 'month')
-    current_period_end = subscription_data.get('current_period_end', None)
-
-    subscription = StripeSubscription(
-        account_unique_id=account_unique_id,
-        stripe_subscription_id=stripe_subscription_id,
-        status=status,
-        trial_start=datetime.fromtimestamp(trial_start, tz=timezone.utc) if trial_start != 'null' else datetime.now(timezone.utc),
-        trial_end=datetime.fromtimestamp(trial_end, tz=timezone.utc) if trial_end != 'null' else datetime.now(timezone.utc),
-        subscription_start=datetime.fromtimestamp(subscription_start, tz=timezone.utc) if subscription_start != 'null' else datetime.now(timezone.utc),
-        stripe_account_url=stripe_account_url,
-        type=subscription_type,
-        current_period_end=datetime.fromtimestamp(current_period_end, tz=timezone.utc) if current_period_end != 'null' else datetime.now(timezone.utc)
-    )
-
-    updated_subscription = update_stripe_subscription_in_db(stripe_subscription_id, subscription, session)
-
-    return updated_subscription
