@@ -15,7 +15,7 @@ def process_stripe_product_created_event(event: dict, session: Session):
     product_statement_descriptor = product_data.get('statement_descriptor', '')
     product_price = product_data.get('price', {}).get('unit_amount', 0) / 100.0  # Convert cents to dollars
     product_plan_cycle = product_data.get('recurring', {}).get('interval', '')
-    price_id = product_data.get('default_price', {}).get('id', None)
+    price_id = product_data.get('default_price', '')
 
     product = Product(
         product_id=product_id,
@@ -24,6 +24,7 @@ def process_stripe_product_created_event(event: dict, session: Session):
         product_statement_descriptor=product_statement_descriptor,
         product_price=product_price,
         product_plan_cycle=product_plan_cycle
+        price_id=price_id
     )
 
     new_product = create_product_in_db(product, session)
@@ -43,7 +44,7 @@ def process_stripe_product_updated_event(event: dict, session: Session):
     product_statement_descriptor = product_data.get('statement_descriptor', '')
     product_price = product_data.get('price', {}).get('unit_amount', 0) / 100.0  # Convert cents to dollars
     product_plan_cycle = product_data.get('recurring', {}).get('interval', '')
-    price_id = product_data.get('default_price', {}).get('id', None)
+    price_id = product_data.get('default_price', '')
     
     product = Product(
         product_id=product_id,
