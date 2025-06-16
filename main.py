@@ -1370,10 +1370,13 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
         if mode == "subscription":
             # Create initial subscription in DB
             subscription = process_stripe_subscription_checkout_session_completed_event(event, session)
+            print(f"Created new subscription: {subscription.stripe_subscription_id} for account: {subscription.account_unique_id}")
             # Get subscription details from Stripe
             stripe_subscription = get_stripe_subscription_from_subscription_id(subscription.stripe_subscription_id)
+            print(f"Retrieved Stripe subscription: {stripe_subscription.id} for account: {subscription.account_unique_id}")
             # Update subscription in DB with Stripe details
             updated_subscription = process_retrieved_stripe_subscription_data(stripe_subscription, session)
+            print(f"Updated subscription in DB: {updated_subscription.stripe_subscription_id} for account: {updated_subscription.account_unique_id}")
 
     # elif event["type"] == "customer.subscription.updated":
     #     print(f"Processing subscription updated event: {event}")
