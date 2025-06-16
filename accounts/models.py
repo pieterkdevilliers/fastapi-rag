@@ -95,11 +95,18 @@ class StripeSubscriptionBase(SQLModel):
     """
     Stripe Subscription Model Base
     """
-    account_unique_id: str = Field(foreign_key="account.account_unique_id")
+    account_unique_id: Optional[str] = Field(
+        default=None, 
+        foreign_key="account.account_unique_id",
+        nullable=True
+    )
     stripe_subscription_id: str = Field(unique=True, index=True)
     stripe_customer_id: str = Field(unique=True, index=True)
     status: str = Field(default="active", nullable=True)
-    current_period_end: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    current_period_end: Optional[datetime] = Field(
+        default=None, 
+        nullable=True
+    ) 
 
 
 class StripeSubscription(StripeSubscriptionBase, table=True):
@@ -107,7 +114,7 @@ class StripeSubscription(StripeSubscriptionBase, table=True):
     Stripe Subscription Model
     """
     id: Optional[int] = Field(default=None, primary_key=True)
-    account: Account = Relationship(back_populates="stripe_subscription")
+    account: Optional[Account] = Relationship(back_populates="stripe_subscription")
     type: Optional[str] = Field(default=None, nullable=True, index=True)
     trial_start: Optional[datetime] = Field(default=None, nullable=True)
     trial_end: Optional[datetime] = Field(default=None, nullable=True)
