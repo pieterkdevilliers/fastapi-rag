@@ -1,7 +1,12 @@
+import os
+import stripe
 from sqlmodel import select, Session
 from core.utils import create_product_in_db, update_product_in_db
 from core.models import Product
 
+#Stripe Setup
+
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 def process_stripe_product_created_event(event: dict, session: Session):
     """
@@ -59,3 +64,13 @@ def process_stripe_product_updated_event(event: dict, session: Session):
     updated_product = update_product_in_db(product_id, product, session)
 
     return updated_product
+
+
+def get_stripe_price_object_from_price_id(price_id: str):
+    """
+    Get Price Object from Price ID
+    """
+    price_object = stripe.Price.retrieve(price_id)
+    if not price_object:
+        return {"error": "Price object not found"}
+    return price_object
