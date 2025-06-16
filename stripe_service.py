@@ -99,13 +99,13 @@ def process_stripe_subscription_created_event(event: dict, session: Session):
     subscription_data = event.get('data', {}).get('object', {})
     stripe_subscription_id = subscription_data.get('subscription', '')
     stripe_customer_id = subscription_data.get('customer', '')
-    status = subscription_data.get('status', 'active')
+    status = subscription_data.get('active')
     trial_start = subscription_data.get('trial_start', None)
     trial_end = subscription_data.get('trial_end', None)
     subscription_start = subscription_data.get('current_period_start', None)
     stripe_account_url = subscription_data.get('url', None)
     account_unique_id = subscription_data.get('metadata', {}).get('account_unique_id', '')
-    
+
     subscription = StripeSubscription(
         account_unique_id=account_unique_id,
         stripe_subscription_id=stripe_subscription_id,
