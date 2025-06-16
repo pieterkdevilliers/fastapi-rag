@@ -35,7 +35,7 @@ from dependencies import get_session
 from chat_messages.models import ChatSession, ChatMessage
 from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
     get_chat_messages_by_session_id
-from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event
+from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id
 from core.models import Product
     
 
@@ -1319,6 +1319,13 @@ async def get_products(current_user: Annotated[User, Depends(get_current_active_
 
 @app.get("/api/v1/checkout/{price_id}")
 async def create_checkout_session(price_id: str):
+    """
+    Create Stripe Checkout Session
+    """
+    recurring = get_stripe_price_object_from_price_id(price_id).recurring
+    mode = "subscription" if recurring else "payment"
+    if not price_id:
+        raise HTTPException(status_code=400, detail="Price ID is required")
     checkout_session = stripe.checkout.Session.create(
         line_items=[
             {
@@ -1331,7 +1338,7 @@ async def create_checkout_session(price_id: str):
             "email": "abc@gmail.com",
             "request_id": 1234567890
         },
-        mode="payment",
+        mode=mode,
         success_url=os.getenv("BASE_URL") + "accounts/",
         cancel_url=os.getenv("BASE_URL") + "accounts/",
         customer_email="ping@fastapitutorial.com",
