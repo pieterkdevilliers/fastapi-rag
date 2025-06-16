@@ -161,6 +161,23 @@ def process_retrieved_stripe_subscription_data(subscription: dict, session: Sess
     return updated_subscription
 
 
+def add_account_unique_id_to_subscription(event: dict, session: Session):
+    """
+    Add account_unique_id to new subscription in db
+    """
+    subscription_data = event.get('data', {}).get('object', {})
+    subscription_id = subscription_data.get('subscription', '')
+    account_unique_id = subscription_data.get('metadata', {}).get('account_unique_id', '')
+
+    stripe_subscription = StripeSubscription(
+        account_unique_id = account_unique_id,
+    )
+
+    updated_subscription = update_stripe_subscription_in_db(subscription_id, stripe_subscription, session)
+
+    return updated_subscription
+
+
 def get_stripe_price_object_from_price_id(price_id: str):
     """
     Get Price Object from Price ID
