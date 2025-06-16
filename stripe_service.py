@@ -133,7 +133,6 @@ def process_stripe_subscription_updated_event(event: dict, session: Session):
     
     subscription_data = event.get('data', {}).get('object', {})
     stripe_subscription_id = subscription_data.get('subscription', '')
-    stripe_customer_id = subscription_data.get('customer', '')
     status = subscription_data.get('active')
     trial_start = subscription_data.get('trial_start', None)
     trial_end = subscription_data.get('trial_end', None)
@@ -146,7 +145,6 @@ def process_stripe_subscription_updated_event(event: dict, session: Session):
     subscription = StripeSubscription(
         account_unique_id=account_unique_id,
         stripe_subscription_id=stripe_subscription_id,
-        stripe_customer_id=stripe_customer_id,
         status=status,
         trial_start=datetime.fromtimestamp(trial_start, tz=timezone.utc) if trial_start else None,
         trial_end=datetime.fromtimestamp(trial_end, tz=timezone.utc) if trial_end else None,
