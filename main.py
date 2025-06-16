@@ -1321,11 +1321,10 @@ async def get_products(current_user: Annotated[User, Depends(get_current_active_
 
 
 @app.get("/api/v1/checkout/{price_id}/{account_unique_id}")
-async def create_checkout_session(price_id: str):
+async def create_checkout_session(price_id: str, account_unique_id: str,):
     """
     Create Stripe Checkout Session
     """
-    account_unique_id = account_unique_id
     recurring = get_stripe_price_object_from_price_id(price_id).recurring
     mode = "subscription" if recurring else "payment"
     if not price_id:
