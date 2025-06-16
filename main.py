@@ -1374,7 +1374,7 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
             print(f"Created new subscription: {subscription.stripe_subscription_id} for account: {subscription.account_unique_id}")
         
     elif event["type"] == "checkout.session.completed":
-        if event["mode"] == "subscription":
+        if event["data"]["object"]["mode"] == "subscription":
             subscription_id = event.get('data', {}).get('object', {}).get('subscription', {})
             db_subscription = get_db_subscription_by_subscription_id(subscription_id, session)
             if db_subscription.stripe_subscription_id:
