@@ -146,12 +146,12 @@ def process_stripe_subscription_updated_event(event: dict, session: Session):
         account_unique_id=account_unique_id,
         stripe_subscription_id=stripe_subscription_id,
         status=status,
-        trial_start=datetime.fromtimestamp(trial_start, tz=timezone.utc) if trial_start else datetime.now(timezone.utc),
-        trial_end=datetime.fromtimestamp(trial_end, tz=timezone.utc) if trial_end else datetime.now(timezone.utc),
-        subscription_start=datetime.fromtimestamp(subscription_start, tz=timezone.utc) if subscription_start else datetime.now(timezone.utc),
+        trial_start=datetime.fromtimestamp(trial_start, tz=timezone.utc) if trial_start != 'null' else datetime.now(timezone.utc),
+        trial_end=datetime.fromtimestamp(trial_end, tz=timezone.utc) if trial_end != 'null' else datetime.now(timezone.utc),
+        subscription_start=datetime.fromtimestamp(subscription_start, tz=timezone.utc) if subscription_start != 'null' else datetime.now(timezone.utc),
         stripe_account_url=stripe_account_url,
         type=subscription_type,
-        current_period_end=datetime.fromtimestamp(current_period_end, tz=timezone.utc) if current_period_end else None
+        current_period_end=datetime.fromtimestamp(current_period_end, tz=timezone.utc) if current_period_end != 'null' else datetime.now(timezone.utc)
     )
 
     updated_subscription = update_stripe_subscription_in_db(stripe_subscription_id, subscription, session)
