@@ -98,16 +98,17 @@ def process_retrieved_stripe_subscription_data(subscription: dict, session: Sess
     trial_start = datetime.fromtimestamp(subscription.get('trial_start', 0), tz=timezone.utc) if subscription.get('trial_start') else None
     trial_end = datetime.fromtimestamp(subscription.get('trial_end', 0), tz=timezone.utc) if subscription.get('trial_end') else None
 
-    # Update the subscription in the database
-    updated_subscription = update_stripe_subscription_in_db(
-        subscription_id=subscription_id,
+
+    retrieved_subscription = StripeSubscription(
+        stripe_subscription_id=subscription_id,
         status=status,
         current_period_end=current_period_end,
         trial_start=trial_start,
         trial_end=trial_end,
-        type=type,
-        session=session
+        type=type
     )
+    # Update the subscription in the database
+    updated_subscription = update_stripe_subscription_in_db(subscription_id, retrieved_subscription, session)
 
     return updated_subscription
 
