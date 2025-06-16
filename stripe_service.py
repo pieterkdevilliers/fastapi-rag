@@ -98,9 +98,9 @@ def process_stripe_subscription_created_event(event: dict, session: Session):
         stripe_subscription_id=stripe_subscription_id,
         stripe_customer_id=stripe_customer_id,
         status=status,
-        trial_start=datetime.fromtimestamp(trial_start, tz=timezone.utc),
-        trial_end=datetime.fromtimestamp(trial_end, tz=timezone.utc),
-        subscription_start=datetime.fromtimestamp(subscription_start, tz=timezone.utc),
+        trial_start=datetime.fromtimestamp(trial_start, tz=timezone.utc) if trial_start else None,
+        trial_end=datetime.fromtimestamp(trial_end, tz=timezone.utc) if trial_end else None,
+        subscription_start=datetime.fromtimestamp(subscription_start, tz=timezone.utc) if subscription_start else None,
         stripe_account_url=stripe_account_url
     )
 
