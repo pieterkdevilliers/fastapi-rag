@@ -1371,6 +1371,7 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
 
     elif event["type"] == "customer.subscription.created":
         print("Subscription created event received")
+        print(f"Event data: {event}")
         subscription = process_stripe_subscription_created_event(event, session)
         print(f"Subscription created: {subscription}")
 
