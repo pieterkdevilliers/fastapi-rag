@@ -16,5 +16,6 @@ class Product(ProductBase, table=True):
     product_statement_descriptor: str = Field(default="")
     product_price: float = Field(default=0.0)
     product_plan_cycle: str = Field(default="")
+    price_id: Optional[str] = Field(default=None, index=True, nullable=True, unique=True)
 
 
