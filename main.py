@@ -43,11 +43,13 @@ from core.models import Product
 s3 = boto3.client('s3')
 
 #Stripe Setup
-
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 # The name of your S3 bucket
 BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+
+# Front-end Env Settings
+FE_BASE_URL = os.getenv('FE_BASE_URL', 'http://localhost:3000')  # Default to localhost if not set
 
 
 app = FastAPI()
@@ -1334,14 +1336,10 @@ async def create_checkout_session(price_id: str):
                 },
         ],
         metadata={
-            "user_id": 3,
-            "email": "abc@gmail.com",
-            "request_id": 1234567890
         },
         mode=mode,
-        success_url=os.getenv("BASE_URL") + "accounts/",
-        cancel_url=os.getenv("BASE_URL") + "accounts/",
-        customer_email="ping@fastapitutorial.com",
+        success_url=f"{FE_BASE_URL}/accounts/",
+        cancel_url=f"{FE_BASE_URL}/accounts/",
     )
     return responses.RedirectResponse(checkout_session.url, status_code=303)
 
