@@ -1,5 +1,6 @@
 import os
 import stripe
+from datetime import datetime, timezone
 from sqlmodel import select, Session
 from core.utils import create_product_in_db, update_product_in_db, create_stripe_subscription_in_db
 from core.models import Product
@@ -89,7 +90,7 @@ def process_stripe_subscription_created_event(event: dict, session: Session):
     status = subscription_data.get('status', 'active')
     trial_start = subscription_data.get('trial_start', None)
     trial_end = subscription_data.get('trial_end', None)
-    subcription_start = subscription_data.get('current_period_start', None)
+    subscription_start = subscription_data.get('current_period_start', None)
     stripe_account_url = subscription_data.get('url', None)
 
     subscription = StripeSubscription(
@@ -97,9 +98,9 @@ def process_stripe_subscription_created_event(event: dict, session: Session):
         stripe_subscription_id=stripe_subscription_id,
         stripe_customer_id=stripe_customer_id,
         status=status,
-        trial_start=trial_start,
-        trial_end=trial_end,
-        subscription_start=subcription_start,
+        trial_start=datetime.fromtimestamp(trial_start, tz=timezone.utc),
+        trial_end=datetime.fromtimestamp(trial_end, tz=timezone.utc),
+        subscription_start=datetime.fromtimestamp(subscription_start, tz=timezone.utc),
         stripe_account_url=stripe_account_url
     )
 
