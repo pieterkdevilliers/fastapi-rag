@@ -76,9 +76,9 @@ def process_stripe_subscription_invoice_paid_event(event: dict, session: Session
     stripe_subscription_id = invoice_data.get('subscription', '')
     stripe_customer_id = invoice_data.get('customer', '')
     type = invoice_data.get('lines', {}).get('data', [{}])[0].get('price', {}).get('recurring', {}).get('interval', '')
-    current_period_end = invoice_data.get('period_end', 0)
+    current_period_end = invoice_data.get('lines', {}).get('data', [{}])[0].get('period', {}).get('end', 0)
     current_period_end = datetime.fromtimestamp(current_period_end, tz=timezone.utc)
-    subscription_start = invoice_data.get('period_start', 0)
+    subscription_start = invoice_data.get('lines', {}).get('data', [{}])[0].get('period', {}).get('start', 0)
     subscription_start = datetime.fromtimestamp(subscription_start, tz=timezone.utc)
     status = 'active'  # Assuming the status is active when the invoice is paid
 
