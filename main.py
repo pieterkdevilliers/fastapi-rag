@@ -1322,9 +1322,9 @@ async def create_checkout_session(price_id: str):
     checkout_session = stripe.checkout.Session.create(
         line_items=[
             {
-                    "default_price": price_id,
+                    "price": price_id,
+                    "quantity": 1,
                 },
-                "quantity": 1,
         ],
         metadata={
             "user_id": 3,
