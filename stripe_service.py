@@ -23,7 +23,7 @@ def process_stripe_product_created_event(event: dict, session: Session):
         product_description=product_description,
         product_statement_descriptor=product_statement_descriptor,
         product_price=product_price,
-        product_plan_cycle=product_plan_cycle
+        product_plan_cycle=product_plan_cycle,
         price_id=price_id
     )
 
