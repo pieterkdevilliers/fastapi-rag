@@ -2,7 +2,7 @@ import os
 import stripe
 from datetime import datetime, timezone
 from sqlmodel import select, Session
-from core.utils import create_product_in_db, update_product_in_db, create_stripe_subscription_in_db
+from core.utils import create_product_in_db, update_product_in_db, create_stripe_subscription_in_db, update_stripe_subscription_in_db
 from core.models import Product
 from accounts.models import StripeSubscription
 
@@ -120,3 +120,34 @@ def process_stripe_subscription_created_event(event: dict, session: Session):
     new_subscription = create_stripe_subscription_in_db(subscription, session)
 
     return new_subscription
+
+
+def process_stripe_subscription_updated_event(event: dict, session: Session):
+    """
+    Process Stripe Subscription Updated Event
+    """
+    
+    subscription_data = event.get('data', {}).get('object', {})
+    stripe_subscription_id = subscription_data.get('subscription', '')
+    stripe_customer_id = subscription_data.get('customer', '')
+    status = subscription_data.get('active')
+    trial_start = subscription_data.get('trial_start', None)
+    trial_end = subscription_data.get('trial_end', None)
+    subscription_start = subscription_data.get('current_period_start', None)
+    stripe_account_url = subscription_data.get('url', None)
+    account_unique_id = subscription_data.get('metadata', {}).get('account_unique_id', '')
+
+    subscription = StripeSubscription(
+        account_unique_id=account_unique_id,
+        stripe_subscription_id=stripe_subscription_id,
+        stripe_customer_id=stripe_customer_id,
+        status=status,
+        trial_start=datetime.fromtimestamp(trial_start, tz=timezone.utc) if trial_start else None,
+        trial_end=datetime.fromtimestamp(trial_end, tz=timezone.utc) if trial_end else None,
+        subscription_start=datetime.fromtimestamp(subscription_start, tz=timezone.utc) if subscription_start else None,
+        stripe_account_url=stripe_account_url
+    )
+
+    updated_subscription = update_stripe_subscription_in_db(stripe_subscription_id, subscription, session)
+
+    return updated_subscription

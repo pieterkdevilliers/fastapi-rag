@@ -46,3 +46,22 @@ def create_stripe_subscription_in_db(subscription: StripeSubscription, session: 
     session.refresh(subscription)
 
     return subscription
+
+
+def update_stripe_subscription_in_db(subscription_id: str, update_data: StripeSubscription, session: Session):
+    """
+    Update Subscription in DB
+    """
+    subscription_in_db = session.exec(select(StripeSubscription).where(StripeSubscription.stripe_subscription_id == subscription_id)).first()
+
+    if not subscription_in_db:
+        return {"error": "Subscription not found"}
+
+    updated_subscription_dict = update_data.model_dump(exclude_unset=True, exclude={"id"})
+    for key, value in updated_subscription_dict.items():
+        setattr(subscription_in_db, key, value)
+    session.add(subscription_in_db)
+    session.commit()
+    session.refresh(subscription_in_db)
+
+    return subscription_in_db
