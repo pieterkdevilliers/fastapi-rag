@@ -1360,20 +1360,16 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
         raise HTTPException(status_code=400, detail="Invalid signature")
     
     if event["type"] == "product.created":
-        print("Product created event received")
         new_product = process_stripe_product_created_event(event, session)
-        print(f"New product created: {new_product}")
 
     elif event["type"] == "product.updated":
-        print("Product updated event received")
         updated_product = process_stripe_product_updated_event(event, session)
-        print(f"Product updated: {updated_product}")
 
-    elif event["type"] == "customer.subscription.created":
-        print("Subscription created event received")
+    elif event["type"] == "checkout.session.completed":
+        print("Checkout session completed event received")
         print(f"Event data: {event}")
-        subscription = process_stripe_subscription_created_event(event, session)
-        print(f"Subscription created: {subscription}")
+        # subscription = process_stripe_subscription_created_event(event, session)
+        # print(f"Subscription created: {subscription}")
 
-    print(f"Received event: {event}")
+    # print(f"Received event: {event}")
     return {}
