@@ -78,13 +78,25 @@ def get_stripe_price_object_from_price_id(price_id: str):
     return price_object
 
 
+def get_stripe_customer_from_customer_id(customer_id: str):
+    """
+    Get Stripe Customer from Customer ID
+    """
+    try:
+        customer = stripe.Customer.retrieve(customer_id)
+        if not customer:
+            return {"error": "Customer not found"}
+        return customer
+    except stripe.error.StripeError as e:
+        return {"error": str(e)}
+
+
 def process_stripe_subscription_created_event(event: dict, session: Session):
     """
     Process Stripe Subscription Created Event
     """
     
     subscription_data = event.get('data', {}).get('object', {})
-    account_unique_id = subscription_data.get('customer.metadata', {}).get('account_unique_id', '')
     stripe_subscription_id = subscription_data.get('subscription', '')
     stripe_customer_id = subscription_data.get('customer', '')
     status = subscription_data.get('status', 'active')
@@ -92,6 +104,8 @@ def process_stripe_subscription_created_event(event: dict, session: Session):
     trial_end = subscription_data.get('trial_end', None)
     subscription_start = subscription_data.get('current_period_start', None)
     stripe_account_url = subscription_data.get('url', None)
+
+    account_unique_id = get_stripe_customer_from_customer_id(stripe_customer_id).get('metadata', {}).get('account_unique_id', '')
 
     subscription = StripeSubscription(
         account_unique_id=account_unique_id,
