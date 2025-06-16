@@ -92,8 +92,9 @@ def process_retrieved_stripe_subscription_data(subscription: dict, session: Sess
     """
     subscription_id = subscription['id']
     status = subscription['status']
-    type = subscription['items']['data'][0]['plan']['interval']
-    current_period_end = datetime.fromtimestamp(subscription['current_period_end'], tz=timezone.utc)
+    type = subscription['items']['data'][0]['price']['recurring']['interval']
+    current_period_end = subscription['current_period_end']
+    current_period_end = datetime.fromtimestamp(current_period_end, tz=timezone.utc)
     trial_start = datetime.fromtimestamp(subscription['trial_start'], tz=timezone.utc) if subscription['trial_start'] else None
     trial_end = datetime.fromtimestamp(subscription['trial_end'], tz=timezone.utc) if subscription['trial_end'] else None
 
