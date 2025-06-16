@@ -106,7 +106,8 @@ def process_stripe_subscription_created_event(event: dict, session: Session):
     stripe_account_url = subscription_data.get('url', None)
 
     account_unique_id = get_stripe_customer_from_customer_id(stripe_customer_id).get('metadata', {}).get('account_unique_id', '')
-
+    customer = get_stripe_customer_from_customer_id(stripe_customer_id)
+    print("Customer from Stripe cust ID: ", stripe_customer_id, customer)
     subscription = StripeSubscription(
         account_unique_id=account_unique_id,
         stripe_subscription_id=stripe_subscription_id,
