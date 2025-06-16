@@ -1368,8 +1368,9 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
     elif event["type"] == "checkout.session.completed":
         print("Checkout session completed event received")
         print(f"Event data: {event}")
-        # subscription = process_stripe_subscription_created_event(event, session)
-        # print(f"Subscription created: {subscription}")
+        if event.mode == "subscription":
+            subscription = process_stripe_subscription_created_event(event, session)
+            print(f"Subscription created: {subscription}")
 
     # print(f"Received event: {event}")
     return {}
