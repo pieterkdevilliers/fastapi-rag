@@ -1369,6 +1369,7 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
         mode = event.data.object.get("mode", "")
         if mode == "subscription":
             subscription = process_stripe_subscription_created_event(event, session)
+            refreshed_subscription = process_stripe_subscription_updated_event(event, session)
 
     elif event["type"] == "customer.subscription.updated":
         print(f"Processing subscription updated event: {event}")
