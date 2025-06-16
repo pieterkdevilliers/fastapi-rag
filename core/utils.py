@@ -37,11 +37,10 @@ def update_product_in_db(product_id: str, update_data: Product, session: Session
     return product_in_db
 
 
-def create_stripe_subscription_in_db(subscription_data: dict, session: Session):
+def create_stripe_subscription_in_db(subscription: StripeSubscription, session: Session):
     """
     Create Stripe Subscription in DB
     """
-    subscription = StripeSubscription(**subscription_data)
     session.add(subscription)
     session.commit()
     session.refresh(subscription)
