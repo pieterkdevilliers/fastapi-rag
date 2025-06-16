@@ -1317,17 +1317,13 @@ async def get_products(current_user: Annotated[User, Depends(get_current_active_
 ############################################
 
 
-@app.get("/api/v1/checkout/")
-async def create_checkout_session(price: int = 10):
+@app.get("/api/v1/checkout/{price_id}")
+async def create_checkout_session(price_id: str):
     checkout_session = stripe.checkout.Session.create(
         line_items=[
             {
                 "price_data": {
-                    "currency": "usd",
-                    "product_data": {
-                        "name": "FastAPI Stripe Checkout",
-                    },
-                    "unit_amount": price * 100,
+                    "default_price": price_id,
                 },
                 "quantity": 1,
             }
