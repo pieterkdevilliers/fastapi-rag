@@ -1378,7 +1378,8 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
         if event["data"]["object"]["mode"] == "subscription":
             subscription_id = event.get('data', {}).get('object', {}).get('subscription', {})
             db_subscription = get_db_subscription_by_subscription_id(subscription_id, session)
-            if db_subscription.stripe_subscription_id:
+            print("db_subscription: ", db_subscription)
+            if db_subscription['stripe_subscription_id']:
                 updated_subscription = add_account_unique_id_to_subscription(event, session)
             else:
                 subscription = process_stripe_subscription_checkout_session_completed_event(event, session)
