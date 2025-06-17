@@ -14,15 +14,18 @@ def process_stripe_product_created_event(event: dict, session: Session):
     """
     Process Stripe Product Created Event
     """
-    
     product_data = event.get('data', {}).get('object', {})
     product_id = product_data.get('id', '')
     product_title = product_data.get('name', '')
     product_description = product_data.get('description', '')
     product_statement_descriptor = product_data.get('statement_descriptor', '')
-    product_price = product_data.get('price', {}).get('unit_amount', 0) / 100.0  # Convert cents to dollars
-    product_plan_cycle = product_data.get('recurring', {}).get('interval', '')
+
     price_id = product_data.get('default_price', '')
+    price_object = get_stripe_price_object_from_price_id(price_id)
+
+    product_price = price_object.get('unit_amount', 0) / 100.0  # Convert cents to dollars
+    product_plan_cycle = price_object.get('recurring', {}).get('interval', '')
+    
 
     product = Product(
         product_id=product_id,
@@ -49,9 +52,13 @@ def process_stripe_product_updated_event(event: dict, session: Session):
     product_title = product_data.get('name', '')
     product_description = product_data.get('description', '')
     product_statement_descriptor = product_data.get('statement_descriptor', '')
-    product_price = product_data.get('price', {}).get('unit_amount', 0) / 100.0  # Convert cents to dollars
-    product_plan_cycle = product_data.get('recurring', {}).get('interval', '')
+
     price_id = product_data.get('default_price', '')
+    price_object = get_stripe_price_object_from_price_id(price_id)
+
+    product_price = price_object.get('unit_amount', 0) / 100.0  # Convert cents to dollars
+    product_plan_cycle = price_object.get('recurring', {}).get('interval', '')
+
     
     product = Product(
         product_id=product_id,
