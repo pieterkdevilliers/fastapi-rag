@@ -194,7 +194,7 @@ def process_stripe_subscription_deleted_event(event: dict, session: Session):
     subscription_data = event.get('data', {}).get('object', {})
     subscription_id = subscription_data.get('id', '')
     status = subscription_data.get('status', '')
-    current_period_end = datetime.fromtimestamp(subscription_data.get('cancelled_at', ''), tz=timezone.utc)
+    current_period_end = datetime.fromtimestamp(subscription_data.get('canceled_at', ''), tz=timezone.utc)
 
     stripe_subscription = StripeSubscription(
         stripe_subscription_id=subscription_id,
