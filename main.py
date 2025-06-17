@@ -36,7 +36,8 @@ from chat_messages.utils import create_or_identify_chat_session, create_chat_mes
     get_chat_messages_by_session_id
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
     process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, \
-        process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription
+    process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
+    process_stripe_subscription_updated_event
 from core.models import Product
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id
     
@@ -1381,12 +1382,9 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
                 pass
             updated_subscription = add_account_unique_id_to_subscription(event, session)
 
-    # elif event["type"] == "customer.subscription.updated":
-    #     # Get subscription details from Stripe
-    #     stripe_subscription = get_stripe_subscription_from_subscription_id(subscription.stripe_subscription_id)
-    #     print(f"Retrieved Stripe subscription: {stripe_subscription.id} for account: {subscription.account_unique_id} with period end: {stripe_subscription.current_period_end}")
-    #     # Update subscription in DB with Stripe details
-    #     updated_subscription = process_retrieved_stripe_subscription_data(stripe_subscription, session)
-    #     print(f"Updated subscription in DB: {updated_subscription.stripe_subscription_id} for account: {updated_subscription.account_unique_id}")
+    elif event["type"] == "customer.subscription.updated":
+        # Get subscription details from Stripe
+        updated_subscription = process_stripe_subscription_updated_event(event, session)
+
     print(f"Received event: {event}")
     return {}
