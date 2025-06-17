@@ -72,8 +72,5 @@ def get_db_subscription_by_subscription_id(subscription_id: str, session: Sessio
     Get sub object from db
     """
     subscription = session.exec(select(StripeSubscription).where(StripeSubscription.stripe_subscription_id == subscription_id)).first()
-
-    if not subscription:
-        return {"error": "Subscription not found"}
     
     return subscription
