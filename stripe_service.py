@@ -21,10 +21,11 @@ def process_stripe_product_created_event(event: dict, session: Session):
     product_statement_descriptor = product_data.get('statement_descriptor', '')
 
     price_id = product_data.get('default_price', '')
-    price_object = get_stripe_price_object_from_price_id(price_id)
+    if price_id:
+        price_object = get_stripe_price_object_from_price_id(price_id)
 
-    product_price = price_object.get('unit_amount', 0) / 100.0  # Convert cents to dollars
-    product_plan_cycle = price_object.get('recurring', {}).get('interval', '')
+        product_price = price_object.get('unit_amount', 0) / 100.0  # Convert cents to dollars
+        product_plan_cycle = price_object.get('recurring', {}).get('interval', '')
     
 
     product = Product(
