@@ -169,7 +169,6 @@ def process_stripe_subscription_updated_event(event:dict, session: Session):
     subscription_id = subscription_data.get('id', '')
     customer_id = subscription_data.get('customer', '')
     status = subscription_data.get('status', '')
-    print('Trial Start Test: ', subscription_data.get('trial_start', ''))
     current_period_end = datetime.fromtimestamp(subscription_data.get('current_period_end', ''), tz=timezone.utc)
     trial_start = datetime.fromtimestamp(subscription_data.get('trial_start'), tz=timezone.utc) if subscription_data.get('trial_start') else None
     trial_end = datetime.fromtimestamp(subscription_data.get('trial_end'), tz=timezone.utc) if subscription_data.get('trial_end') else None
@@ -186,6 +185,26 @@ def process_stripe_subscription_updated_event(event:dict, session: Session):
     updated_subscription = update_stripe_subscription_in_db(subscription_id, stripe_subscription, session)
 
     return updated_subscription
+
+
+def process_stripe_subscription_deleted_event(event: dict, session: Session):
+    """
+    Update deleted subscriptions from Stripe to DB
+    """
+    subscription_data = event.get('data', {}).get('object', {})
+    subscription_id = subscription_data.get('id', '')
+    status = subscription_data.get('status', '')
+    current_period_end = datetime.fromtimestamp(subscription_data.get('cancelled_at', ''), tz=timezone.utc)
+
+    stripe_subscription = StripeSubscription(
+        stripe_subscription_id=subscription_id,
+        status=status,
+        current_period_end=current_period_end,
+    )
+
+    deleted_subscription = update_stripe_subscription_in_db(subscription_id, stripe_subscription, session)
+
+    return deleted_subscription
 
 
 def add_account_unique_id_to_subscription(event: dict, session: Session):
