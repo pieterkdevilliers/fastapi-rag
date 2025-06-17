@@ -37,7 +37,7 @@ from chat_messages.utils import create_or_identify_chat_session, create_chat_mes
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
     process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, \
     process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
-    process_stripe_subscription_updated_event
+    process_stripe_subscription_updated_event, process_stripe_subscription_deleted_event
 from core.models import Product
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id
     
@@ -1386,5 +1386,7 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
         # Get subscription details from Stripe
         updated_subscription = process_stripe_subscription_updated_event(event, session)
 
+    elif event["type"] == "customer.subscription.deleted":
+        deleted_subscription = process_stripe_subscription_deleted_event(event, session)
     print(f"Received event: {event}")
     return {}
