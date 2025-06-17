@@ -169,9 +169,10 @@ def process_stripe_subscription_updated_event(event:dict, session: Session):
     subscription_id = subscription_data.get('id', '')
     customer_id = subscription_data.get('customer', '')
     status = subscription_data.get('status', '')
+    print('Trial Start Test: ', subscription_data.get('trial_start', ''))
     current_period_end = datetime.fromtimestamp(subscription_data.get('current_period_end', ''), tz=timezone.utc)
     trial_start = datetime.fromtimestamp(subscription_data.get('trial_start'), tz=timezone.utc) if subscription_data.get('trial_start') else None
-    trial_end = datetime.fromtimestamp(subscription_data.get('trial_start'), tz=timezone.utc) if subscription_data.get('trial_start') else None
+    trial_end = datetime.fromtimestamp(subscription_data.get('trial_end'), tz=timezone.utc) if subscription_data.get('trial_end') else None
 
     stripe_subscription = StripeSubscription(
         stripe_subscription_id=subscription_id,
