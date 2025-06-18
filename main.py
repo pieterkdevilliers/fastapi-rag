@@ -103,15 +103,19 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     return Token(account_unique_id=account_unique_id, access_token=access_token, token_type="bearer")
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr 
+
+
 @app.post("/api/v1/forgot-password", status_code=status.HTTP_200_OK)
 async def request_password_reset(
-    email: str,
+    request_data: ForgotPasswordRequest, ,
     session: Session = Depends(get_session),
     email_service: EmailService = Depends(get_email_service)
     ):
     """
     Serves the Password Reset Step 1"""
-    user = get_user_by_email(email=email, session=session)
+    user = get_user_by_email(email=request_data.email, session=session)
     
     # IMPORTANT: To prevent user enumeration, always return a success message.
     if user:
