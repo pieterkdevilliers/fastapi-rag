@@ -137,14 +137,17 @@ async def request_password_reset(
     return {"message": "If an account with that email exists, a password reset link has been sent."}
 
 
+class TokenValidateRequest(BaseModel):
+    token: str
+
 @app.post("/api/v1/validate-token", status_code=status.HTTP_200_OK)
 async def validate_reset_token(
-    token,
+    request_data: TokenValidateRequest,
     session: Session = Depends(get_session),
     ):
     """
     Serves the Password Reset Step 2"""
-    token_record = get_reset_token(token=token, session=session)
+    token_record = get_reset_token(token=request_data.token, session=session)
     if not token_record or token_record.is_expired():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
