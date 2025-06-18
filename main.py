@@ -153,7 +153,7 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
-@app.post("/reset=-password", status_code=status.HTTP_200_OK)
+@app.post("/reset-password", status_code=status.HTTP_200_OK)
 async def reset_password(
     request: ResetPasswordRequest,
     session: Session = Depends(get_session),
