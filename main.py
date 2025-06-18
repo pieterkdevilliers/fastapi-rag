@@ -126,13 +126,17 @@ async def request_password_reset(
         # 2. Store the token in the database
         create_password_reset_token(user_id=user.id, token=token, expires_at=expires_at, session=session)
 
-        # # 3. Send the email
-        # reset_link = f"{FE_BASE_URL}/reset-password?token={token}"
-        # email_service.send_password_reset_email(
-        #     to_email=user.email,
-        #     subject="Your Password Reset Link",
-        #     reset_link=reset_link
-        # )
+        # 3. Send the email
+        reset_link = f"{os.environ.get('FE_BASE_URL')}/reset-password?token={token}"
+
+        try:
+            # This is now much cleaner and more descriptive!
+            email_service.send_password_reset_email(
+                to_email=user.email,
+                reset_link=reset_link
+            )
+        # except Exception as e:
+        #     print(f"ERROR: Could not send password reset email to {user.email}. Error: {e}")
 
     return {"message": "If an account with that email exists, a password reset link has been sent."}
 
