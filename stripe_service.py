@@ -90,6 +90,7 @@ def process_stripe_subscription_invoice_paid_event(event: dict, session: Session
     subscription_start = invoice_data.get('lines', {}).get('data', [{}])[0].get('period', {}).get('start', 0)
     subscription_start = datetime.fromtimestamp(subscription_start, tz=timezone.utc)
     status = 'active'  # Assuming the status is active when the invoice is paid
+    related_product_title = invoice_data.get('lines', {}).get('data', [{}])[0].get('description', {})
 
     db_subscription = session.exec(
         select(StripeSubscription).where(
@@ -102,7 +103,8 @@ def process_stripe_subscription_invoice_paid_event(event: dict, session: Session
         stripe_subscription_id=stripe_subscription_id,
         type=type,
         current_period_end=current_period_end,
-        subscription_start=subscription_start
+        subscription_start=subscription_start,
+        related_product_title=related_product_title
         )
 
         updated_subscription = update_stripe_subscription_in_db(
@@ -118,7 +120,8 @@ def process_stripe_subscription_invoice_paid_event(event: dict, session: Session
             type=type,
             current_period_end=current_period_end,
             subscription_start=subscription_start,
-            status=status
+            status=status,
+            related_product_title=related_product_title
         )
 
         new_subscription = create_stripe_subscription_in_db(subscription, session)
