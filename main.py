@@ -103,7 +103,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     return Token(account_unique_id=account_unique_id, access_token=access_token, token_type="bearer")
 
 
-@app.post("/forgot-password", status_code=status.HTTP_200_OK)
+@app.post("/api/v1/forgot-password", status_code=status.HTTP_200_OK)
 async def request_password_reset(
     email: str,
     session: Session = Depends(get_session),
@@ -133,7 +133,7 @@ async def request_password_reset(
     return {"message": "If an account with that email exists, a password reset link has been sent."}
 
 
-@app.post("/validate-token", status_code=status.HTTP_200_OK)
+@app.post("/api/v1/validate-token", status_code=status.HTTP_200_OK)
 async def validate_reset_token(
     token,
     session: Session = Depends(get_session),
@@ -153,7 +153,7 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
-@app.post("/reset-password", status_code=status.HTTP_200_OK)
+@app.post("/api/v1/reset-password", status_code=status.HTTP_200_OK)
 async def reset_password(
     request: ResetPasswordRequest,
     session: Session = Depends(get_session),
