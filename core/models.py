@@ -31,6 +31,6 @@ class PasswordResetToken(PasswordResetTokenBase, table=True):
     expires_at: Optional[datetime] = Field(default=None)
 
     def is_expired(self):
-        return datetime.now((timezone.utc)) > self.expires_at
+        return datetime.now() > self.expires_at
 
 
