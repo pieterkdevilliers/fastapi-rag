@@ -127,7 +127,7 @@ async def request_password_reset(
         create_password_reset_token(user_id=user.id, token=token, expires_at=expires_at, session=session)
 
         # 3. Send the email
-        reset_link = f"{os.environ.get('FE_BASE_URL')}/reset-password?token={token}"
+        reset_link = f"{FE_BASE_URL}/reset-password?token={token}"
 
         try:
             # This is now much cleaner and more descriptive!
