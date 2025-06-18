@@ -8,7 +8,7 @@ from alembic import context
 from file_management.models import SourceFile, Folder
 from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
 from chat_messages.models import ChatSession, ChatMessage
-from core.models import Product
+from core.models import Product, PasswordResetToken
 
 
 # this is the Alembic Config object, which provides
