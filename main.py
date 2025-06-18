@@ -165,7 +165,7 @@ async def reset_password(
     request: ResetPasswordRequest,
     session: Session = Depends(get_session),
     ):
-    token_record = get_reset_token(token=request.token)
+    token_record = get_reset_token(token=request.token, session=session)
 
     # 1. Re-validate the token
     if not token_record or token_record.is_expired():
