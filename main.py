@@ -109,7 +109,7 @@ class ForgotPasswordRequest(BaseModel):
 
 @app.post("/api/v1/forgot-password", status_code=status.HTTP_200_OK)
 async def request_password_reset(
-    request_data: ForgotPasswordRequest, ,
+    request_data: ForgotPasswordRequest,
     session: Session = Depends(get_session),
     email_service: EmailService = Depends(get_email_service)
     ):
