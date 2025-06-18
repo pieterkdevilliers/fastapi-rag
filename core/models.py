@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel, Field
 from typing import Optional
+from datetime import datetime, timezone
 
 class ProductBase(SQLModel):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -17,5 +18,16 @@ class Product(ProductBase, table=True):
     product_price: float = Field(default=0.0)
     product_plan_cycle: str = Field(default="")
     price_id: Optional[str] = Field(default=None, index=True, nullable=True, unique=True)
+
+
+class PasswordResetTokenBase(SQLModel):
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+class PasswordResetToken(PasswordResetTokenBase, table=True):
+    __tablename__ = "passwordresettoken"
+
+    user_id: int = Field(foreign_key="user.id", index=True, nullable=False)
+    token: str = Field(unique=True,  index=True, nullable=False)
+    expires_at: Optional[datetime] = Field(default=None)
 
 
