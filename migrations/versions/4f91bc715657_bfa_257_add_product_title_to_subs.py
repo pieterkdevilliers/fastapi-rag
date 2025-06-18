@@ -24,10 +24,10 @@ def upgrade() -> None:
     with op.batch_alter_table('product', schema=None) as batch_op:
         batch_op.alter_column('product_description',
                existing_type=sa.VARCHAR(length=255),
-               nullable=False)
+               nullable=True)
         batch_op.alter_column('product_statement_descriptor',
                existing_type=sa.VARCHAR(length=255),
-               nullable=False)
+               nullable=True)
         batch_op.create_index(batch_op.f('ix_product_product_id'), ['product_id'], unique=True)
 
     with op.batch_alter_table('stripesubscription', schema=None) as batch_op:
