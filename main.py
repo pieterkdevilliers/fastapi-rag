@@ -132,11 +132,11 @@ async def request_password_reset(
         try:
             # This is now much cleaner and more descriptive!
             email_service.send_password_reset_email(
-                to_email=user.email,
+                to_email=user.user_email,
                 reset_link=reset_link
             )
         except Exception as e:
-            print(f"ERROR: Could not send password reset email to {user.email}. Error: {e}")
+            print(f"ERROR: Could not send password reset email to {user.user_email}. Error: {e}")
             return {"message": "If an account with that email exists, a password reset link has been sent."}
 
     return {"message": "If an account with that email exists, a password reset link has been sent."}
