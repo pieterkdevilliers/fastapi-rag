@@ -2,6 +2,7 @@ from secrets import token_hex
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
 from accounts.models import Account, User
+from core.models import PasswordResetToken
 from authentication import get_password_hash
 
 
@@ -122,3 +123,71 @@ def get_notification_users(account_unique_id: str, session: Session):
     
     return [user.model_dump() for user in users]
 
+
+def get_user_by_email(email: str, session: Session):
+    """
+    Retrieve user object by email_address
+    """
+    statement = select(User).filter(User.user_email == email)
+    result = session.exec(statement)
+    user = result.first()
+
+    return user
+
+
+def create_password_reset_token(user_id: int, token: str, expires_at: str, session: Session):
+    """
+    Create new User Token in DB
+    """
+    password_reset_token = PasswordResetToken(user_id=user_id, token=token, expires_at=expires_at)
+    session.add(password_reset_token)
+    session.commit()
+    session.refresh(password_reset_token)
+
+    return password_reset_token
+
+
+def get_reset_token(token: str, session: Session):
+    """
+    Retrieve user object by email_address
+    """
+    token_record = select(PasswordResetToken).filter(PasswordResetToken.token == token)
+    result = session.exec(token_record)
+    token_record = result.first()
+
+    return token_record
+
+
+def update_user_password(user_id: int, password: str, session: Session):
+    """
+    Update user password in password reset process
+    """
+    user = session.get(User, user_id)
+    
+    if not user:
+        return {"error": "User not found"}
+    
+    user.user_password = get_password_hash(password)
+        
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    
+    return user
+
+
+def delete_reset_token(token_record: PasswordResetToken,  session: Session):
+    """
+    Delete Account from DB
+    """
+    statement = select(PasswordResetToken).filter(PasswordResetToken.token == token_record.token)
+    result = session.exec(statement)
+    token_record = result.first()
+    
+    if not token_record:
+        return {"error": "Token already expired"}
+    
+    session.delete(token_record)
+    session.commit()
+    
+    return {"response": "success"}

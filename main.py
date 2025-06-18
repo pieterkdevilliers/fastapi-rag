@@ -2,6 +2,7 @@ import os
 import json
 import tempfile
 import stripe
+import secrets
 from typing import Any, Union, Annotated, List, Optional
 from datetime import datetime, timezone
 from secrets import token_hex
@@ -17,14 +18,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlmodel import select, Session, Field
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from file_management.models import SourceFile, Folder
 from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db, \
     fetch_html_content, extract_text_from_html, prepare_for_s3_upload, create_new_folder_in_db, \
     update_folder_in_db, delete_folder_from_db, delete_file_from_s3
 from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
-    create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users
+    create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, get_user_by_email, \
+    create_password_reset_token, get_reset_token, update_user_password, delete_reset_token
 from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
@@ -38,7 +40,7 @@ from stripe_service import process_stripe_product_created_event, process_stripe_
     process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, \
     process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
     process_stripe_subscription_updated_event, process_stripe_subscription_deleted_event
-from core.models import Product
+from core.models import Product, PasswordResetToken
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id
     
 
@@ -100,6 +102,79 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     account_unique_id = user.get('account_unique_id')
     return Token(account_unique_id=account_unique_id, access_token=access_token, token_type="bearer")
 
+
+@app.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def request_password_reset(
+    email: str,
+    session: Session = Depends(get_session),
+    email_service: EmailService = Depends(get_email_service)
+    ):
+    """
+    Serves the Password Reset Step 1"""
+    user = get_user_by_email(email=email, session=session)
+    
+    # IMPORTANT: To prevent user enumeration, always return a success message.
+    if user:
+        # 1. Generate a secure token
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.now + timedelta(hours=1) # Token valid for 1 hour
+
+        # 2. Store the token in the database
+        create_password_reset_token(user_id=user.id, token=token, expires_at=expires_at, session=session)
+
+        # # 3. Send the email
+        # reset_link = f"{FE_BASE_URL}/reset-password?token={token}"
+        # email_service.send_password_reset_email(
+        #     to_email=user.email,
+        #     subject="Your Password Reset Link",
+        #     reset_link=reset_link
+        # )
+
+    return {"message": "If an account with that email exists, a password reset link has been sent."}
+
+
+@app.post("/validate-token", status_code=status.HTTP_200_OK)
+async def validate_reset_token(
+    token,
+    session: Session = Depends(get_session),
+    ):
+    """
+    Serves the Password Reset Step 2"""
+    token_record = get_reset_token(token=token, session=session)
+    if not token_record or token_record.is_expired():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token is invalid or has expired.",
+        )
+    return {"message": "Token is valid."}
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+@app.post("/reset=-password", status_code=status.HTTP_200_OK)
+async def reset_password(
+    request: ResetPasswordRequest,
+    session: Session = Depends(get_session),
+    ):
+    token_record = get_reset_token(token=request.token)
+
+    # 1. Re-validate the token
+    if not token_record or token_record.is_expired():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token is invalid or has expired.",
+        )
+
+    # 2. Get the user and update their password
+    user_id = token_record.user_id
+    update_user_password(user_id=user_id, password=request.new_password, session=session)
+
+    # 3. Invalidate the token by deleting it
+    delete_reset_token(token_record=token_record, session=session)
+
+    return {"message": "Password has been successfully reset."}
 
 ############################################
 #  API Key Management
