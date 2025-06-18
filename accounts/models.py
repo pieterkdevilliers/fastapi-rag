@@ -120,6 +120,7 @@ class StripeSubscription(StripeSubscriptionBase, table=True):
     trial_end: Optional[datetime] = Field(default=None, nullable=True)
     subscription_start: Optional[datetime] = Field(default=None, nullable=True)
     stripe_account_url: Optional[str] = Field(default=None, nullable=True, index=True)
+    related_product_title: Optional[str] = Field(default=None, nullable=True)
 
     def __repr__(self):
         return f"<StripeSubscription(id={self.id}, stripe_subscription_id={self.stripe_subscription_id}, status={self.status})>"
