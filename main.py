@@ -117,7 +117,7 @@ async def request_password_reset(
     if user:
         # 1. Generate a secure token
         token = secrets.token_urlsafe(32)
-        expires_at = datetime.now + timedelta(hours=1) # Token valid for 1 hour
+        expires_at = datetime.now((timezone.utc)) + timedelta(hours=1) # Token valid for 1 hour
 
         # 2. Store the token in the database
         create_password_reset_token(user_id=user.id, token=token, expires_at=expires_at, session=session)
