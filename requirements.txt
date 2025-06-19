@@ -11,7 +11,7 @@ asyncpg==0.29.0
 attrs==24.2.0
 backoff==2.2.1
 bcrypt==4.2.0
-beautifulsoup4==4.13.34
+beautifulsoup4==4.13.4
 boto3==1.35.32
 botocore==1.35.32
 build==1.2.2
