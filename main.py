@@ -456,9 +456,6 @@ async def widget_contact_us(
 # AWS SES Routes
 ############################################
 
-# In your main FastAPI file
-
-# The Pydantic model remains the same
 class SESEmail(BaseModel):
     to_email: str
     subject: str
@@ -476,12 +473,10 @@ async def send_ses_email(payload: SESEmail,
         raise HTTPException(status_code=400, detail="Account unique ID is required")
     
     try:
-
+        html_body = payload.message
         # Automatically generate a text body by stripping HTML tags.
         soup = BeautifulSoup(html_body, "html.parser")
         text_body = soup.get_text(separator='\n', strip=True)
-
-        html_body = payload.message
 
         # Call the updated email service method with both body arguments.
         email_service.send_email(
