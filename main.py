@@ -3,6 +3,7 @@ import json
 import tempfile
 import stripe
 import secrets
+from bs4 import BeautifulSoup
 from typing import Any, Union, Annotated, List, Optional
 from datetime import datetime, timezone
 from secrets import token_hex
@@ -476,9 +477,11 @@ async def send_ses_email(payload: SESEmail,
     
     try:
 
-        text_body = payload.message
+        # Automatically generate a text body by stripping HTML tags.
+        soup = BeautifulSoup(html_body, "html.parser")
+        text_body = soup.get_text(separator='\n', strip=True)
 
-        html_body = payload.message.replace('\n', '<br>')
+        html_body = payload.message
 
         # Call the updated email service method with both body arguments.
         email_service.send_email(
