@@ -57,6 +57,16 @@ def delete_account_from_db(account_unique_id: str, session: Session):
             "account_unique_id": account_unique_id}
 
 
+def get_account_by_account_unique_id(account_unique_id: str, session: Session):
+    """
+    Retrives the Account object based on account_unique_id
+    """
+    statement = select(Account).filter(Account.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    account = result.first()
+
+    return account
+
 def create_new_user_in_db(user_email: str, user_password: str, account_unique_id: str, session: Session, receive_notifications: bool = False):
     """
     Save New User to DB
