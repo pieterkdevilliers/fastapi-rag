@@ -102,8 +102,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 
     account_unique_id = user.get('account_unique_id')
     account_organisation = get_account_by_account_unique_id(account_unique_id, session).account_organisation
-    print('account_organisation: ', account_organisation)
-    return Token(account_unique_id=account_unique_id, access_token=access_token, token_type="bearer")
+    return Token(account_unique_id=account_unique_id, account_organisation=account_organisation, access_token=access_token, token_type="bearer")
 
 
 class ForgotPasswordRequest(BaseModel):
