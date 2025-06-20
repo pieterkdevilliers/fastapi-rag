@@ -82,7 +82,7 @@ async def read_root(token: Annotated[str, Depends(oauth2_scheme)]):
     return {"token": token}
     
 
-@app.post("/token")
+@app.post("/api/v1/token")
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
                                  session: Session = Depends(get_session)) -> Token:
     """
