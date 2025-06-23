@@ -4,7 +4,7 @@ import tempfile
 from botocore.exceptions import ClientError
 import logging
 import convert_to_pdf
-from sqlmodel import Session
+from sqlmodel import Session, func
 from sqlmodel.sql.expression import select
 from file_management.models import SourceFile, Folder
 from secrets import token_hex
@@ -273,15 +273,17 @@ def delete_folder_from_db(folder_id: str, session: Session):
             "folder_id": folder_id}
 
 
-def get_docs_count_for_user_account(account_unique_id: str, session: Session):
+def get_docs_count_for_user_account(account_unique_id: str, session: Session) -> int:
     """
-    Retrieve the count of total docs in account
-    """
-    statement = select(SourceFile).filter(SourceFile.account_unique_id == account_unique_id)
-    result = session.exec(statement)
-    docs_count = len(result)
+    Retrieve the count of total docs in an account.
 
-    if not result:
-        return {"error": "Sourcefiles not found"}
-    
+    Returns the number of documents as an integer. Returns 0 if none are found.
+    """
+    statement = (
+        select(func.count())
+        .select_from(SourceFile)
+        .where(SourceFile.account_unique_id == account_unique_id)
+    )
+    # The result of a count query is always a single integer.
+    docs_count = session.exec(statement).one()
     return docs_count
