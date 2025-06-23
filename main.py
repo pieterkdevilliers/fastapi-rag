@@ -1326,8 +1326,11 @@ async def get_stripe_subscriptions(account_unique_id: str,
         return {"error": "No subscriptions found",
                 "subscriptions": []}
     
+    active_subscription = check_active_subscription_status(account_unique_id, session)
+    
     return {"response": "success",
-            "subscriptions": subscriptions}
+            "subscriptions": subscriptions,
+            "active_subscription": active_subscription}
 
 
 @app.get("/api/v1/stripe-subscriptions-id/{account_unique_id}/{subscription_id}")
