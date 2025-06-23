@@ -271,3 +271,17 @@ def delete_folder_from_db(folder_id: str, session: Session):
     
     return {"response": "success",
             "folder_id": folder_id}
+
+
+def get_docs_count_for_user_account(account_unique_id: str, session: Session):
+    """
+    Retrieve the count of total docs in account
+    """
+    statement = select(SourceFile).filter(SourceFile.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    docs_count = len(result)
+
+    if not result:
+        return {"error": "Sourcefiles not found"}
+    
+    return docs_count

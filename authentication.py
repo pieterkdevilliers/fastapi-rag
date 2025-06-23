@@ -26,6 +26,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 class Token(BaseModel):
     account_unique_id: str
     account_organisation: str
+    docs_count: int
     access_token: str
     token_type: str
 
