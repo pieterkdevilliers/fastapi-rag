@@ -338,8 +338,21 @@ async def process_widget_query(
     if active_subscription:
         response = query_source_data.query_source_data(query, account_unique_id, session)
     else:
+
+        recipients = get_notification_users(auth_info["account_unique_id"], session)
+        if not recipients:
+            raise HTTPException(status_code=404, detail="No notification users found for this account")
+    
         email_service = get_email_service()
-        email_service.send_unsubscribed_widget_email('pieter@hey.com', 'www.yourdocsai.app/login?redirect=/accounts')
+
+        try:
+            for recipient in recipients:
+                email_service.send_unsubscribed_widget_email(recipient['user_email'], 'www.yourdocsai.app/login?redirect=/accounts')
+
+        except Exception as e:
+            print(f"ERROR sending email: {e}") 
+            raise HTTPException(status_code=500, detail=str(e))
+
         response = {
                 "response": {
                     "response_text": "Unable to process your query at this time, please contact us via email."
