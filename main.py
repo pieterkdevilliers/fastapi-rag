@@ -23,7 +23,7 @@ from pydantic import BaseModel, EmailStr
 from file_management.models import SourceFile, Folder
 from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db, \
     fetch_html_content, extract_text_from_html, prepare_for_s3_upload, create_new_folder_in_db, \
-    update_folder_in_db, delete_folder_from_db, delete_file_from_s3
+    update_folder_in_db, delete_folder_from_db, delete_file_from_s3, get_docs_count_for_user_account
 from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, get_user_by_email, \
@@ -102,7 +102,8 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 
     account_unique_id = user.get('account_unique_id')
     organisation = get_account_by_account_unique_id(account_unique_id, session).account_organisation
-    return Token(account_unique_id=account_unique_id, account_organisation=organisation, access_token=access_token, token_type="bearer")
+    docs_count = get_docs_count_for_user_account(account_unique_id, session)
+    return Token(account_unique_id=account_unique_id, account_organisation=organisation, docs_count=docs_count, access_token=access_token, token_type="bearer")
 
 
 class ForgotPasswordRequest(BaseModel):
