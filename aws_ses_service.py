@@ -81,3 +81,49 @@ class EmailService:
                 html_body=html_body,
                 text_body=text_body
             )
+    
+
+    def send_unsubscribed_widget_email(self, to_email: str, login_link: str):
+        """
+        Constructs and sends a notification email for active widgets queries without active subscriptions
+        """
+        subject = "Your YourDocsAI Widget is not processing queries"
+        
+        html_body = f"""
+        <html>
+        <body>
+        <h1>Please update your subscription</h1>
+        <p>You have an active YourDocsAI widget on your website.</p>
+        <p>We were unable to process the latest query from a visitor, as your account does not have an active subscription.</p>
+        <a href="{login_link}">Please log into your account and update your subscription</a>
+        <p>If you have any questions, please contact us by replying to this email.</p>
+        <p>Regards</p>
+        <p>Pieter K de Villiers</p>
+        <p>Creater of YourDocsAI</p>
+        <a target="_blank" href="">
+            <img src="https://d31env5c5sjhq3.cloudfront.net/static/pkdv-profile.jpg" width="100" alt="" class="adapt-img">
+        </a>
+        </body>
+        </html>
+        """
+        
+        text_body = f"""
+        Your YourDocsAI Widget is not processing queries
+        
+        Please update your subscription. You have an active YourDocsAI widget on your website.
+        We were unable to process the latest query from a visitor, as your account does not have an active subscription.
+        Please log into your account and update your subscription {login_link}
+        
+        If you have any questions, please contact us by replying to this email.
+        Regards
+        Pieter K de Villiers
+        Creater of YourDocsAI
+        """
+        
+        # Call the generic sender method
+        return self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body
+        )
