@@ -27,7 +27,8 @@ from file_management.utils import save_file_to_db, update_file_in_db, delete_fil
 from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, get_user_by_email, \
-    create_password_reset_token, get_reset_token, update_user_password, delete_reset_token, get_account_by_account_unique_id
+    create_password_reset_token, get_reset_token, update_user_password, delete_reset_token, get_account_by_account_unique_id, \
+    check_active_subscription_status
 from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
@@ -103,7 +104,8 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     account_unique_id = user.get('account_unique_id')
     organisation = get_account_by_account_unique_id(account_unique_id, session).account_organisation
     docs_count = get_docs_count_for_user_account(account_unique_id, session)
-    return Token(account_unique_id=account_unique_id, account_organisation=organisation, docs_count=docs_count, access_token=access_token, token_type="bearer")
+    active_subscription = check_active_subscription_status(account_unique_id, session)
+    return Token(account_unique_id=account_unique_id, account_organisation=organisation, docs_count=docs_count, active_subscription=active_subscription, access_token=access_token, token_type="bearer")
 
 
 class ForgotPasswordRequest(BaseModel):

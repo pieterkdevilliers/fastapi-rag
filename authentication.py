@@ -27,6 +27,7 @@ class Token(BaseModel):
     account_unique_id: str
     account_organisation: str
     docs_count: int
+    active_subscription: bool
     access_token: str
     token_type: str
 
