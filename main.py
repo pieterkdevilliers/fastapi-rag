@@ -193,6 +193,21 @@ async def reset_password(
 
     return {"message": "Password has been successfully reset."}
 
+
+############################################
+#  State Management
+############################################
+
+
+@app.get("/api/v1/get-docs-count/{account_unique_id}")
+async def get_docs_count(account_unique_id: str,
+                          current_user: Annotated[User, Depends(get_current_active_user)],
+                          session: Session = Depends(get_session)) -> dict[str, Any]:
+    
+    docs_count = get_docs_count_for_user_account(account_unique_id, session)
+
+    return {"docs_count": docs_count}
+
 ############################################
 #  API Key Management
 ############################################
@@ -705,8 +720,10 @@ async def upload_files(account_unique_id: str,
                         os.rmdir(os.path.join(root, name))
                 os.rmdir(temp_output_dir)
 
+    new_docs_count = get_docs_count_for_user_account(account_unique_id, session)
 
-    return {"response": "success", "uploaded_files": uploaded_files_info}
+
+    return {"response": "success", "uploaded_files": uploaded_files_info, "new_docs_count": new_docs_count}
 
 
 @app.put("/api/v1/files/{account_unique_id}/{file_id}", response_model=Union[SourceFile, dict])
@@ -745,10 +762,12 @@ async def delete_file(account_unique_id: str, file_id: int,
     s3_response = await delete_file_from_s3(account_unique_id, file, session)
     if s3_response == True:
         response = delete_file_from_db(account_unique_id, file_id, session)
+        new_docs_count = get_docs_count_for_user_account(account_unique_id, session)
         return {'response': 'success',
-                'file_id': response['file_id']}
+                'file_id': response['file_id'], 'new_docs_count': new_docs_count}
     else:
         raise HTTPException(status_code=404, detail={"error": "File could not be deleted", "file_id": file_id})
+    
 
 @app.api_route("/api/v1/files/view/{account_unique_id}/{file_identifier}",
                     response_class=StreamingResponse,
