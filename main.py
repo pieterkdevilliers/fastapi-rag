@@ -334,8 +334,11 @@ async def process_widget_query(
 
     if not query:
         return {"error": "No query provided"}
-    
-    response = query_source_data.query_source_data(query, account_unique_id, session)
+    active_subscription = check_active_subscription_status(account_unique_id, session)
+    if active_subscription:
+        response = query_source_data.query_source_data(query, account_unique_id, session)
+    else:
+        response = {"response_text": "Unable to process your query at this time, please contact us via email."}
     return response
 
 
