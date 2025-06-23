@@ -1,7 +1,7 @@
 from secrets import token_hex
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
-from accounts.models import Account, User
+from accounts.models import Account, User, StripeSubscription
 from core.models import PasswordResetToken
 from authentication import get_password_hash
 
@@ -201,3 +201,17 @@ def delete_reset_token(token_record: PasswordResetToken,  session: Session):
     session.commit()
     
     return {"response": "success"}
+
+
+def check_active_subscription_status(account_unique_id: str, session: Session):
+    """
+    Check an account for an active subscription
+    """
+    statement = select(StripeSubscription).filter(StripeSubscription.account_unique_id == account_unique_id, StripeSubscription.status == 'active')
+    result = session.exec(statement)
+    active_sub = result.first()
+
+    if not active_sub:
+        return False
+    
+    return True
