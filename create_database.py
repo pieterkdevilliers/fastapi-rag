@@ -111,7 +111,7 @@ async def generate_data_store(account_unique_id: str, replace: bool, session: As
         print(f"Chroma path: {chroma_path}")
 
     # Fetch the document URLs from the database instead of reading from local file_path
-    documents = await load_documents_from_s3(account_unique_id, session)
+    documents = await load_documents_from_s3(account_unique_id, replace, session)
 
     # Split the text into chunks
     chunks = await split_text(documents)
@@ -312,16 +312,23 @@ async def create_new_chroma_db(chroma_path: str, embeddings):
         return None
 
 
-async def load_documents_from_s3(account_unique_id: str, session: AsyncSession):
+async def load_documents_from_s3(account_unique_id: str, replace: bool, session: AsyncSession):
     """
     Load documents from S3 based on a database query.
     """
-    # Query database for files to process
-    statement = select(SourceFile).filter(
-        SourceFile.account_unique_id == account_unique_id,
-        SourceFile.included_in_source_data == True,
-        SourceFile.already_processed_to_source_data == False
-    )
+        # Query database for files to process
+    if replace:
+        statement = select(SourceFile).filter(
+            SourceFile.account_unique_id == account_unique_id,
+            SourceFile.included_in_source_data == True,
+        )
+    else:
+        statement = select(SourceFile).filter(
+            SourceFile.account_unique_id == account_unique_id,
+            SourceFile.included_in_source_data == True,
+            SourceFile.already_processed_to_source_data == False
+        )
+        
     result = await session.execute(statement)
     documents_from_db = result.scalars().all()
 
