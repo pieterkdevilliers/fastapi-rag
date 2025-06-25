@@ -1,0 +1,10 @@
+boto3
+openai
+chromadb-client
+python-docx
+PyPDF2
+pypandoc
+markdown
+langchain
+langchain-openai
+tiktoken
