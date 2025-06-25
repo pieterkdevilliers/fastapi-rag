@@ -186,7 +186,7 @@ async def load_documents_from_s3(account_unique_id: str, replace: bool, session:
         )
         
     result = await session.exec(statement)
-    documents_from_db = result.scalars().all()
+    documents_from_db = result.all()
 
     return documents_from_db
             
