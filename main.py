@@ -54,6 +54,7 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 # The name of your S3 bucket
 BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+lambda_client = boto3.client("lambda", region_name="us-east-1")
 
 # Front-end Env Settings
 FE_BASE_URL = os.getenv('FE_BASE_URL', 'http://localhost:3000')  # Default to localhost if not set
@@ -69,44 +70,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
 )
-
-
-
-# In your FastAPI/Heroku app
-
-import json
-
-# Your AWS credentials should be set as Heroku Config Vars
-lambda_client = boto3.client("lambda", region_name="us-east-1")
-
-@app.post("/test-lambda-trigger")
-async def test_lambda_trigger(s3_key: str):
-    """
-    A simple endpoint to test invoking our Lambda.
-    Example `s3_key`: "user123/test-document.pdf"
-    """
-    print(f"Attempting to trigger Lambda for file: {s3_key}")
-
-    # The payload our Lambda expects
-    lambda_payload = {
-        "s3_bucket": BUCKET_NAME,
-        "s3_key": s3_key,
-    }
-
-    try:
-        lambda_client.invoke(
-            FunctionName="simple-rag-file-checker",
-            InvocationType="Event",  # Fire-and-forget
-            Payload=json.dumps(lambda_payload),
-        )
-        message = f"Successfully invoked Lambda for: {s3_key}. Check CloudWatch Logs for details."
-        print(message)
-        return {"status": "success", "message": message}
-
-    except Exception as e:
-        error_message = f"ERROR: Failed to invoke Lambda: {e}"
-        print(error_message)
-        return {"status": "error", "message": error_message}
 
 
 ############################################
@@ -421,12 +384,14 @@ async def generate_chroma_db_datastore(account_unique_id: str,
             lambda_payload = {
                 "s3_bucket": BUCKET_NAME,
                 "s3_key": s3_key,
+                "account_unique_id": account_unique_id,
             }
 
             try:
                 lambda_client.invoke(
-                    FunctionName="simple-rag-file-checker",
-                    InvocationType="Event",  # Fire-and-forget
+                    # CHANGE THIS to your new function name
+                    FunctionName="RAG-Document-Processor",
+                    InvocationType="Event",
                     Payload=json.dumps(lambda_payload),
                 )
                 message = f"Successfully invoked Lambda for: {s3_key}. Check CloudWatch Logs for details."
