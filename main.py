@@ -43,7 +43,7 @@ from stripe_service import process_stripe_product_created_event, process_stripe_
     process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
     process_stripe_subscription_updated_event, process_stripe_subscription_deleted_event
 from core.models import Product, PasswordResetToken
-from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id
+from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
     
 
 # Initialize the S3 client
