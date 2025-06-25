@@ -29,4 +29,4 @@ COPY document_processing_lambda.py ${LAMBDA_TASK_ROOT}
 
 # Set the command to the Lambda handler
 # Format: <filename>.<handler_function_name>
-CMD [ "lambda_function.handler" ]
+CMD [ "document_processing_lambda.handler" ]
