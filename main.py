@@ -398,7 +398,7 @@ async def generate_chroma_db_datastore(account_unique_id: str,
                 print(message)
                  # Mark file as processed in the database
                 db_file.already_processed_to_source_data = True
-                await session.commit()
+                session.commit()
 
             except Exception as e:
                 error_message = f"ERROR: Failed to invoke Lambda: {e}"
