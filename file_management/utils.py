@@ -185,7 +185,7 @@ async def load_documents_from_s3(account_unique_id: str, replace: bool, session:
             SourceFile.already_processed_to_source_data == False
         )
         
-    result = await session.exec(statement)
+    result = session.exec(statement)
     documents_from_db = result.all()
 
     return documents_from_db
