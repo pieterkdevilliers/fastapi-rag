@@ -356,7 +356,8 @@ async def load_documents_from_s3(account_unique_id: str, replace: bool, session:
             )
             message = f"Successfully invoked Lambda for: {s3_key}. Check CloudWatch Logs for details."
             print(message)
-            return {"status": "success", "message": message}
+            pass
+            # return {"status": "success", "message": message}
 
         except Exception as e:
             error_message = f"ERROR: Failed to invoke Lambda: {e}"
