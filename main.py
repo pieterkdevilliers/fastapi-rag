@@ -396,15 +396,17 @@ async def generate_chroma_db_datastore(account_unique_id: str,
                 )
                 message = f"Successfully invoked Lambda for: {s3_key}. Check CloudWatch Logs for details."
                 print(message)
-                pass
-                # return {"status": "success", "message": message}
+                 # Mark file as processed in the database
+                db_file.already_processed_to_source_data = True
+                await session.commit()
 
             except Exception as e:
                 error_message = f"ERROR: Failed to invoke Lambda: {e}"
                 print(error_message)
                 return {"status": "error", "message": error_message}
             
-        response = {"message": "test completed"}
+        response = {"message": "Document processing passed to Lambda"}
+
         # response = await generate_chroma_db(account_unique_id, replace)
         # print(f"Chroma DB generation successful: {response}")
     except Exception as e:
