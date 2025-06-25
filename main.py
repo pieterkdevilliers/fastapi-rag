@@ -375,6 +375,7 @@ async def generate_chroma_db_datastore(account_unique_id: str,
     
     try:
         documents_from_s3 = await load_documents_from_s3(account_unique_id=account_unique_id, replace=replace, session=session)
+        print(f"Loaded {len(documents_from_s3)} documents from S3 based on DB query.")
         for db_file in documents_from_s3:
             # Construct S3 key (path in S3) using account_unique_id and file name
             s3_key = f"{account_unique_id}/{db_file.file_name}"
