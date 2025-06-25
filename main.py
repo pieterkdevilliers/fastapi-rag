@@ -23,7 +23,7 @@ from pydantic import BaseModel, EmailStr
 from file_management.models import SourceFile, Folder
 from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db, \
     fetch_html_content, extract_text_from_html, prepare_for_s3_upload, create_new_folder_in_db, \
-    update_folder_in_db, delete_folder_from_db, delete_file_from_s3, get_docs_count_for_user_account
+    update_folder_in_db, delete_folder_from_db, delete_file_from_s3, get_docs_count_for_user_account, load_documents_from_s3
 from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, get_user_by_email, \
@@ -403,15 +403,45 @@ async def process_widget_query(
 @app.get("/api/v1/generate-chroma-db/{account_unique_id}")
 async def generate_chroma_db_datastore(account_unique_id: str,
                                        current_user: Annotated[User, Depends(get_current_active_user)],
-                                       replace: bool = False) -> dict[str, Any]:
+                                       replace: bool = False,
+                                       session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Generate Chroma DB
     """
     print(f"Received request to generate Chroma DB for account {account_unique_id} with replace={replace}")
     
     try:
-        response = await generate_chroma_db(account_unique_id, replace)
-        print(f"Chroma DB generation successful: {response}")
+        documents_from_s3 = await load_documents_from_s3(account_unique_id=account_unique_id, replace=replace, session=session)
+        for db_file in documents_from_s3:
+            # Construct S3 key (path in S3) using account_unique_id and file name
+            s3_key = f"{account_unique_id}/{db_file.file_name}"
+            print(f"Attempting to trigger Lambda for file: {s3_key}")
+
+            # The payload our Lambda expects
+            lambda_payload = {
+                "s3_bucket": BUCKET_NAME,
+                "s3_key": s3_key,
+            }
+
+            try:
+                lambda_client.invoke(
+                    FunctionName="simple-rag-file-checker",
+                    InvocationType="Event",  # Fire-and-forget
+                    Payload=json.dumps(lambda_payload),
+                )
+                message = f"Successfully invoked Lambda for: {s3_key}. Check CloudWatch Logs for details."
+                print(message)
+                pass
+                # return {"status": "success", "message": message}
+
+            except Exception as e:
+                error_message = f"ERROR: Failed to invoke Lambda: {e}"
+                print(error_message)
+                return {"status": "error", "message": error_message}
+            
+        response = {"message": "test completed"}
+        # response = await generate_chroma_db(account_unique_id, replace)
+        # print(f"Chroma DB generation successful: {response}")
     except Exception as e:
         print(f"Error generating Chroma DB: {e}")
         return {"error": str(e)}

@@ -340,59 +340,35 @@ async def load_documents_from_s3(account_unique_id: str, replace: bool, session:
         # Construct S3 key (path in S3) using account_unique_id and file name
         s3_key = f"{account_unique_id}/{db_file.file_name}"
 
-        print(f"Attempting to trigger Lambda for file: {s3_key}")
-
-        # The payload our Lambda expects
-        lambda_payload = {
-            "s3_bucket": BUCKET_NAME,
-            "s3_key": s3_key,
-        }
-
         try:
-            lambda_client.invoke(
-                FunctionName="simple-rag-file-checker",
-                InvocationType="Event",  # Fire-and-forget
-                Payload=json.dumps(lambda_payload),
-            )
-            message = f"Successfully invoked Lambda for: {s3_key}. Check CloudWatch Logs for details."
-            print(message)
-            pass
-            # return {"status": "success", "message": message}
-
-        except Exception as e:
-            error_message = f"ERROR: Failed to invoke Lambda: {e}"
-            print(error_message)
-            return {"status": "error", "message": error_message}
-
-    #     try:
             
-    #         s3_object = s3.get_object(Bucket=BUCKET_NAME, Key=s3_key)
+            s3_object = s3.get_object(Bucket=BUCKET_NAME, Key=s3_key)
 
-    #         file_content = s3_object['Body'].read()
+            file_content = s3_object['Body'].read()
 
-    #         # Process file content based on its extension
-    #         file_extension = os.path.splitext(db_file.file_name)[1].lower()
-    #         content = await read_file_from_s3(file_content, file_extension)
+            # Process file content based on its extension
+            file_extension = os.path.splitext(db_file.file_name)[1].lower()
+            content = await read_file_from_s3(file_content, file_extension)
 
-    #         # Append the document with metadata
-    #         documents.append(Document(
-    #             page_content=content, 
-    #             metadata={"file_name": db_file.file_name, "source": s3_key}
-    #         ))
+            # Append the document with metadata
+            documents.append(Document(
+                page_content=content, 
+                metadata={"file_name": db_file.file_name, "source": s3_key}
+            ))
 
-    #         # Mark file as processed in the database
-    #         db_file.already_processed_to_source_data = True
-    #         await session.commit()
+            # Mark file as processed in the database
+            db_file.already_processed_to_source_data = True
+            await session.commit()
 
-    #     except ClientError as e:
-    #         print(f"Failed to fetch file {db_file.file_name} from S3: {e}")
-    #         continue
-    #     except Exception as e:
-    #         print(f"Failed to process file {db_file.file_name}: {e}")
-    #         continue
+        except ClientError as e:
+            print(f"Failed to fetch file {db_file.file_name} from S3: {e}")
+            continue
+        except Exception as e:
+            print(f"Failed to process file {db_file.file_name}: {e}")
+            continue
 
-    # print(f"Loaded {len(documents)} documents from S3 based on DB query.")
-    # return documents
+    print(f"Loaded {len(documents)} documents from S3 based on DB query.")
+    return documents
 
 
 async def read_file_from_s3(file_content: bytes, file_extension: str) -> str:

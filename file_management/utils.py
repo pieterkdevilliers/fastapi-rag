@@ -166,6 +166,29 @@ async def prepare_for_s3_upload(extracted_text: str, file_name: str, account_uni
             print(f"Failed to rollback S3 upload for {s3_key}: {s3_del_err}")
             
     return {"message": "File successfully converted to PDF and uploaded to S3", "file_name_on_s3": unique_file_name, "s3_key": s3_key}
+
+
+async def load_documents_from_s3(account_unique_id: str, replace: bool, session: Session):
+    """
+    Load documents from S3 based on a database query.
+    """
+        # Query database for files to process
+    if replace:
+        statement = select(SourceFile).filter(
+            SourceFile.account_unique_id == account_unique_id,
+            SourceFile.included_in_source_data == True,
+        )
+    else:
+        statement = select(SourceFile).filter(
+            SourceFile.account_unique_id == account_unique_id,
+            SourceFile.included_in_source_data == True,
+            SourceFile.already_processed_to_source_data == False
+        )
+        
+    result = await session.exec(statement)
+    documents_from_db = result.scalars().all()
+
+    return documents_from_db
             
 
 
