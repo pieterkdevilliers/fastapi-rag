@@ -29,7 +29,7 @@ COPY requirements.txt ./
 RUN python3.9 -m pip install -r requirements.txt -t .
 
 # Copy your function code
-COPY lambda_function.py ./
+COPY file_upload_processor_lambda.py ./
 COPY convert_to_pdf.py ./
 
 # Set the command to your handler
