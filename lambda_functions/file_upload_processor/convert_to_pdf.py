@@ -1,6 +1,7 @@
 import os
 import subprocess
 import tempfile
+import shutil
 from weasyprint import HTML, CSS
 from markdown_it import MarkdownIt
 
@@ -66,6 +67,60 @@ def convert_html_to_pdf_weasyprint(html_input: str, output_pdf_path: str, is_fil
         error_message = f"WeasyPrint HTML to PDF conversion failed for input. Error: {str(e)}"
         print(error_message) # Log for debugging
         raise Exception(error_message) # Re-raise to be caught by the calling function
+
+
+def convert_doc_to_docx_libreoffice(input_doc_path: str, output_dir: str) -> str:
+    """
+    Converts a .doc file to a .docx file using the definitive "HOME=/tmp" strategy
+    and trusting the existence of the output file over the process exit code, which
+    can be non-zero even on success due to benign warnings (e.g., missing Java).
+    """
+    temp_env = os.environ.copy()
+    temp_env['HOME'] = '/tmp'
+
+    cmd = [
+        "libreoffice",
+        "--headless",
+        "--invisible",
+        "--nologo",
+        "--norestore",
+        "--convert-to", "docx",
+        "--outdir", output_dir,
+        input_doc_path
+    ]
+
+    # Run the conversion process
+    process = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        env=temp_env
+    )
+
+    # Calculate the expected output path
+    base_name = os.path.splitext(os.path.basename(input_doc_path))[0]
+    output_docx_path = os.path.join(output_dir, f"{base_name}.docx")
+
+    # --- THIS IS THE FINAL, CRITICAL LOGIC ---
+    # The primary proof of success is the existence of the output file.
+    if not os.path.exists(output_docx_path):
+        # If the file was NOT created, then it was a true failure. Raise the error.
+        error_message = (
+            f"LibreOffice conversion failed for {input_doc_path}. "
+            f"Output file not found. Exit Code: {process.returncode}. "
+            f"Stderr: {process.stderr}"
+        )
+        raise Exception(error_message)
+
+    # If the file WAS created, we can consider it a success.
+    # We can log any warnings from stderr for debugging, but we don't treat it as an error.
+    if process.returncode != 0:
+        print(f"INFO: LibreOffice conversion for {input_doc_path} succeeded, "
+              f"but exited with a non-zero status code (likely due to warnings). "
+              f"Stderr: {process.stderr}")
+
+    return output_docx_path
 
 
 def convert_text_to_pdf(text_content: str):
