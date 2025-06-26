@@ -666,7 +666,7 @@ async def upload_files(
             session.add(pending_db_file)
             session.commit()
 
-            new_doc_count = current_user.document_count + len(processing_jobs)
+            new_docs_count = get_docs_count_for_user_account(account_unique_id, session)
 
             # 5. Invoke the Lambda function asynchronously
             lambda_client.invoke(
@@ -690,7 +690,7 @@ async def upload_files(
         "response": "success",
         "message": f"{len(processing_jobs)} file(s) accepted for processing.",
         "uploaded_files": processing_jobs,
-        "new_docs_count": new_doc_count
+        "new_docs_count": new_docs_count
     }
 
 
