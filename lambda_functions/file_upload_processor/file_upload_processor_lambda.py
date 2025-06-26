@@ -30,36 +30,50 @@ def lambda_handler(event, context):
     download_path = f'/tmp/{original_filename}'
     temp_output_dir = None # To hold the temp directory path for cleanup
 
+
     try:
-        # 2. Download the original file from the staging bucket to /tmp
+        # ... (download logic is the same)
         s3_client.download_file(staging_bucket, staging_s3_key, download_path)
 
-        # 3. --- Start of ACTUAL Conversion Logic ---
         original_file_ext = original_filename.split('.')[-1].lower()
         pdf_content_bytes = None
 
-        # Read the downloaded file content into memory
         with open(download_path, 'rb') as f:
             original_content = f.read()
 
         if original_file_ext == 'pdf':
-            # If the file is already a PDF, just use its content directly
             pdf_content_bytes = original_content
         
         else:
-            # For non-PDFs, we need a temporary directory for conversion artifacts
             temp_output_dir = tempfile.mkdtemp(dir="/tmp")
+            
+            # --- NEW, CORRECTED LOGIC ---
+            
+            pandoc_input_path = download_path  # Default to the original downloaded file
+            pandoc_input_format = original_file_ext
 
-            if original_file_ext in ['doc', 'docx']:
-                # 1. Convert DOCX/DOC to HTML using Pandoc
+            # STEP 1: If it's a .doc, pre-convert it to .docx with LibreOffice
+            if original_file_ext == 'doc':
+                print(f"Detected .doc file. Pre-converting to .docx with LibreOffice...")
+                temp_docx_path = convert_to_pdf.convert_doc_to_docx_libreoffice(
+                    input_doc_path=download_path,
+                    output_dir=temp_output_dir
+                )
+                # The input for Pandoc is now the NEW .docx file
+                pandoc_input_path = temp_docx_path
+                pandoc_input_format = 'docx' # We are feeding a docx to pandoc
+
+            # STEP 2: Main conversion path (now handles .docx from original upload OR from pre-conversion)
+            if pandoc_input_format == 'docx':
+                print(f"Converting {pandoc_input_path} to HTML with Pandoc...")
                 temp_html_file_path = convert_to_pdf.convert_to_html_pandoc(
-                    input_path=download_path, # Use the downloaded file path directly
+                    input_path=pandoc_input_path,
                     output_dir=temp_output_dir,
-                    input_format=original_file_ext
+                    input_format='docx' # Always docx at this stage
                 )
                 
-                # 2. Convert the intermediate HTML to PDF using WeasyPrint
-                final_temp_pdf_path = os.path.join(temp_output_dir, "final_converted_document.pdf")
+                print(f"Converting HTML to PDF with WeasyPrint...")
+                final_temp_pdf_path = os.path.join(temp_output_dir, "final.pdf")
                 convert_to_pdf.convert_html_to_pdf_weasyprint(
                     html_input=temp_html_file_path,
                     output_pdf_path=final_temp_pdf_path,
@@ -70,12 +84,12 @@ def lambda_handler(event, context):
                     pdf_content_bytes = f_pdf.read()
 
             elif original_file_ext == 'txt':
-                # Decode the text content and convert to PDF
+                # ... (this logic remains the same)
                 decoded_content = original_content.decode('utf-8', errors='replace')
                 pdf_content_bytes = convert_to_pdf.convert_text_to_pdf(decoded_content)
 
             elif original_file_ext == 'md':
-                # Convert Markdown to PDF
+                # ... (this logic remains the same)
                 converted_pdf_path = os.path.join(temp_output_dir, "converted.pdf")
                 decoded_content = original_content.decode('utf-8', errors='replace')
                 convert_to_pdf.convert_markdown_to_pdf(decoded_content, converted_pdf_path)
@@ -83,7 +97,6 @@ def lambda_handler(event, context):
                     pdf_content_bytes = f_pdf.read()
             
             else:
-                # If the format is not supported, raise an error to trigger the FAILED callback
                 raise ValueError(f"File type '.{original_file_ext}' is not supported for PDF conversion.")
 
         # --- End of Conversion Logic ---
