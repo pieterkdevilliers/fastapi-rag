@@ -666,6 +666,8 @@ async def upload_files(
             session.add(pending_db_file)
             session.commit()
 
+            new_doc_count = current_user.document_count + len(processing_jobs)
+
             # 5. Invoke the Lambda function asynchronously
             lambda_client.invoke(
                 FunctionName="Rag-File-Upload-Processor",
@@ -687,7 +689,8 @@ async def upload_files(
     return {
         "response": "success",
         "message": f"{len(processing_jobs)} file(s) accepted for processing.",
-        "jobs": processing_jobs
+        "uploaded_files": processing_jobs,
+        "new_docs_count": new_doc_count
     }
 
 
