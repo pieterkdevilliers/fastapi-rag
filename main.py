@@ -720,7 +720,6 @@ async def file_processing_callback(
     if payload.status == "COMPLETED":
         db_file.file_name = payload.final_unique_filename
         db_file.file_path = payload.final_file_url
-        db_file.already_processed_to_source_data = True # Set your boolean flag on success
     else: # FAILED
         db_file.processing_error = payload.error_message
         # Optional: update file_name to reflect the error
