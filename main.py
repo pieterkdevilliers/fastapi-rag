@@ -668,7 +668,7 @@ async def upload_files(
 
             # 5. Invoke the Lambda function asynchronously
             lambda_client.invoke(
-                FunctionName="RAG-File-Upload_processor",
+                FunctionName="RAG-File-Upload-Processor",
                 InvocationType='Event',
                 Payload=json.dumps(lambda_payload)
             )
