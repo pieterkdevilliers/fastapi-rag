@@ -3,6 +3,7 @@ import json
 import tempfile
 import stripe
 import secrets
+import chromadb
 from bs4 import BeautifulSoup
 from typing import Any, Union, Annotated, List, Optional
 from datetime import datetime, timezone
@@ -59,6 +60,9 @@ lambda_client = boto3.client("lambda", region_name="us-east-1")
 # Front-end Env Settings
 FE_BASE_URL = os.getenv('FE_BASE_URL', 'http://localhost:3000')  # Default to localhost if not set
 
+CHROMA_SERVER_AUTHN_CREDENTIALS = os.environ['CHROMA_SERVER_AUTHN_CREDENTIALS']
+chroma_headers = {'X-Chroma-Token': CHROMA_SERVER_AUTHN_CREDENTIALS}
+CHROMA_ENDPOINT = os.environ['CHROMA_ENDPOINT']
 
 app = FastAPI()
 
@@ -423,14 +427,36 @@ async def clear_chroma_db_datastore(account_unique_id: str, current_user: Annota
     Clear Chroma DB
     """
     print(f"Received request to clear Chroma DB for account {account_unique_id}")
+    print(f"Connecting to ChromaDB at {CHROMA_ENDPOINT}...")
+    chroma_client = chromadb.HttpClient(
+        host=CHROMA_ENDPOINT,
+        headers=chroma_headers
+    )
+
+    print(f"Successfully connected to ChromaDB.")
+    collection_name = f"collection-{account_unique_id}"
     
-    chroma_path = f"./chroma/{account_unique_id}"
-    if os.path.exists(chroma_path):
-        shutil.rmtree(chroma_path)
-        return {"response": "success"}
-    
-    else:
-        return {"error": "Chroma DB not found"}
+    try:
+        # This is the correct way to delete a collection from the ChromaDB server.
+        chroma_client.delete_collection(name=collection_name)
+        print(f"Successfully deleted collection: {collection_name}")
+        return {"response": f"success, collection '{collection_name}' deleted"}
+
+    except ValueError as e:
+        # The chromadb client raises a ValueError if the collection doesn't exist.
+        # This is not necessarily an error in our endpoint's logic.
+        print(f"Attempted to delete a non-existent collection: {collection_name}. Error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Collection '{collection_name}' not found for this account."
+        )
+    except Exception as e:
+        # Catch other potential errors (e.g., network issues connecting to Chroma)
+        print(f"An unexpected error occurred: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while trying to clear the database."
+        )
     
 
 class WidgetEmailPayload(BaseModel):
