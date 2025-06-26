@@ -45,7 +45,7 @@ from stripe_service import process_stripe_product_created_event, process_stripe_
     process_stripe_subscription_updated_event, process_stripe_subscription_deleted_event
 from core.models import Product, PasswordResetToken
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
-from chroma_db_api import clear_chroma_db_datastore
+from chroma_db_api import clear_chroma_db_datastore_for_replace
     
 
 # Initialize the S3 client
@@ -384,7 +384,7 @@ async def generate_chroma_db_datastore(account_unique_id: str,
         if replace:
             try:
                 print("Clearing ChromaDB before replacing")
-                clear_chroma_db_datastore(account_unique_id=account_unique_id)
+                clear_chroma_db_datastore_for_replace(account_unique_id=account_unique_id)
             except Exception as e:
                 error_message = f"ERROR: Failed to invoke Lambda: {e}"
                 print(error_message)
