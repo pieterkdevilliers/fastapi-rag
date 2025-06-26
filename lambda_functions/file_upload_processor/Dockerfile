@@ -1,36 +1,48 @@
-# Use an official AWS base image for Python
-FROM public.ecr.aws/lambda/python:3.9
+# STEP 1: Use a modern, predictable, non-AWS base image.
+# 'bookworm' is the latest stable Debian release with up-to-date libraries.
+FROM python:3.11-slim-bookworm
 
-# --- Manual Pandoc Installation (The Correct and Final Version) ---
+# Set an environment variable for a non-interactive install
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Set Pandoc version as an argument for easy updates
+# STEP 2: Install modern system libraries using apt-get.
+# This version includes the previously missing 'libpangoft2-1.0-0'.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    tar \
+    gzip \
+    # WeasyPrint dependencies
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libcairo2 \
+    libgdk-pixbuf-2.0-0 \
+    # Dependencies for C extensions if needed
+    libffi-dev \
+    build-essential \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# STEP 3: Install Pandoc
 ARG PANDOC_VERSION=3.1.13
-# Define the CORRECT download URL for the pre-compiled Linux tar.gz binary
 ARG PANDOC_URL="https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz"
-
-# CRITICAL STEP: We install every required system utility explicitly:
-# wget: for downloading
-# tar: for handling the archive format
-# gzip: for decompressing the .gz file, used by tar's 'z' flag
-RUN yum install -y wget tar gzip && \
-    wget -O /tmp/pandoc.tar.gz ${PANDOC_URL} && \
+RUN wget -O /tmp/pandoc.tar.gz ${PANDOC_URL} && \
     tar -xzf /tmp/pandoc.tar.gz -C /tmp && \
     mv /tmp/pandoc-${PANDOC_VERSION}/bin/pandoc /usr/local/bin/ && \
     rm -rf /tmp/pandoc*
 
-# Install system dependencies for WeasyPrint and Pandoc
-# For Amazon Linux 2 (the base for the image above), use yum
-RUN yum install -y pango cairo gdk-pixbuf2 libffi-devel
+# Create function directory
+WORKDIR /var/task
 
-# Copy your requirements file
+# Copy requirements and install them (including the Lambda RIC)
 COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install the Python packages
-RUN python3.9 -m pip install -r requirements.txt -t .
+# Copy all your application code
+COPY . .
 
-# Copy your function code
-COPY file_upload_processor_lambda.py ./
-COPY convert_to_pdf.py ./
+# STEP 4: Set up the Lambda entrypoint
+COPY entry.sh /
+RUN chmod +x /entry.sh
+ENTRYPOINT [ "/entry.sh" ]
 
-# Set the command to your handler
-CMD ["file_upload_processor_lambda.lambda_handler"]
+# The CMD is now just the name of your handler function
+CMD [ "file_upload_processor_lambda.lambda_handler" ]

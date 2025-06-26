@@ -1,4 +1,5 @@
 boto3
 requests
 weasyprint
+awslambdaric
 markdown-it-py
