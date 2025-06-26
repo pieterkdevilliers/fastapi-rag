@@ -4,13 +4,15 @@ from jwt.exceptions import InvalidTokenError
 from typing import Annotated
 from dotenv import load_dotenv
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.security.api_key import APIKeyHeader
 from passlib.context import CryptContext
 from sqlmodel import select, Session
 from datetime import datetime, timedelta, timezone
 from accounts.models import User, WidgetAPIKey
-from fastapi import Depends, HTTPException, status, Header, Request
+from fastapi import Depends, HTTPException, status, Header, Request, Security
 from pydantic import BaseModel
 from dependencies import get_session
+
 
 load_dotenv()
 
@@ -192,3 +194,29 @@ async def get_widget_api_key_user(request: Request, x_api_key: str | None = Head
         raise HTTPException(status_code=403, detail="This API key is restricted by origin and request has no origin.")
     # If all checks pass, return the validated account ID and API key
     return {"account_unique_id": validated_account_id, "api_key": x_api_key}
+
+
+# app/security.py
+
+
+# Define the name of the header we expect the API key to be in
+API_KEY_HEADER_NAME = "X-Internal-API-Key"
+
+# This is the secret key your Lambda will use. Load it from an environment variable.
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
+
+api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=True)
+
+async def get_api_key(api_key_header: str = Security(api_key_header)):
+    if not INTERNAL_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal API Key not configured on the server."
+        )
+    if api_key_header == INTERNAL_API_KEY:
+        return api_key_header
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not validate credentials."
+        )
