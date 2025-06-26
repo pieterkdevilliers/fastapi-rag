@@ -310,3 +310,28 @@ def get_docs_count_for_user_account(account_unique_id: str, session: Session) ->
     # The result of a count query is always a single integer.
     docs_count = session.exec(statement).one()
     return docs_count
+
+
+def create_pending_file_in_db(
+    original_filename: str,
+    account_unique_id: str,
+    folder_id: int,
+    session: Session
+) -> SourceFile:
+    """
+    Creates a SourceFile record with a pending status.
+    The file_name and file_path are placeholders until the callback updates them.
+    """
+    pending_file = SourceFile(
+        file_name="pending_conversion...",
+        file_path="processing...",
+        original_filename=original_filename,
+        processing_status="PENDING",
+        already_processed_to_source_data=False,
+        account_unique_id=account_unique_id,
+        folder_id=folder_id
+    )
+    session.add(pending_file)
+    session.commit()
+    session.refresh(pending_file)
+    return pending_file
