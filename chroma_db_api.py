@@ -28,7 +28,7 @@ chroma_headers = {'X-Chroma-Token': CHROMA_SERVER_AUTHN_CREDENTIALS}
 CHROMA_ENDPOINT = os.environ['CHROMA_ENDPOINT']
 
 
-def clear_chroma_db_datastore(account_unique_id: str):
+def clear_chroma_db_datastore_for_replace(account_unique_id: str):
     """
     Clear Chroma DB
     """
