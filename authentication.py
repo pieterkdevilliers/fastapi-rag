@@ -20,7 +20,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get('ACCESS_TOKEN_EXPIRE_MINUTES'))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 api_key_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/token")
 
 
 class Token(BaseModel):
