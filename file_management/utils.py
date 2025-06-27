@@ -174,11 +174,13 @@ async def load_documents_from_s3(account_unique_id: str, replace: bool, session:
     """
         # Query database for files to process
     if replace:
+        print("Replace is True")
         statement = select(SourceFile).filter(
             SourceFile.account_unique_id == account_unique_id,
             SourceFile.included_in_source_data is True,
         )
     else:
+        print("Replace is False")
         statement = select(SourceFile).filter(
             SourceFile.account_unique_id == account_unique_id,
             SourceFile.included_in_source_data is True,
@@ -187,10 +189,10 @@ async def load_documents_from_s3(account_unique_id: str, replace: bool, session:
         
     result = session.exec(statement)
     documents_from_db = result.all()
+    print("**********documents from s3: ", documents_from_db)
 
     return documents_from_db
             
-
 
 async def delete_file_from_s3(account_unique_id: str, file, session: Session):
     """
