@@ -433,14 +433,14 @@ async def generate_chroma_db_datastore(account_unique_id: str,
                     return {"status": "error", "message": error_message}
                 
             response = {"message": "Document processing passed to Lambda"}
-
+            return response
         # response = await generate_chroma_db(account_unique_id, replace)
         # print(f"Chroma DB generation successful: {response}")
     except Exception as e:
         print(f"Error generating Chroma DB: {e}")
         return {"error": str(e)}
     
-    return response
+    # return response
 
 
 @app.get("/api/v1/clear-chroma-db/{account_unique_id}")
