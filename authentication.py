@@ -207,7 +207,7 @@ INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
 api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=True)
 
-async def get_api_key(api_key_header: str = Security(api_key_header)):
+async def get_internal_api_key(api_key_header: str = Security(api_key_header)):
     if not INTERNAL_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
