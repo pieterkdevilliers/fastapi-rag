@@ -176,13 +176,13 @@ async def load_documents_from_s3(account_unique_id: str, replace: bool, session:
     if replace:
         statement = select(SourceFile).filter(
             SourceFile.account_unique_id == account_unique_id,
-            SourceFile.included_in_source_data == True,
+            SourceFile.included_in_source_data is True,
         )
     else:
         statement = select(SourceFile).filter(
             SourceFile.account_unique_id == account_unique_id,
-            SourceFile.included_in_source_data == True,
-            SourceFile.already_processed_to_source_data == False
+            SourceFile.included_in_source_data is True,
+            SourceFile.already_processed_to_source_data is False
         )
         
     result = session.exec(statement)
