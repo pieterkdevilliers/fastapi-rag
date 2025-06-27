@@ -41,10 +41,10 @@ def clear_chroma_db_datastore_for_replace(account_unique_id: str):
 
     print(f"Successfully connected to ChromaDB.")
     collection_name = f"collection-{account_unique_id}"
-    
+
     try:
         # This is the correct way to delete a collection from the ChromaDB server.
-        response = chroma_client.delete_collection(name=collection_name)
+        chroma_client.delete_collection(name=collection_name)
         print(f"Successfully deleted collection: {collection_name}")
         return {"response": f"success, collection '{collection_name}' deleted", "status": 200}
 

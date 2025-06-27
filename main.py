@@ -378,20 +378,24 @@ async def generate_chroma_db_datastore(account_unique_id: str,
     Generate Chroma DB
     """
     print(f"Received request to generate Chroma DB for account {account_unique_id} with replace={replace}")
-    
     try:
         documents_from_s3 = await load_documents_from_s3(account_unique_id=account_unique_id, replace=replace, session=session)
 
         if replace:
-            try:
-                print("Clearing ChromaDB before replacing")
-                clear_chroma_db_datastore_for_replace(account_unique_id=account_unique_id)
-            except Exception as e:
-                error_message = f"ERROR: Failed to invoke Lambda: {e}"
-                print(error_message)
-                return {"status": "error", "message": error_message}
-        
-
+            collection_name = f"collection-{account_unique_id}"
+            chroma_client = chromadb.HttpClient(
+                host=CHROMA_ENDPOINT,
+                headers=chroma_headers
+            )
+            retrieved_collection = chroma_client.get_collection(name=collection_name)
+            if retrieved_collection:
+                try:
+                    print("Clearing ChromaDB before replacing")
+                    clear_chroma_db_datastore_for_replace(account_unique_id=account_unique_id)
+                except Exception as e:
+                    error_message = f"ERROR: Failed to invoke Lambda: {e}"
+                    print(error_message)
+                    return {"status": "error", "message": error_message}
         print(f"Loaded {len(documents_from_s3)} documents from S3 based on DB query.")
         for db_file in documents_from_s3:
             # Construct S3 key (path in S3) using account_unique_id and file name
@@ -414,7 +418,7 @@ async def generate_chroma_db_datastore(account_unique_id: str,
                 )
                 message = f"Successfully invoked Lambda for: {s3_key}. Check CloudWatch Logs for details."
                 print(message)
-                 # Mark file as processed in the database
+                # Mark file as processed in the database
                 db_file.already_processed_to_source_data = True
                 session.commit()
 
