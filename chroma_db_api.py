@@ -42,8 +42,16 @@ def clear_chroma_db_datastore_for_replace(account_unique_id: str):
     print(f"Successfully connected to ChromaDB.")
     collection_name = f"collection-{account_unique_id}"
 
-    collection_status = chroma_client.get_collection(name=collection_name)
-    print("Collection Status: ", collection_status)
+    try:
+        collection_status = chroma_client.get_collection(name=collection_name)
+        print("Collection Status: ", collection_status)
+    except ValueError as e:
+        print(f"COllection Status Failed {e}")
+        raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Collection '{collection_name}' not found for this account."
+            )
+    
     if collection_status:
         try:
             # This is the correct way to delete a collection from the ChromaDB server.
