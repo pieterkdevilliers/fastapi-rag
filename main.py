@@ -378,69 +378,60 @@ async def generate_chroma_db_datastore(account_unique_id: str,
     Generate Chroma DB
     """
     print(f"Received request to generate Chroma DB for account {account_unique_id} with replace={replace}")
+    
     try:
         documents_from_s3 = await load_documents_from_s3(account_unique_id=account_unique_id, replace=replace, session=session)
-        print("************** fetching documents from s3")
+
         if replace:
-            print("************** replace is active")
-            collection_name = f"collection-{account_unique_id}"
-            chroma_client = chromadb.HttpClient(
-                host=CHROMA_ENDPOINT,
-                headers=chroma_headers
-            )
-            retrieved_collection = chroma_client.get_collection(name=collection_name)
-            print("Retrieved COllection: ", retrieved_collection)
+            try:
+                print("Clearing ChromaDB before replacing")
+                clear_chroma_db_datastore_for_replace(account_unique_id=account_unique_id)
+            except Exception as e:
+                error_message = f"ERROR: Failed to invoke Lambda: {e}"
+                print(error_message)
+                return {"status": "error", "message": error_message}
+        
 
-            if retrieved_collection:
-                try:
-                    print("Clearing ChromaDB before replacing")
-                    clear_chroma_db_datastore_for_replace(account_unique_id=account_unique_id)
-                except Exception as e:
-                    error_message = f"ERROR: Failed to invoke Lambda: {e}"
-                    print(error_message)
-                    return {"status": "error", "message": error_message}
-            else:
-                print("Collection not retrieved")
-            print(f"Loaded {len(documents_from_s3)} documents from S3 based on DB query.")
-            for db_file in documents_from_s3:
-                # Construct S3 key (path in S3) using account_unique_id and file name
-                s3_key = f"{account_unique_id}/{db_file.file_name}"
-                print(f"Attempting to trigger Lambda for file: {s3_key}")
+        print(f"Loaded {len(documents_from_s3)} documents from S3 based on DB query.")
+        for db_file in documents_from_s3:
+            # Construct S3 key (path in S3) using account_unique_id and file name
+            s3_key = f"{account_unique_id}/{db_file.file_name}"
+            print(f"Attempting to trigger Lambda for file: {s3_key}")
 
-                # The payload our Lambda expects
-                lambda_payload = {
-                    "s3_bucket": BUCKET_NAME,
-                    "s3_key": s3_key,
-                    "account_unique_id": account_unique_id,
-                }
+            # The payload our Lambda expects
+            lambda_payload = {
+                "s3_bucket": BUCKET_NAME,
+                "s3_key": s3_key,
+                "account_unique_id": account_unique_id,
+            }
 
-                try:
-                    lambda_client.invoke(
-                        # CHANGE THIS to your new function name
-                        FunctionName="RAG-Document-Processor",
-                        InvocationType="Event",
-                        Payload=json.dumps(lambda_payload),
-                    )
-                    message = f"Successfully invoked Lambda for: {s3_key}. Check CloudWatch Logs for details."
-                    print(message)
-                    # Mark file as processed in the database
-                    db_file.already_processed_to_source_data = True
-                    session.commit()
+            try:
+                lambda_client.invoke(
+                    # CHANGE THIS to your new function name
+                    FunctionName="RAG-Document-Processor",
+                    InvocationType="Event",
+                    Payload=json.dumps(lambda_payload),
+                )
+                message = f"Successfully invoked Lambda for: {s3_key}. Check CloudWatch Logs for details."
+                print(message)
+                 # Mark file as processed in the database
+                db_file.already_processed_to_source_data = True
+                session.commit()
 
-                except Exception as e:
-                    error_message = f"ERROR: Failed to invoke Lambda: {e}"
-                    print(error_message)
-                    return {"status": "error", "message": error_message}
-                
-            response = {"message": "Document processing passed to Lambda"}
-            return response
+            except Exception as e:
+                error_message = f"ERROR: Failed to invoke Lambda: {e}"
+                print(error_message)
+                return {"status": "error", "message": error_message}
+            
+        response = {"message": "Document processing passed to Lambda"}
+
         # response = await generate_chroma_db(account_unique_id, replace)
         # print(f"Chroma DB generation successful: {response}")
     except Exception as e:
         print(f"Error generating Chroma DB: {e}")
         return {"error": str(e)}
     
-    # return response
+    return response
 
 
 @app.get("/api/v1/clear-chroma-db/{account_unique_id}")
