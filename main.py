@@ -35,7 +35,7 @@ from accounts.utils import create_new_account_in_db, update_account_in_db, delet
 from db import engine
 import query_data.query_source_data as query_source_data
 from authentication import oauth2_scheme, Token, authenticate_user, get_password_hash, create_access_token, \
-    get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user, get_api_key_hash, get_api_key
+    get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user, get_api_key_hash, get_api_key, get_internal_api_key
 from dependencies import get_session
 from chat_messages.models import ChatSession, ChatMessage
 from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
@@ -706,7 +706,7 @@ class FileProcessingCallback(BaseModel):
 async def file_processing_callback(
         payload: FileProcessingCallback,
         session: Session = Depends(get_session),
-        api_key: str = Depends(get_api_key) # Secure the endpoint
+        api_key: str = Depends(get_internal_api_key) # Secure the endpoint
     ):
     """
     Receives and processes the file update callback from lambda function processing file uploads
