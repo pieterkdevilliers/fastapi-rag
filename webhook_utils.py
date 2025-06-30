@@ -4,9 +4,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
 from sqlmodel import Session
-from main import WidgetEmailPayload
 from chat_messages.utils import get_chat_messages_by_session_id
-from accounts.utils import get_account_webhook_url
 
 # A model for a single chat message in the webhook
 class WebhookChatMessage(BaseModel):
@@ -14,14 +12,21 @@ class WebhookChatMessage(BaseModel):
     sender_type: str
     message_text: str
 
+class WebhookEmailPayload(BaseModel):
+    name: str
+    email: str
+    message: str
+    sessionId: int
+    visitorUuid: str
+
 # The main payload for your webhook
 class WebhookPayload(BaseModel):
-    contact_info: WidgetEmailPayload # Re-use the existing model for contact details
+    contact_info: WebhookEmailPayload # Re-use the existing model for contact details
     transcript: Optional[List[WebhookChatMessage]] = None
     account_unique_id: str
 
 
-def send_chat_messages_webhook_notification(account_unique_id: str, chat_session_id: int, payload: WidgetEmailPayload, webhook_url: str, session: Session):
+def send_chat_messages_webhook_notification(account_unique_id: str, chat_session_id: int, payload: WebhookEmailPayload, webhook_url: str, session: Session):
     """
     Start webhook notification process
     """
@@ -32,7 +37,7 @@ def send_chat_messages_webhook_notification(account_unique_id: str, chat_session
                                     session=session)
 
 
-async def construct_chat_messages_webhook(account_unique_id: str, chat_session_id: int, payload: WidgetEmailPayload, webhook_url: str, session: Session):
+async def construct_chat_messages_webhook(account_unique_id: str, chat_session_id: int, payload: WebhookEmailPayload, webhook_url: str, session: Session):
     """
     Fetches the session messages and builds json for webhook
     """
