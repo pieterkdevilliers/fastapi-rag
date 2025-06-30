@@ -512,6 +512,7 @@ async def widget_contact_us(
             account_unique_id=auth_info["account_unique_id"],
             chat_session_id=chat_session_id,
             payload=payload,
+            webhook_url=webhook_url,
             session=session
         )
     
