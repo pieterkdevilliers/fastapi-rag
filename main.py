@@ -47,6 +47,7 @@ from stripe_service import process_stripe_product_created_event, process_stripe_
 from core.models import Product, PasswordResetToken
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
 from chroma_db_api import clear_chroma_db_datastore_for_replace
+from webhook_utils import send_chat_messages_webhook_notification
 
 
 # Initialize the S3 client
@@ -503,6 +504,13 @@ async def widget_contact_us(
 
     if not chat_session_id:
         print(f"No chat session found for visitor UUID {payload.visitorUuid} in account {auth_info['account_unique_id']}.")
+    
+    send_chat_messages_webhook_notification(
+        account_unique_id=auth_info["account_unique_id"],
+        chat_session_id=chat_session_id,
+        payload=payload,
+        session=session
+    )
     
     chat_messages = get_chat_messages_by_session_id(
         chat_session_id=chat_session_id,
