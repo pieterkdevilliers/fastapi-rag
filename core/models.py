@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel, Field
-from typing import Optional
+from pydantic import BaseModel
+from typing import Optional, List
 from datetime import datetime, timezone
 
 class ProductBase(SQLModel):
@@ -34,3 +35,21 @@ class PasswordResetToken(PasswordResetTokenBase, table=True):
         return datetime.now() > self.expires_at
 
 
+# --- The Single Source of Truth for the Contact Payload ---
+class ContactPayload(BaseModel):
+    name: str
+    email: str
+    message: str
+    sessionId: int
+    visitorUuid: str
+
+# --- Models for the Webhook ---
+class WebhookChatMessage(BaseModel):
+    timestamp: datetime
+    sender_type: str
+    message_text: str
+
+class WebhookData(BaseModel):
+    contact_info: ContactPayload # Use the shared model here
+    transcript: Optional[List[WebhookChatMessage]] = None
+    account_unique_id: str
