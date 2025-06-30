@@ -21,17 +21,18 @@ class WebhookPayload(BaseModel):
     account_unique_id: str
 
 
-def send_chat_messages_webhook_notification(account_unique_id: str, chat_session_id: int, payload: WidgetEmailPayload, session: Session):
+def send_chat_messages_webhook_notification(account_unique_id: str, chat_session_id: int, payload: WidgetEmailPayload, webhook_url: str, session: Session):
     """
     Start webhook notification process
     """
     construct_chat_messages_webhook(account_unique_id=account_unique_id,
                                     chat_session_id=chat_session_id,
                                     payload=payload,
+                                    webhook_url=webhook_url,
                                     session=session)
 
 
-async def construct_chat_messages_webhook(account_unique_id: str, chat_session_id: int, payload: WidgetEmailPayload, session: Session):
+async def construct_chat_messages_webhook(account_unique_id: str, chat_session_id: int, payload: WidgetEmailPayload, webhook_url: str, session: Session):
     """
     Fetches the session messages and builds json for webhook
     """
@@ -54,10 +55,9 @@ async def construct_chat_messages_webhook(account_unique_id: str, chat_session_i
         account_unique_id=account_unique_id
     )
 
-    webhook_url = get_account_webhook_url(account_unique_id, session)
+    
 
-    if webhook_url:
-        await send_webhook_notification(webhook_url, webhook_payload)
+    await send_webhook_notification(webhook_url, webhook_payload)
 
     return {"message": "Notification sent", "account_unique_id": account_unique_id}
 

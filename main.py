@@ -30,7 +30,7 @@ from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, get_user_by_email, \
     create_password_reset_token, get_reset_token, update_user_password, delete_reset_token, get_account_by_account_unique_id, \
-    check_active_subscription_status
+    check_active_subscription_status, get_account_webhook_url
 # from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
@@ -505,12 +505,15 @@ async def widget_contact_us(
     if not chat_session_id:
         print(f"No chat session found for visitor UUID {payload.visitorUuid} in account {auth_info['account_unique_id']}.")
     
-    send_chat_messages_webhook_notification(
-        account_unique_id=auth_info["account_unique_id"],
-        chat_session_id=chat_session_id,
-        payload=payload,
-        session=session
-    )
+    webhook_url = get_account_webhook_url(account_unique_id=auth_info["account_unique_id"], session=session)
+
+    if webhook_url:
+        send_chat_messages_webhook_notification(
+            account_unique_id=auth_info["account_unique_id"],
+            chat_session_id=chat_session_id,
+            payload=payload,
+            session=session
+        )
     
     chat_messages = get_chat_messages_by_session_id(
         chat_session_id=chat_session_id,
