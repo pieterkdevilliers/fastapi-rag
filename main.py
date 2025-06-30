@@ -509,7 +509,7 @@ async def widget_contact_us(
     print("Webhook URL Found: ", webhook_url)
 
     if webhook_url:
-        send_chat_messages_webhook_notification(
+        await send_chat_messages_webhook_notification(
             account_unique_id=auth_info["account_unique_id"],
             chat_session_id=chat_session_id,
             payload=payload,
