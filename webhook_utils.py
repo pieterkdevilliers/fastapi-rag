@@ -26,12 +26,12 @@ class WebhookPayload(BaseModel):
     account_unique_id: str
 
 
-def send_chat_messages_webhook_notification(account_unique_id: str, chat_session_id: int, payload: WebhookEmailPayload, webhook_url: str, session: Session):
+async def send_chat_messages_webhook_notification(account_unique_id: str, chat_session_id: int, payload: WebhookEmailPayload, webhook_url: str, session: Session):
     """
     Start webhook notification process
     """
     print('send_chat_messages_webhook_notification')
-    construct_chat_messages_webhook(account_unique_id=account_unique_id,
+    await construct_chat_messages_webhook(account_unique_id=account_unique_id,
                                     chat_session_id=chat_session_id,
                                     payload=payload,
                                     webhook_url=webhook_url,
