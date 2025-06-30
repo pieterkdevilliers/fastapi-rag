@@ -35,6 +35,7 @@ class Account(AccountBase, table=True):
     k_value: int = Field(default=3, nullable=True)
     chunk_size: int = Field(default=1000, nullable=True)
     chunk_overlap: int = Field(default=500, nullable=True)
+    webhook_url: str = Field(default=None, nullable=True)
 
 
 class UserBase(SQLModel):
