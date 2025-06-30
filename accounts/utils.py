@@ -215,3 +215,14 @@ def check_active_subscription_status(account_unique_id: str, session: Session):
         return False
     
     return True
+
+
+def get_account_webhook_url(account_unique_id: str, session: Session):
+    """
+    Get the account's webhook_url
+    """
+    statement = select(Account).filter(Account.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    webhook_url = result.first().webhook_url
+
+    return webhook_url
