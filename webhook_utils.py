@@ -30,6 +30,7 @@ def send_chat_messages_webhook_notification(account_unique_id: str, chat_session
     """
     Start webhook notification process
     """
+    print('send_chat_messages_webhook_notification')
     construct_chat_messages_webhook(account_unique_id=account_unique_id,
                                     chat_session_id=chat_session_id,
                                     payload=payload,
@@ -41,6 +42,7 @@ async def construct_chat_messages_webhook(account_unique_id: str, chat_session_i
     """
     Fetches the session messages and builds json for webhook
     """
+    print('construct_chat_messages_webhook')
     chat_messages = get_chat_messages_by_session_id(
         chat_session_id=chat_session_id,
         session=session
@@ -60,7 +62,8 @@ async def construct_chat_messages_webhook(account_unique_id: str, chat_session_i
         account_unique_id=account_unique_id
     )
 
-    
+    print('webhook_transcript: ', webhook_transcript)
+    print('webhook_payload: ', webhook_payload)
 
     await send_webhook_notification(webhook_url, webhook_payload)
 
@@ -71,6 +74,7 @@ async def send_webhook_notification(webhook_url: str, payload: WebhookPayload):
     """
     Sends a structured payload to a specified webhook URL.
     """
+    print('send_webhook_notification')
     if not webhook_url:
         return
 
