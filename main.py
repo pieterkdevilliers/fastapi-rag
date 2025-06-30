@@ -44,7 +44,7 @@ from stripe_service import process_stripe_product_created_event, process_stripe_
     process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, \
     process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
     process_stripe_subscription_updated_event, process_stripe_subscription_deleted_event
-from core.models import Product, PasswordResetToken
+from core.models import Product, PasswordResetToken, ContactPayload
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
 from chroma_db_api import clear_chroma_db_datastore_for_replace
 from webhook_utils import send_chat_messages_webhook_notification
@@ -473,16 +473,10 @@ async def clear_chroma_db_datastore(account_unique_id: str, current_user: Annota
         )
     
 
-class WidgetEmailPayload(BaseModel):
-    name: str
-    email: str
-    message: str
-    sessionId: int
-    visitorUuid: str
 
 @app.post("/api/v1/widget/contact-us")
 async def widget_contact_us(
-                        payload: WidgetEmailPayload, 
+                        payload: ContactPayload, 
                         auth_info: dict = Security(get_widget_api_key_user),
                         session: Session = Depends(get_session)) -> dict[str, Any]:
     """
@@ -808,151 +802,6 @@ async def get_file(account_unique_id: str, file_id: int,
     
     return {"response": "success",
             "file": file}
-
-
-# @app.post("/api/v1/files/{account_unique_id}/{folder_id}")
-# async def upload_files(account_unique_id: str,
-#                        folder_id: int,
-#                        current_user: Annotated[User, Depends(get_current_active_user)],
-#                        files: list[UploadFile] = File(...),
-#                        session: Session = Depends(get_session)):
-#     if not files:
-#         raise HTTPException(status_code=400, detail="No files provided")
-
-#     uploaded_files_info = []
-
-#     for original_file in files:
-#         original_filename = original_file.filename
-#         original_file_ext = original_filename.split('.')[-1].lower()
-#         file_base_name = original_filename.rsplit('.', 1)[0]
-
-#         # New unique filename will always have .pdf extension
-#         unique_pdf_filename = f'{file_base_name}_{token_hex(8)}.pdf'.lower().replace(" ", "_")
-#         s3_key = f"{account_unique_id}/{unique_pdf_filename}"
-        
-#         pdf_content_bytes = None
-#         temp_input_file = None
-#         temp_output_dir = None
-
-#         try:
-#             original_content = await original_file.read()
-
-#             if original_file_ext == 'pdf':
-#                 pdf_content_bytes = original_content
-#                 final_content_type = 'application/pdf'
-#             else:
-#                 # For non-PDFs, we need to convert
-#                 # Create a temporary directory for input and output of conversion
-#                 temp_output_dir = tempfile.mkdtemp()
-#                 temp_input_file_path = None
-
-#                 if original_file_ext in ['doc', 'docx']: # Add other Pandoc supported types
-#                         # 1. Write original content to a temporary file for Pandoc
-#                         # Ensure the suffix matches the original file extension for Pandoc to potentially auto-detect
-#                         with tempfile.NamedTemporaryFile(delete=False, suffix=f".{original_file_ext}", dir=temp_output_dir) as temp_input_file_obj:
-#                             temp_input_file_obj.write(original_content)
-#                             temp_input_file_path = temp_input_file_obj.name
-
-                        
-#                         # 2. Convert DOCX/DOC/etc. to HTML using Pandoc
-#                         temp_html_file_path = convert_to_pdf.convert_to_html_pandoc(
-#                             input_path=temp_input_file_path,
-#                             output_dir=temp_output_dir,
-#                             input_format=original_file_ext
-#                         )
-                        
-#                         # 3. Convert the HTML (from Pandoc) to PDF using WeasyPrint
-#                         final_temp_pdf_path = os.path.join(temp_output_dir, "final_converted_document.pdf")
-#                         convert_to_pdf.convert_html_to_pdf_weasyprint(
-#                             html_input=temp_html_file_path, # Pass the path to the HTML file
-#                             output_pdf_path=final_temp_pdf_path,
-#                             is_file_path=True # Indicate that html_input is a file path
-#                         )
-                        
-#                         with open(final_temp_pdf_path, 'rb') as f_pdf:
-#                             pdf_content_bytes = f_pdf.read()
-#                         final_content_type = 'application/pdf' # Output is always PDF
-                        
-#                         # Clean up the converted PDF immediately after reading
-#                         if os.path.exists(final_temp_pdf_path):
-#                             os.remove(final_temp_pdf_path)
-
-#                 elif original_file_ext == 'txt':
-#                     final_content_type = 'application/pdf'
-#                     pdf_content_bytes = convert_to_pdf.convert_text_to_pdf(original_content.decode('utf-8', errors='replace')) # Ensure decoding
-
-
-#                 elif original_file_ext == 'md':
-#                     converted_pdf_path = os.path.join(temp_output_dir, "converted.pdf")
-#                     convert_to_pdf.convert_markdown_to_pdf(original_content.decode('utf-8', errors='replace'), converted_pdf_path) # Ensure decoding
-#                     with open(converted_pdf_path, 'rb') as f_pdf:
-#                         pdf_content_bytes = f_pdf.read()
-#                     final_content_type = 'application/pdf'
-#                     if os.path.exists(converted_pdf_path): os.remove(converted_pdf_path)
-                
-#                 else:
-#                     # If format is not supported for conversion, you can choose to:
-#                     # 1. Reject the file
-#                     # 2. Upload as-is (but then frontend needs to handle it)
-#                     # For this strategy, we'll reject unsupported types for PDF conversion
-#                     raise HTTPException(status_code=400, detail=f"File type '.{original_file_ext}' is not supported for PDF conversion.")
-
-#                 # Clean up temporary input file if created
-#                 if temp_input_file_path and os.path.exists(temp_input_file_path):
-#                     os.remove(temp_input_file_path)
-
-
-#             if not pdf_content_bytes:
-#                 raise HTTPException(status_code=500, detail=f"Failed to obtain PDF content for {original_filename}")
-
-#             # Upload the (potentially converted) PDF content to S3
-#             s3.put_object(
-#                 Bucket=BUCKET_NAME,
-#                 Key=s3_key,
-#                 Body=pdf_content_bytes,
-#                 ContentType=final_content_type # Should always be 'application/pdf' now
-#             )
-
-#             file_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
-            
-#             # Save file information to the database
-#             # The 'unique_pdf_filename' is what you store as the filename
-#             db_file = save_file_to_db(unique_pdf_filename, file_url, account_unique_id, folder_id, session)
-
-#             uploaded_files_info.append({
-#                 "file_name": unique_pdf_filename, # This is now always a .pdf file
-#                 "original_filename": original_filename, # Good to keep for user reference
-#                 "file_url": file_url,
-#                 "file_id": db_file.id
-#             })
-
-#         except HTTPException: # Re-raise HTTPExceptions
-#             raise
-#         except NoCredentialsError:
-#             raise HTTPException(status_code=500, detail="AWS credentials not found") # 500 for server config issues
-#         except PartialCredentialsError:
-#             raise HTTPException(status_code=500, detail="Incomplete AWS credentials")
-#         except RuntimeError as e: # Catch RuntimeError from LibreOffice check
-#              raise HTTPException(status_code=500, detail=str(e))
-#         except Exception as e:
-#             print(f"Error processing file {original_filename}: {str(e)}") # Log the full error
-#             # For other exceptions, provide a more generic message to the user
-#             raise HTTPException(status_code=500, detail=f"An error occurred while processing file: {original_filename}. Details: {str(e)}")
-#         finally:
-#             # Clean up temporary directory
-#             if temp_output_dir and os.path.exists(temp_output_dir):
-#                 # Safety: Ensure all files within are removed before rmtree
-#                 for root, dirs, files_in_dir in os.walk(temp_output_dir, topdown=False):
-#                     for name in files_in_dir:
-#                         os.remove(os.path.join(root, name))
-#                     for name in dirs:
-#                         os.rmdir(os.path.join(root, name))
-#                 os.rmdir(temp_output_dir)
-
-#     new_docs_count = get_docs_count_for_user_account(account_unique_id, session)
-
-
-#     return {"response": "success", "uploaded_files": uploaded_files_info, "new_docs_count": new_docs_count}
 
 
 @app.put("/api/v1/files/{account_unique_id}/{file_id}", response_model=Union[SourceFile, dict])

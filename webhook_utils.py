@@ -5,28 +5,10 @@ from datetime import datetime
 from typing import Optional, List
 from sqlmodel import Session
 from chat_messages.utils import get_chat_messages_by_session_id
-
-# A model for a single chat message in the webhook
-class WebhookChatMessage(BaseModel):
-    timestamp: datetime
-    sender_type: str
-    message_text: str
-
-class WebhookEmailPayload(BaseModel):
-    name: str
-    email: str
-    message: str
-    sessionId: int
-    visitorUuid: str
-
-# The main payload for your webhook
-class WebhookPayload(BaseModel):
-    contact_info: WebhookEmailPayload # Re-use the existing model for contact details
-    transcript: Optional[List[WebhookChatMessage]] = None
-    account_unique_id: str
+from core.models import ContactPayload, WebhookData, WebhookChatMessage
 
 
-async def send_chat_messages_webhook_notification(account_unique_id: str, chat_session_id: int, payload: WebhookEmailPayload, webhook_url: str, session: Session):
+async def send_chat_messages_webhook_notification(account_unique_id: str, chat_session_id: int, payload: ContactPayload, webhook_url: str, session: Session):
     """
     Start webhook notification process
     """
@@ -38,7 +20,7 @@ async def send_chat_messages_webhook_notification(account_unique_id: str, chat_s
                                     session=session)
 
 
-async def construct_chat_messages_webhook(account_unique_id: str, chat_session_id: int, payload: WebhookEmailPayload, webhook_url: str, session: Session):
+async def construct_chat_messages_webhook(account_unique_id: str, chat_session_id: int, payload: ContactPayload, webhook_url: str, session: Session):
     """
     Fetches the session messages and builds json for webhook
     """
@@ -56,7 +38,7 @@ async def construct_chat_messages_webhook(account_unique_id: str, chat_session_i
         ) for msg in chat_messages
     ] if chat_messages else None
 
-    webhook_payload = WebhookPayload(
+    webhook_payload = WebhookData(
         contact_info=payload,
         transcript=webhook_transcript,
         account_unique_id=account_unique_id
@@ -70,7 +52,7 @@ async def construct_chat_messages_webhook(account_unique_id: str, chat_session_i
     return {"message": "Notification sent", "account_unique_id": account_unique_id}
 
 
-async def send_webhook_notification(webhook_url: str, payload: WebhookPayload):
+async def send_webhook_notification(webhook_url: str, payload: WebhookData):
     """
     Sends a structured payload to a specified webhook URL.
     """
