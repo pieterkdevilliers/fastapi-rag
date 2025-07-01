@@ -76,7 +76,7 @@ def get_chat_session_count(account_unique_id: str, session: Session):
     """
     Returns the number of chat sessions for the account in the last 30 days
     """
-    thirty_days_ago = datetime.now(datetime.timezont.utc) - timedelta(days=30)
+    thirty_days_ago = datetime.now(datetime.timezone.utc) - timedelta(days=30)
 
     statement = select(func.count()).where(
             ChatSession.account_unique_id == account_unique_id,
@@ -92,7 +92,7 @@ def get_questions_answered_count(account_unique_id: str, session: Session):
     """
     Returns the number of questions answered for the account in the last 30 days
     """
-    thirty_days_ago = datetime.now(datetime.timezont.utc) - timedelta(days=30)
+    thirty_days_ago = datetime.now(datetime.timezone.utc) - timedelta(days=30)
     questions_answered_count = 0
     chat_sessions = session.exec(
         select(ChatSession).where(
