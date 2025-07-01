@@ -312,6 +312,22 @@ def get_docs_count_for_user_account(account_unique_id: str, session: Session) ->
     return docs_count
 
 
+def get_processed_docs_count_for_user_account(account_unique_id: str, session: Session) -> int:
+    """
+    Retrieve the count of total processed docs in an account.
+
+    Returns the number of documents as an integer. Returns 0 if none are found.
+    """
+    statement = (
+        select(func.count())
+        .select_from(SourceFile)
+        .where(SourceFile.account_unique_id == account_unique_id, already_processed_to_source_data=True)
+    )
+    # The result of a count query is always a single integer.
+    processed_docs_count = session.exec(statement).one()
+    return processed_docs_count
+
+
 def create_pending_file_in_db(
     original_filename: str,
     account_unique_id: str,
