@@ -80,7 +80,7 @@ def get_chat_session_count(account_unique_id: str, session: Session):
 
     statement = select(func.count()).where(
             ChatSession.account_unique_id == account_unique_id,
-            ChatSession.start_time <= thirty_days_ago
+            ChatSession.start_time >= thirty_days_ago
         )
     
     chat_session_count = session.exec(statement).one()
@@ -97,14 +97,14 @@ def get_questions_answered_count(account_unique_id: str, session: Session):
     chat_sessions = session.exec(
         select(ChatSession).where(
             ChatSession.account_unique_id == account_unique_id,
-            ChatSession.start_time <= thirty_days_ago
+            ChatSession.start_time >= thirty_days_ago
         ))
     
     for chat_session in chat_sessions:
 
         per_session_count = select(func.count()).where(
                 ChatMessage.chat_session_id == chat_session.id,
-                ChatMessage.timestamp <= thirty_days_ago,
+                ChatMessage.timestamp >= thirty_days_ago,
                 ChatMessage.sender_type == 'user',
             )
         question_answered_count += per_session_count
