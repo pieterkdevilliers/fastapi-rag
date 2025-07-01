@@ -318,6 +318,7 @@ def get_processed_docs_count_for_user_account(account_unique_id: str, session: S
 
     Returns the number of documents as an integer. Returns 0 if none are found.
     """
+    print("Getting processed docs count")
     statement = (
         select(func.count())
         .select_from(SourceFile)
@@ -325,6 +326,7 @@ def get_processed_docs_count_for_user_account(account_unique_id: str, session: S
     )
     # The result of a count query is always a single integer.
     processed_docs_count = session.exec(statement).one()
+    print("processed docs count in util: ", processed_docs_count)
     return processed_docs_count
 
 

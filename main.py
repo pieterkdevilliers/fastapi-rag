@@ -113,6 +113,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     organisation = get_account_by_account_unique_id(account_unique_id, session).account_organisation
     docs_count = get_docs_count_for_user_account(account_unique_id, session)
     processed_docs_count = get_processed_docs_count_for_user_account(account_unique_id, session)
+    print("processed docs count in login: ", processed_docs_count)
     active_subscription = check_active_subscription_status(account_unique_id, session)
     return Token(account_unique_id=account_unique_id, account_organisation=organisation, docs_count=docs_count, active_subscription=active_subscription, processed_docs_count=processed_docs_count, access_token=access_token, token_type="bearer")
 
