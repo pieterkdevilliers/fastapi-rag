@@ -1,8 +1,8 @@
-from sqlmodel import select, Session
+from sqlmodel import select, Session, func
 from chat_messages.models import ChatSession, ChatMessage
 from accounts.models import Account
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 def create_or_identify_chat_session(account_unique_id: str, visitor_uuid: str, session: Session):
@@ -70,3 +70,44 @@ def create_chat_message(chat_session_id: int, message_text: str, sender_type: st
 
     # Optionally return the updated chat session
     return chat_message
+
+
+def get_chat_session_count(account_unique_id: str, session: Session):
+    """
+    Returns the number of chat sessions for the account in the last 30 days
+    """
+    thirty_days_ago = datetime.now(datetime.timezont.utc) - timedelta(days=30)
+
+    statement = select(func.count()).where(
+            ChatSession.account_unique_id == account_unique_id,
+            ChatSession.start_time <= thirty_days_ago
+        )
+    
+    chat_session_count = session.exec(statement).scalar_one()
+
+    return chat_session_count
+
+
+def get_questions_answered_count(account_unique_id: str, session: Session):
+    """
+    Returns the number of questions answered for the account in the last 30 days
+    """
+    thirty_days_ago = datetime.now(datetime.timezont.utc) - timedelta(days=30)
+    questions_answered_count = 0
+    chat_sessions = session.exec(
+        select(ChatSession).where(
+            ChatSession.account_unique_id == account_unique_id,
+            ChatSession.start_time <= thirty_days_ago
+        ))
+    
+    for chat_session in chat_sessions:
+
+        per_session_count = select(func.count()).where(
+                ChatMessage.chat_session_id == chat_session.id,
+                ChatMessage.timestamp <= thirty_days_ago,
+                ChatMessage.sender_type == 'user',
+            )
+        question_answered_count += per_session_count
+    
+
+    return questions_answered_count

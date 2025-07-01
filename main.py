@@ -39,7 +39,7 @@ from authentication import oauth2_scheme, Token, authenticate_user, get_password
 from dependencies import get_session
 from chat_messages.models import ChatSession, ChatMessage
 from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
-    get_chat_messages_by_session_id
+    get_chat_messages_by_session_id, get_chat_session_count, get_questions_answered_count
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
     process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, \
     process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
@@ -1583,3 +1583,22 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
         deleted_subscription = process_stripe_subscription_deleted_event(event, session)
     print(f"Received event: {event}")
     return {}
+
+
+############################################
+#  Dashboard Routes
+############################################
+
+
+@app.get("/api/v1/get-dashboard-data/{account_unique_id}")
+async def get_dashboard_data(account_unique_id: str,
+                          current_user: Annotated[User, Depends(get_current_active_user)],
+                          session: Session = Depends(get_session)) -> dict[str, Any]:
+    
+    chat_sessions = get_chat_session_count(account_unique_id, session)
+    questions_answered = get_questions_answered_count(account_unique_id, session)
+    processed_documents = get_processed_docs_count_for_user_account(account_unique_id, session)
+
+    return {"chat_sessions": chat_sessions,
+            "questions_answered": questions_answered,
+            "processed_documents": processed_documents}
