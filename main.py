@@ -1595,10 +1595,14 @@ async def get_dashboard_data(account_unique_id: str,
                           current_user: Annotated[User, Depends(get_current_active_user)],
                           session: Session = Depends(get_session)) -> dict[str, Any]:
     
-    chat_sessions = get_chat_session_count(account_unique_id, session)
-    questions_answered = get_questions_answered_count(account_unique_id, session)
-    processed_documents = get_processed_docs_count_for_user_account(account_unique_id, session)
+    chat_session_count = get_chat_session_count(account_unique_id, session)
+    questions_answered_count = get_questions_answered_count(account_unique_id, session)
+    processed_docs_count = get_processed_docs_count_for_user_account(account_unique_id, session)
 
-    return {"chat_sessions": chat_sessions,
-            "questions_answered": questions_answered,
-            "processed_documents": processed_documents}
+    print("chat_session_count: ", chat_session_count)
+    print("questions_answered_count: ", questions_answered_count)
+    print("processed_docs_count: ", processed_docs_count)
+
+    return {"chat_session_count": chat_session_count,
+            "questions_answered_count": questions_answered_count,
+            "processed_docs_count": processed_docs_count}
