@@ -83,7 +83,7 @@ def get_chat_session_count(account_unique_id: str, session: Session):
             ChatSession.start_time <= thirty_days_ago
         )
     
-    chat_session_count = session.exec(statement).scalar_one()
+    chat_session_count = session.exec(statement).one()
 
     return chat_session_count
 
