@@ -90,24 +90,22 @@ def get_chat_session_count(account_unique_id: str, session: Session):
 
 def get_questions_answered_count(account_unique_id: str, session: Session):
     """
-    Returns the number of questions answered for the account in the last 30 days
+    Returns the number of questions answered for the account in the last 30 days.
+    This is done in a single, efficient database query.
     """
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-    questions_answered_count = 0
-    chat_sessions = session.exec(
-        select(ChatSession).where(
-            ChatSession.account_unique_id == account_unique_id,
-            ChatSession.start_time >= thirty_days_ago
-        ))
-    
-    for chat_session in chat_sessions:
 
-        per_session_count = select(func.count()).where(
-                ChatMessage.chat_session_id == chat_session.id,
-                ChatMessage.timestamp >= thirty_days_ago,
-                ChatMessage.sender_type == 'user',
-            )
-        question_answered_count += per_session_count
+    # Build a single statement that joins the tables
+    statement = select(func.count(ChatMessage.id)).join(ChatSession).where(
+        # Filter on the ChatSession table
+        ChatSession.account_unique_id == account_unique_id,
+        
+        # Filter on the ChatMessage table
+        ChatMessage.timestamp >= thirty_days_ago,
+        ChatMessage.sender_type == 'user'
+    )
     
+    # Execute the single query and get the final integer count
+    questions_answered_count = session.exec(statement).one()
 
     return questions_answered_count
