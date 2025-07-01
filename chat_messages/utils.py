@@ -96,7 +96,7 @@ def get_questions_answered_count(account_unique_id: str, session: Session):
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
 
     # Build a single statement that joins the tables
-    statement = select(func.count(ChatMessage.id)).join(ChatSession).where(
+    statement = select(func.count(ChatMessage.message_id)).join(ChatSession).where(
         # Filter on the ChatSession table
         ChatSession.account_unique_id == account_unique_id,
         
