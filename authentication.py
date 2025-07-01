@@ -30,6 +30,7 @@ class Token(BaseModel):
     account_organisation: str
     docs_count: int
     active_subscription: bool
+    processed_docs_count: int
     access_token: str
     token_type: str
 
