@@ -12,6 +12,7 @@ from accounts.models import User, WidgetAPIKey
 from fastapi import Depends, HTTPException, status, Header, Request, Security
 from pydantic import BaseModel
 from dependencies import get_session
+from query_data.utils import normalize_origin
 
 
 load_dotenv()
@@ -169,30 +170,42 @@ async def get_widget_api_key_user(request: Request, x_api_key: str | None = Head
         validated_account_id = widget_api_key.account_unique_id
         key_allowed_origins = widget_api_key.allowed_origins
 
-    # Validate allowed_origins
+  # --- Start of Improved and Stricter Section ---
+
+    # Validate and sanitize the format of allowed_origins from the database
     if not key_allowed_origins:
         raise HTTPException(status_code=500, detail="No allowed_origins set for this API Key")
     
-    if isinstance(key_allowed_origins, list) and not all(isinstance(origin, str) for origin in key_allowed_origins):
-        raise HTTPException(status_code=500, detail="Invalid allowed_origins format in API Key record")
-    
-    elif isinstance(key_allowed_origins, str):
+    if isinstance(key_allowed_origins, str):
         key_allowed_origins = [key_allowed_origins]
-    
-    elif not isinstance(key_allowed_origins, list):
+    elif not isinstance(key_allowed_origins, list) or not all(isinstance(o, str) for o in key_allowed_origins):
         raise HTTPException(status_code=500, detail="Invalid allowed_origins format in API Key record")
+    
+    # Explicitly disallow wildcards as a server configuration error
+    if "*" in key_allowed_origins:
+        raise HTTPException(status_code=500, detail="Wildcard '*' is not a supported origin for API keys.")
 
-    if not validated_account_id:
-        raise HTTPException(status_code=403, detail="Invalid or inactive API Key")
-
-    # CORS Check
+    # Stricter CORS Check: An Origin header is now mandatory for all requests
     origin = request.headers.get("origin")
-    if origin: # Browser requests will have an Origin header
-        if "*" not in key_allowed_origins and origin not in key_allowed_origins:
-            raise HTTPException(status_code=403, detail=f"Origin {origin} not allowed for this API key")
-        
-    elif key_allowed_origins and "*" not in key_allowed_origins: # Non-browser request, but key has origin restrictions
-        raise HTTPException(status_code=403, detail="This API key is restricted by origin and request has no origin.")
+    
+    if not origin:
+        raise HTTPException(
+            status_code=403,
+            detail="This API key requires all requests to include an 'Origin' header."
+        )
+
+    # Normalize the incoming request origin and the list of allowed origins from the DB
+    normalized_request_origin = normalize_origin(origin)
+    normalized_allowed_origins = {normalize_origin(o) for o in key_allowed_origins}
+
+    # Perform the check
+    if not normalized_request_origin or normalized_request_origin not in normalized_allowed_origins:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Origin '{origin}' is not allowed for this API key."
+        )
+            
+    # --- End of Improved Section ---
     # If all checks pass, return the validated account ID and API key
     return {"account_unique_id": validated_account_id, "api_key": x_api_key}
 
