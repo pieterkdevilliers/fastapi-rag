@@ -321,7 +321,7 @@ def get_processed_docs_count_for_user_account(account_unique_id: str, session: S
     statement = (
         select(func.count())
         .select_from(SourceFile)
-        .where(SourceFile.account_unique_id == account_unique_id, already_processed_to_source_data=True)
+        .where(SourceFile.account_unique_id == account_unique_id, SourceFile.already_processed_to_source_data == True)
     )
     # The result of a count query is always a single integer.
     processed_docs_count = session.exec(statement).one()
