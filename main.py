@@ -1612,6 +1612,7 @@ async def get_dashboard_data(account_unique_id: str,
     print("chat_session_count: ", chat_session_count)
     print("questions_answered_count: ", questions_answered_count)
     print("processed_docs_count: ", processed_docs_count)
+    print("email_message_count: ", email_message_count)
 
     return {"chat_session_count": chat_session_count,
             "questions_answered_count": questions_answered_count,
