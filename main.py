@@ -499,6 +499,11 @@ async def widget_contact_us(
 
     if not chat_session_id:
         print(f"No chat session found for visitor UUID {payload.visitorUuid} in account {auth_info['account_unique_id']}.")
+        chat_session_id = create_or_identify_chat_session(
+            account_unique_id=auth_info["account_unique_id"],
+            visitor_uuid=payload.visitor_uuid,
+            session=session
+        )
     
     webhook_url = get_account_webhook_url(account_unique_id=auth_info["account_unique_id"], session=session)
     print("Webhook URL Found: ", webhook_url)
@@ -514,7 +519,7 @@ async def widget_contact_us(
     
     email_message = create_email_message(chat_session_id, payload.message, session)
     print('email_message: ', email_message)
-    
+
     chat_messages = get_chat_messages_by_session_id(
         chat_session_id=chat_session_id,
         session=session
