@@ -113,7 +113,7 @@ def get_questions_answered_count(account_unique_id: str, session: Session):
 
 def create_email_message(chat_session_id: int, message_text: str, session: Session) -> Optional[ChatSession]:
     """
-    Create a new chat message in the session
+    Create a new email message in the db
     """
     email_message = EmailMessage(
         chat_session_id=chat_session_id,
@@ -127,3 +127,19 @@ def create_email_message(chat_session_id: int, message_text: str, session: Sessi
 
     # Optionally return the updated email message
     return email_message
+
+
+def get_email_message_count(account_unique_id: str, session: Session):
+    """
+    Returns the number of email messages for the account in the last 30 days
+    """
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+
+    statement = select(func.count()).where(
+            EmailMessage.account_unique_id == account_unique_id,
+            EmailMessage.timestamp >= thirty_days_ago
+        )
+    
+    email_message_count = session.exec(statement).one()
+
+    return email_message_count
