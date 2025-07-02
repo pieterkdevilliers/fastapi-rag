@@ -503,7 +503,7 @@ async def widget_contact_us(
             account_unique_id=auth_info["account_unique_id"],
             visitor_uuid=payload.visitorUuid,
             session=session
-        )
+        ).id
     
     webhook_url = get_account_webhook_url(account_unique_id=auth_info["account_unique_id"], session=session)
     print("Webhook URL Found: ", webhook_url)
