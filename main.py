@@ -39,7 +39,8 @@ from authentication import oauth2_scheme, Token, authenticate_user, get_password
 from dependencies import get_session
 from chat_messages.models import ChatSession, ChatMessage
 from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
-    get_chat_messages_by_session_id, get_chat_session_count, get_questions_answered_count, create_email_message
+    get_chat_messages_by_session_id, get_chat_session_count, get_questions_answered_count, create_email_message, \
+    get_email_message_count
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
     process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, \
     process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
@@ -1606,6 +1607,7 @@ async def get_dashboard_data(account_unique_id: str,
     chat_session_count = get_chat_session_count(account_unique_id, session)
     questions_answered_count = get_questions_answered_count(account_unique_id, session)
     processed_docs_count = get_processed_docs_count_for_user_account(account_unique_id, session)
+    email_message_count = get_email_message_count(account_unique_id, session)
 
     print("chat_session_count: ", chat_session_count)
     print("questions_answered_count: ", questions_answered_count)
@@ -1613,4 +1615,5 @@ async def get_dashboard_data(account_unique_id: str,
 
     return {"chat_session_count": chat_session_count,
             "questions_answered_count": questions_answered_count,
-            "processed_docs_count": processed_docs_count}
+            "processed_docs_count": processed_docs_count,
+            "email_message_count": email_message_count}
