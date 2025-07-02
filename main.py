@@ -501,7 +501,7 @@ async def widget_contact_us(
         print(f"No chat session found for visitor UUID {payload.visitorUuid} in account {auth_info['account_unique_id']}.")
         chat_session_id = create_or_identify_chat_session(
             account_unique_id=auth_info["account_unique_id"],
-            visitor_uuid=payload.visitor_uuid,
+            visitor_uuid=payload.visitorUuid,
             session=session
         )
     
