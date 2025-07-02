@@ -39,3 +39,11 @@ class ChatMessage(ChatMessageBase, table=True):
     sender_type: str = Field(default="user", nullable=False)  # 'user' or 'bot'
     message_text: str = Field(nullable=False)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class EmailMessage(ChatMessageBase, table=True):
+    """
+    Model for just the email messages sent via the widget
+    """
+    message_text: str = Field(nullable=False)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

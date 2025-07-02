@@ -7,7 +7,7 @@ from sqlmodel import SQLModel
 from alembic import context
 from file_management.models import SourceFile, Folder
 from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
-from chat_messages.models import ChatSession, ChatMessage
+from chat_messages.models import ChatSession, ChatMessage, EmailMessage
 from core.models import Product, PasswordResetToken
 
 
