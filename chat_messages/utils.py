@@ -135,11 +135,16 @@ def get_email_message_count(account_unique_id: str, session: Session):
     """
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
 
-    statement = select(func.count()).where(
-            EmailMessage.account_unique_id == account_unique_id,
-            EmailMessage.timestamp >= thirty_days_ago
-        )
+    # Build a single statement that joins the tables
+    statement = select(func.count(EmailMessage.message_id)).join(ChatSession).where(
+        # Filter on the ChatSession table
+        ChatSession.account_unique_id == account_unique_id,
+        
+        # Filter on the EmailMessage table
+        EmailMessage.timestamp >= thirty_days_ago,
+    )
     
+    # Execute the single query and get the final integer count
     email_message_count = session.exec(statement).one()
 
     return email_message_count
