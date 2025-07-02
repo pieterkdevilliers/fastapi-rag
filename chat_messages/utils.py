@@ -1,5 +1,5 @@
 from sqlmodel import select, Session, func
-from chat_messages.models import ChatSession, ChatMessage
+from chat_messages.models import ChatSession, ChatMessage, EmailMessage
 from accounts.models import Account
 from typing import Optional
 from datetime import datetime, timezone, timedelta
@@ -109,3 +109,21 @@ def get_questions_answered_count(account_unique_id: str, session: Session):
     questions_answered_count = session.exec(statement).one()
 
     return questions_answered_count
+
+
+def create_email_message(chat_session_id: int, message_text: str, session: Session) -> Optional[ChatSession]:
+    """
+    Create a new chat message in the session
+    """
+    email_message = EmailMessage(
+        chat_session_id=chat_session_id,
+        message_text=message_text,
+        timestamp=datetime.now(timezone.utc)
+    )
+    
+    session.add(email_message)
+    session.commit()
+    session.refresh(email_message)
+
+    # Optionally return the updated email message
+    return email_message
