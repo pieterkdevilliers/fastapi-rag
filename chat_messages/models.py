@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
-from typing import Optional, TYPE_CHECKING
-from sqlmodel import Field, SQLModel, Relationship
+from typing import Optional, TYPE_CHECKING, List
+from sqlmodel import Field, SQLModel, Relationship, Column
+from sqlalchemy import JSON
 import uuid
 # Conditional import for type checking
 if TYPE_CHECKING:
@@ -39,6 +40,7 @@ class ChatMessage(ChatMessageBase, table=True):
     sender_type: str = Field(default="user", nullable=False)  # 'user' or 'bot'
     message_text: str = Field(nullable=False)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    source_files: List[str] = Field(default=[], sa_column=Column(JSON))
 
 
 class EmailMessage(ChatMessageBase, table=True):
