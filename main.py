@@ -1270,6 +1270,7 @@ class ChatMessagePayload(BaseModel):
     visitor_uuid: str
     sender_type: str  # 'user' or 'bot'
     message_text: str
+    sources: List[str]
 
 
 @app.post("/api/v1/widget/messages")
@@ -1298,7 +1299,7 @@ async def process_widget_message(
         raise HTTPException(status_code=500, detail="Failed to create or identify chat session")
 
     try:
-        chat_message = create_chat_message(chat_session.id, payload.message_text, payload.sender_type, session)
+        chat_message = create_chat_message(chat_session.id, payload.message_text, payload.sender_type, payload.sources, session)
     except Exception as e:
         print(f"Error creating chat message: {e}")
         raise HTTPException(status_code=500, detail="Failed to create chat message")

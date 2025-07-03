@@ -53,7 +53,7 @@ def get_chat_messages_by_session_id(chat_session_id: int, session: Session) -> l
     return chat_messages
 
 
-def create_chat_message(chat_session_id: int, message_text: str, sender_type: str, session: Session) -> Optional[ChatSession]:
+def create_chat_message(chat_session_id: int, message_text: str, sender_type: str, sources: list, session: Session) -> Optional[ChatSession]:
     """
     Create a new chat message in the session
     """
@@ -61,6 +61,7 @@ def create_chat_message(chat_session_id: int, message_text: str, sender_type: st
         chat_session_id=chat_session_id,
         message_text=message_text,
         sender_type=sender_type,
+        source_files=sources,
         timestamp=datetime.now(timezone.utc)
     )
     
