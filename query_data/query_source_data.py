@@ -18,6 +18,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 openai.api_key = os.environ['OPENAI_API_KEY']
+CHAT_MODEL_NAME = os.environ.get('OPENAI_CHAT_MODEL', 'gpt-3.5-turbo')
+print(f"Using OpenAI chat model: {CHAT_MODEL_NAME}")
 
 CHROMA_PATH = "chroma"
 ENVIRONMENT = os.environ.get('ENVIRONMENT')
@@ -206,7 +208,7 @@ def search_db(db, query, relevance_score, k_value, account_unique_id):
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(context=context_text, question=query)
 
-    model = ChatOpenAI()
+    model = ChatOpenAI(model=CHAT_MODEL_NAME)
     response_text = model.predict(prompt)
 
     # Collect source metadata from the first element of metadatas
