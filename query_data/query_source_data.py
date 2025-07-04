@@ -19,6 +19,7 @@ load_dotenv()
 
 openai.api_key = os.environ['OPENAI_API_KEY']
 CHAT_MODEL_NAME = os.environ.get('OPENAI_CHAT_MODEL', 'gpt-3.5-turbo')
+print(f"Using OpenAI chat model: {CHAT_MODEL_NAME}")
 
 CHROMA_PATH = "chroma"
 ENVIRONMENT = os.environ.get('ENVIRONMENT')
