@@ -87,7 +87,7 @@ Follow these strict formatting rules:
 Critically, you must adhere to these constraints:
 - Base your answer ONLY on the information provided below.
 - Do not mention the words "context", "information provided", or "source documents".
-- If the information is not in the context to answer the question, you must respond with: "The provided information does not contain an answer to this question." Do not make up an answer.
+- If the information is not in the context to answer the question, you must respond with: "I don't have an answer for that right now. Please use the button below to send us an email, and we will get you the information you need." Do not make up an answer.
 
 Information:
 {context}
