@@ -220,6 +220,13 @@ def process_stripe_subscription_deleted_event(event: dict, session: Session):
     return deleted_subscription
 
 
+def process_in_app_subscription_cancellation(subscription_id: str, session: Session):
+    """
+    Process In-App Subscription Cancellation
+    """
+    print("Processing In-App Subscription Cancellation: ", subscription_id)
+
+
 def add_account_unique_id_to_subscription(event: dict, session: Session):
     """
     Add account_unique_id to new subscription in db

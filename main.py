@@ -44,7 +44,7 @@ from chat_messages.utils import create_or_identify_chat_session, create_chat_mes
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
     process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, \
     process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
-    process_stripe_subscription_updated_event, process_stripe_subscription_deleted_event
+    process_stripe_subscription_updated_event, process_stripe_subscription_deleted_event, process_in_app_subscription_cancellation
 from core.models import Product, PasswordResetToken, ContactPayload
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
 from chroma_db_api import clear_chroma_db_datastore_for_replace
@@ -1593,6 +1593,20 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
         deleted_subscription = process_stripe_subscription_deleted_event(event, session)
     print(f"Received event: {event}")
     return {}
+
+
+@app.post("/api/v1/cancel-stripe-sub/{account_unique_id}/{subscription_id}")
+async def cancel_stripe_subscription(account_unique_id: str, subscription_id: str,
+                                     current_user: Annotated[User, Depends(get_current_active_user)],
+                                     session: Session = Depends(get_session)):
+    """
+    Cancel a Stripe Subscription - from the customer's in-app action
+    """
+    try:
+        process_in_app_subscription_cancellation(subscription_id, session)
+    except Exception as e:
+        print(f"Error cancelling subscription: {e}")
+        raise HTTPException(status_code=500, detail="Failed to cancel subscription")
 
 
 ############################################
