@@ -1604,6 +1604,7 @@ async def cancel_stripe_subscription(account_unique_id: str, subscription_id: st
     """
     try:
         process_in_app_subscription_cancellation(subscription_id, session)
+        print(f"Subscription {subscription_id} cancelled successfully for account {account_unique_id}")
     except Exception as e:
         print(f"Error cancelling subscription: {e}")
         raise HTTPException(status_code=500, detail="Failed to cancel subscription")

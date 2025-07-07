@@ -226,6 +226,29 @@ def process_in_app_subscription_cancellation(subscription_id: str, session: Sess
     """
     print("Processing In-App Subscription Cancellation: ", subscription_id)
 
+    stripe_subscription = stripe.Subscription.cancel(subscription_id)
+    print("Stripe Subscription Cancelled: ", stripe_subscription)
+    if not stripe_subscription:
+        return {"error": "Subscription not found or cancellation failed"}
+    
+    db_subscription = session.exec(
+        select(StripeSubscription).where(
+            StripeSubscription.stripe_subscription_id == subscription_id
+        )
+    ).first()
+    print("Database Subscription Retrieved: ", db_subscription)
+
+    if not db_subscription:
+        return {"error": "Subscription not found in database"}
+    
+    db_subscription.status = 'canceled'
+    db_subscription.current_period_end = datetime.fromtimestamp(
+        stripe_subscription['current_period_end'], tz=timezone.utc
+    )
+    session.add(db_subscription)
+    session.commit()
+    session.refresh(db_subscription)
+    return db_subscription
 
 def add_account_unique_id_to_subscription(event: dict, session: Session):
     """
