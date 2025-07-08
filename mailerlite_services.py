@@ -2,7 +2,6 @@ import os
 import mailerlite as MailerLite
 from sqlmodel import Session
 from accounts.utils import get_account_by_account_unique_id
-from accounts.models import User
 
 
 ACCOUNT_OWNERS_GROUP_ID = int(os.getenv("MAILERLITE_ACCOUNT_OWNERS_GROUP_ID"))
@@ -191,13 +190,11 @@ def sync_to_mailerlite(email: str, account_unique_id: str, user_type: str, sessi
         assign_subscriber_to_group(email=email, group_id=ACCOUNT_USERS_GROUP_ID)
 
 
-def delete_subscriber_from_mailerlite(user_id: int, account_unique_id: str, session: Session):
+def delete_subscriber_from_mailerlite(user_email: str, account_unique_id: str, session: Session):
     """
     Delete a User from Mailerlite
     """
-    user_email = session.get(User, user_id).user_email
-    if not user_email:
-        raise ValueError(f"User with ID {user_id} does not have an email address.")
+    
     try:
         delete_subscriber(email=user_email)
     except ValueError as e:
