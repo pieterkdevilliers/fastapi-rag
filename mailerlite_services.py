@@ -6,6 +6,10 @@ client = MailerLite.Client({
 })
 
 
+############################################
+# Subscriber Management
+############################################
+
 def add_subscriber(email: str, fields: dict = None):
     """
     Add a subscriber to MailerLite.
@@ -97,4 +101,47 @@ def forget_subscriber(email: str):
     return response
 
 
+############################################
+# Group Assignment Management
+############################################
 
+def assign_subscriber_to_group(email: str, group_id: int):
+    """
+    Add a subscriber to a group in MailerLite.
+
+    :param email: The email address of the subscriber.
+    :param group_id: The ID of the group to add the subscriber to.
+    :return: Response from MailerLite API.
+    """
+    subscriber = get_subscriber(email)
+    if not subscriber:
+        raise ValueError(f"Subscriber with email {email} not found.")
+    if 'data' not in subscriber or 'id' not in subscriber['data']:
+        raise ValueError(f"Unexpected response format for subscriber with email {email}.")
+
+    subscriber_id = int(subscriber['data']['id'])
+
+    response = client.subscribers.assign_subscriber_to_group(subscriber_id, group_id)
+
+    return response
+
+
+def unassign_subscriber_from_group(email: str, group_id: int):
+    """
+    Remove a subscriber from a group in MailerLite.
+
+    :param email: The email address of the subscriber.
+    :param group_id: The ID of the group to remove the subscriber from.
+    :return: Response from MailerLite API.
+    """
+    subscriber = get_subscriber(email)
+    if not subscriber:
+        raise ValueError(f"Subscriber with email {email} not found.")
+    if 'data' not in subscriber or 'id' not in subscriber['data']:
+        raise ValueError(f"Unexpected response format for subscriber with email {email}.")
+
+    subscriber_id = int(subscriber['data']['id'])
+
+    response = client.subscribers.unassign_subscriber_from_group(subscriber_id, group_id)
+
+    return response
