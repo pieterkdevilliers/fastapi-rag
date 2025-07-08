@@ -1240,8 +1240,8 @@ async def delete_user(account_unique_id: str, user_id: int,
     """
     Delete User
     """
-
-    delete_subscriber_from_mailerlite(user_id=user_id, account_unique_id=account_unique_id, session=session)
+    user_email = session.get(User, user_id).user_email
+    delete_subscriber_from_mailerlite(user_email=user_email, account_unique_id=account_unique_id, session=session)
 
     response = delete_user_from_db(account_unique_id, user_id, session)
     
