@@ -1,7 +1,6 @@
 import os
 import mailerlite as MailerLite
 from sqlmodel import Session
-from accounts.utils import get_account_by_account_unique_id
 
 
 ACCOUNT_OWNERS_GROUP_ID = int(os.getenv("MAILERLITE_ACCOUNT_OWNERS_GROUP_ID"))
@@ -165,16 +164,16 @@ def unassign_subscriber_from_group(email: str, group_id: int):
 # Integration Utilities
 ############################################
 
-def sync_to_mailerlite(email: str, account_unique_id: str, user_type: str, session: Session):
+def sync_to_mailerlite(email: str, company: str,account_unique_id: str, user_type: str, session: Session):
     """
     Sync a User to Mailerlite as a Subscriber
     Allows for First User as Account Owner
     """
-    company = get_account_by_account_unique_id(account_unique_id, session).account_organisation
     fields = {
         "company": company,
-        "account_unique_id": account_unique_id,}
-    
+        "account_unique_id": account_unique_id,
+    }
+
     subscriber = add_subscriber(email=email, fields=fields)
     if not subscriber:
         raise ValueError(f"Failed to add subscriber with email {email} to MailerLite.")
@@ -194,11 +193,11 @@ def delete_subscriber_from_mailerlite(user_email: str, account_unique_id: str, s
     """
     Delete a User from Mailerlite
     """
-    
+
     try:
         delete_subscriber(email=user_email)
     except ValueError as e:
         print(f"DEBUG: Error deleting subscriber {user_email} from MailerLite: {e}")
         return {"error": str(e)}
-    return {"response": "success", "user_id": user_id}
+    return {"response": "success", "user_email": user_email}
 
