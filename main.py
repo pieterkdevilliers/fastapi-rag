@@ -1188,7 +1188,8 @@ async def create_user(account_unique_id: str,
     user_password = get_password_hash(payload.user_password)
     user = create_new_user_in_db(payload.user_email, user_password, account_unique_id, session, receive_notifications)
     user_type = 'additional_user'
-    sync_to_mailerlite(email=payload.user_email, account_unique_id=account_unique_id, user_type=user_type, session=session)
+    company = get_account_by_account_unique_id(account_unique_id, session).account_organisation
+    sync_to_mailerlite(email=payload.user_email, company=company, account_unique_id=account_unique_id, user_type=user_type, session=session)
 
     return {"response": "success",
             "user": user,
