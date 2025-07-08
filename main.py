@@ -12,6 +12,7 @@ import shutil
 import boto3
 import convert_to_pdf
 import io
+from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite
 from aws_ses_service import EmailService, get_email_service
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request, Security, responses
@@ -1186,6 +1187,8 @@ async def create_user(account_unique_id: str,
     receive_notifications = False  # Default to False for subsequent users
     user_password = get_password_hash(payload.user_password)
     user = create_new_user_in_db(payload.user_email, user_password, account_unique_id, session, receive_notifications)
+    user_type = 'additional_user'
+    sync_to_mailerlite(email=payload.user_email, account_unique_id=account_unique_id, user_type=user_type, session=session)
 
     return {"response": "success",
             "user": user,
@@ -1203,6 +1206,8 @@ async def create_first_user(account_unique_id: str,
     receive_notifications = True  # Default to True for first user
     user_password = get_password_hash(payload.user_password)
     user = create_new_user_in_db(payload.user_email, user_password, account_unique_id, session, receive_notifications)
+    user_type = 'first_user'
+    sync_to_mailerlite(email=payload.user_email, account_unique_id=account_unique_id, user_type=user_type, session=session)
 
     return {"response": "success",
             "user": user,
@@ -1235,6 +1240,9 @@ async def delete_user(account_unique_id: str, user_id: int,
     """
     Delete User
     """
+
+    delete_subscriber_from_mailerlite(user_id=user_id, account_unique_id=account_unique_id, session=session)
+
     response = delete_user_from_db(account_unique_id, user_id, session)
     
     return {"response": "success",
