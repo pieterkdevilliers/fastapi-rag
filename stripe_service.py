@@ -2,7 +2,8 @@ import os
 import stripe
 from datetime import datetime, timezone
 from sqlmodel import select, Session
-from core.utils import create_product_in_db, update_product_in_db, create_stripe_subscription_in_db, update_stripe_subscription_in_db
+from core.utils import create_product_in_db, update_product_in_db, create_stripe_subscription_in_db, update_stripe_subscription_in_db, \
+    get_db_subscription_by_subscription_id
 from core.models import Product
 from accounts.models import StripeSubscription
 
@@ -138,6 +139,18 @@ def process_stripe_subscription_checkout_session_completed_event(event: dict, se
     stripe_subscription_id = session_data.get('subscription', '')
     account_unique_id = session_data.get('metadata', {}).get('account_unique_id', '')
 
+    stripe_subscription_in_db = get_db_subscription_by_subscription_id(stripe_subscription_id, session)
+
+    if stripe_subscription_in_db:
+        # If subscription already exists, update it
+        subscription = StripeSubscription(
+            account_unique_id=account_unique_id,
+            stripe_subscription_id=stripe_subscription_id,
+            stripe_customer_id=stripe_customer_id
+        )
+        updated_subscription = update_stripe_subscription_in_db(stripe_subscription_id, subscription, session)
+        return updated_subscription
+    
     subscription = StripeSubscription(
         account_unique_id=account_unique_id,
         stripe_subscription_id=stripe_subscription_id,
