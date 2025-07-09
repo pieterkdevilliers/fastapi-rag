@@ -74,3 +74,12 @@ def get_db_subscription_by_subscription_id(subscription_id: str, session: Sessio
     subscription = session.exec(select(StripeSubscription).where(StripeSubscription.stripe_subscription_id == subscription_id)).first()
     
     return subscription
+
+
+def get_db_subscription_by_customer_id(customer_id: str, session: Session):
+    """
+    Get sub object from db by customer id
+    """
+    subscription = session.exec(select(StripeSubscription).where(StripeSubscription.stripe_customer_id == customer_id)).first()
+    
+    return subscription
