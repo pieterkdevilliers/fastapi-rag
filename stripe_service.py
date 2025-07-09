@@ -102,6 +102,7 @@ def process_stripe_subscription_invoice_paid_event(event: dict, session: Session
     # db_subscription = get_db_subscription_by_customer_id(stripe_customer_id, session)
 
     if db_subscription:
+        print("DEBUG: Subscription already exists in DB, updating it.")
         subscription = StripeSubscription(
         stripe_subscription_id=stripe_subscription_id,
         type=type,
@@ -118,7 +119,7 @@ def process_stripe_subscription_invoice_paid_event(event: dict, session: Session
 
         return updated_subscription
     else:
-
+        print("DEBUG: Subscription does not exist in DB, creating a new one.")
         subscription = StripeSubscription(
             stripe_subscription_id=stripe_subscription_id,
             stripe_customer_id=stripe_customer_id,
