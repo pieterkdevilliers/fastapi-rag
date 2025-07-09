@@ -201,3 +201,36 @@ def delete_subscriber_from_mailerlite(user_email: str, account_unique_id: str, s
         return {"error": str(e)}
     return {"response": "success", "user_email": user_email}
 
+
+def update_active_customer_groups(email: str):
+    """
+    Update the groups for an active customer in MailerLite.
+    This is for new subscriptions
+    """
+    try:
+        unassign_subscriber_from_group(email=email, group_id=CUSTOMERS_CANCELLED_GROUP_ID)
+        unassign_subscriber_from_group(email=email, group_id=LEADS_NO_SUBSCRIPTION_GROUP_ID)
+        
+        assign_subscriber_to_group(email=email, group_id=CUSTOMERS_ACTIVE_GROUP_ID)
+        
+        return {"response": "success", "user_email": email}
+    except ValueError as e:
+        print(f"DEBUG: Error updating customer groups for {email}: {e}")
+        return {"error": str(e)}
+    
+
+def update_cancelled_customer_groups(email: str):
+    """
+    Update the groups for a cancelled customer in MailerLite.
+    This is for cancelled subscriptions
+    """
+    try:
+
+        unassign_subscriber_from_group(email=email, group_id=CUSTOMERS_ACTIVE_GROUP_ID)
+        
+        assign_subscriber_to_group(email=email, group_id=CUSTOMERS_CANCELLED_GROUP_ID)
+        
+        return {"response": "success", "user_email": email}
+    except ValueError as e:
+        print(f"DEBUG: Error updating customer groups for {email}: {e}")
+        return {"error": str(e)}

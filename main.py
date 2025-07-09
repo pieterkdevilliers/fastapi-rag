@@ -12,7 +12,7 @@ import shutil
 import boto3
 import convert_to_pdf
 import io
-from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite
+from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite, update_active_customer_groups, update_cancelled_customer_groups
 from aws_ses_service import EmailService, get_email_service
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request, Security, responses
@@ -45,7 +45,8 @@ from chat_messages.utils import create_or_identify_chat_session, create_chat_mes
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
     process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, \
     process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
-    process_stripe_subscription_updated_event, process_stripe_subscription_deleted_event, process_in_app_subscription_cancellation
+    process_stripe_subscription_updated_event, process_stripe_subscription_deleted_event, process_in_app_subscription_cancellation, \
+    get_stripe_customer_from_customer_id
 from core.models import Product, PasswordResetToken, ContactPayload
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
 from chroma_db_api import clear_chroma_db_datastore_for_replace
@@ -1582,10 +1583,12 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
 
     elif event["type"] == "invoice.paid":
         price_type = event["data"]["object"]["lines"]["data"][0]["price"]["type"]
+        customer_email = event["data"]["object"]["customer_email"]
         if price_type == "recurring":
             # Create initial subscription in DB
             subscription = process_stripe_subscription_invoice_paid_event(event, session)
             print(f"Created new subscription: {subscription.stripe_subscription_id} for account: {subscription.account_unique_id}")
+            update_active_customer_groups(email=customer_email)
         
     elif event["type"] == "checkout.session.completed":
         if event["data"]["object"]["mode"] == "subscription":
@@ -1603,6 +1606,10 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
 
     elif event["type"] == "customer.subscription.deleted":
         deleted_subscription = process_stripe_subscription_deleted_event(event, session)
+        customer_id = event["data"]["object"]["customer"]
+        customer = get_stripe_customer_from_customer_id(customer_id)
+        customer_email = customer.get('email', None)
+        update_cancelled_customer_groups(email=customer_email)
     print(f"Received event: {event}")
     return {}
 
