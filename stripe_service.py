@@ -93,13 +93,13 @@ def process_stripe_subscription_invoice_paid_event(event: dict, session: Session
     status = 'active'  # Assuming the status is active when the invoice is paid
     related_product_title = invoice_data.get('lines', {}).get('data', [{}])[0].get('description', {})
 
-    # db_subscription = session.exec(
-    #     select(StripeSubscription).where(
-    #         StripeSubscription.stripe_subscription_id == stripe_subscription_id
-    #     )
-    # ).first()
+    db_subscription = session.exec(
+        select(StripeSubscription).where(
+            StripeSubscription.stripe_customer_id == stripe_customer_id
+        )
+    ).first()
 
-    db_subscription = get_db_subscription_by_customer_id(stripe_customer_id, session)
+    # db_subscription = get_db_subscription_by_customer_id(stripe_customer_id, session)
 
     if db_subscription:
         subscription = StripeSubscription(
