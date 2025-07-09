@@ -3,7 +3,7 @@ import stripe
 from datetime import datetime, timezone
 from sqlmodel import select, Session
 from core.utils import create_product_in_db, update_product_in_db, create_stripe_subscription_in_db, update_stripe_subscription_in_db, \
-    get_db_subscription_by_subscription_id
+    get_db_subscription_by_customer_id
 from core.models import Product
 from accounts.models import StripeSubscription
 
@@ -93,11 +93,13 @@ def process_stripe_subscription_invoice_paid_event(event: dict, session: Session
     status = 'active'  # Assuming the status is active when the invoice is paid
     related_product_title = invoice_data.get('lines', {}).get('data', [{}])[0].get('description', {})
 
-    db_subscription = session.exec(
-        select(StripeSubscription).where(
-            StripeSubscription.stripe_subscription_id == stripe_subscription_id
-        )
-    ).first()
+    # db_subscription = session.exec(
+    #     select(StripeSubscription).where(
+    #         StripeSubscription.stripe_subscription_id == stripe_subscription_id
+    #     )
+    # ).first()
+
+    db_subscription = get_db_subscription_by_customer_id(stripe_customer_id, session)
 
     if db_subscription:
         subscription = StripeSubscription(
@@ -139,7 +141,7 @@ def process_stripe_subscription_checkout_session_completed_event(event: dict, se
     stripe_subscription_id = session_data.get('subscription', '')
     account_unique_id = session_data.get('metadata', {}).get('account_unique_id', '')
 
-    stripe_subscription_in_db = get_db_subscription_by_subscription_id(stripe_subscription_id, session)
+    stripe_subscription_in_db = get_db_subscription_by_customer_id(stripe_customer_id, session)
 
     if stripe_subscription_in_db:
         # If subscription already exists, update it
