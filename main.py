@@ -1587,7 +1587,7 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
         if price_type == "recurring":
             # Create initial subscription in DB
             subscription = process_stripe_subscription_invoice_paid_event(event, session)
-            print(f"Created new subscription: {subscription} for account: {subscription.account_unique_id}")
+            print(f"Created new subscription: {subscription}")
             update_active_customer_groups(email=customer_email)
         
     elif event["type"] == "checkout.session.completed":
