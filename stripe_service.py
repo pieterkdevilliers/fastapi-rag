@@ -107,7 +107,9 @@ def process_stripe_subscription_invoice_paid_event(event: dict, session: Session
         type=type,
         current_period_end=current_period_end,
         subscription_start=subscription_start,
-        related_product_title=related_product_title
+        related_product_title=related_product_title,
+        stripe_customer_id=stripe_customer_id,
+        status=status
         )
 
         updated_subscription = update_stripe_subscription_in_db(
