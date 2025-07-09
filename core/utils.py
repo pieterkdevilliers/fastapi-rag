@@ -55,7 +55,7 @@ def update_stripe_subscription_in_db(subscription_id: str, update_data: StripeSu
     subscription_in_db = session.exec(select(StripeSubscription).where(StripeSubscription.stripe_subscription_id == subscription_id)).first()
 
     if not subscription_in_db:
-        customer_id = update_data.get("stripe_customer_id")
+        customer_id = update_data.stripe_customer_id
         if not customer_id:
             return {"error": "Subscription ID or Customer ID is required for update"}
         subscription_in_db = session.exec(
