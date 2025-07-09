@@ -63,6 +63,7 @@ def update_stripe_subscription_in_db(subscription_id: str, update_data: StripeSu
     session.add(subscription_in_db)
     session.commit()
     session.refresh(subscription_in_db)
+    print(f"DEBUG: Updated subscription in DB: {subscription_in_db}")
 
     return subscription_in_db
 
