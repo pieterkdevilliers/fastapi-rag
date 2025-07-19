@@ -671,6 +671,16 @@ async def upload_files(
                 Body=file_content
             )
 
+            # 3.1 If excel, save a permanent copy of the original file in s3
+            if original_file.filename.lower().endswith(('.xls', '.xlsx')):
+                # Save a permanent copy of the original file in S3
+                permanent_s3_key = f"{account_unique_id}/{original_file.filename}"
+                s3.put_object(
+                    Bucket=BUCKET_NAME,
+                    Key=permanent_s3_key,
+                    Body=file_content
+                )
+
             # 4. Prepare the payload for the Lambda function. Pass the DB record ID.
             lambda_payload = {
                 "db_file_id": pending_db_file.id, # This is our job ID
