@@ -410,6 +410,7 @@ async def generate_chroma_db_datastore(account_unique_id: str,
             lambda_payload = {
                 "s3_bucket": BUCKET_NAME,
                 "s3_key": s3_key,
+                "s3_pdf_file_key": db_file.file_name,
                 "account_unique_id": account_unique_id,
             }
 

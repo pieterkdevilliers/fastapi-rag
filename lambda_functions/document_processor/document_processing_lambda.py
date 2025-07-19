@@ -49,6 +49,7 @@ class ChromaEmbeddingFunction(EmbeddingFunction):
 def handler(event, context):
     s3_bucket = event['s3_bucket']
     s3_key = event['s3_key']
+    s3_pdf_file_key = event['s3_pdf_file_key']
     account_unique_id = event.get('account_unique_id', s3_key.split('/')[0])
     print(f"Starting processing for s3://{s3_bucket}/{s3_key}")
     try:
@@ -57,7 +58,7 @@ def handler(event, context):
         # --- NEW LOGIC BRANCH FOR EXCEL FILES ---
         if file_extension in ['.xls', '.xlsx']:
             # For Excel, we parse directly into final chunks, skipping the split_text step.
-            chunks = parse_excel_to_chunks(file_content, s3_key)
+            chunks = parse_excel_to_chunks(file_content, s3_key, s3_pdf_file_key)
 
         else:
             text = parse_file_content(file_content, file_extension, s3_key)
@@ -192,7 +193,7 @@ def split_text(documents: list[Document]):
     return chunks
 
 
-def parse_excel_to_chunks(file_content: bytes, s3_key: str) -> list[Document]:
+def parse_excel_to_chunks(file_content: bytes, s3_key: str, s3_pdf_file_key: str) -> list[Document]:
     """
     Parses an Excel file and converts each row into a LangChain Document object.
     Each row becomes a separate chunk with its own metadata.
@@ -237,7 +238,8 @@ def parse_excel_to_chunks(file_content: bytes, s3_key: str) -> list[Document]:
 
             # Create rich metadata for each row
             row_metadata = {
-                "source": s3_key,
+                "excel_source": s3_key,
+                "source": s3_pdf_file_key,
                 "sheet_name": sheet_name,
                 # Add 2 to the index: +1 because index is 0-based, +1 for the header row
                 "row_number": index + 2 
