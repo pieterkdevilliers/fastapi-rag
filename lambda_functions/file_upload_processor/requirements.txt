@@ -3,3 +3,5 @@ requests
 weasyprint
 awslambdaric
 markdown-it-py
+pandas
+openpyxl

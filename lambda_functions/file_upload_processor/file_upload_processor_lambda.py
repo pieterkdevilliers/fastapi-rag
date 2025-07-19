@@ -95,6 +95,12 @@ def lambda_handler(event, context):
                 convert_to_pdf.convert_markdown_to_pdf(decoded_content, converted_pdf_path)
                 with open(converted_pdf_path, 'rb') as f_pdf:
                     pdf_content_bytes = f_pdf.read()
+
+            elif original_file_ext in ['xls', 'xlsx']:
+                print(f"Detected Excel file '{original_filename}'. Converting to PDF...")
+                # Call the new function from your utility module
+                pdf_content_bytes = convert_to_pdf.convert_excel_to_pdf_bytes(download_path)
+                print("Excel to PDF conversion successful.")
             
             else:
                 raise ValueError(f"File type '.{original_file_ext}' is not supported for PDF conversion.")

@@ -4,6 +4,7 @@ import tempfile
 import shutil
 from weasyprint import HTML, CSS
 from markdown_it import MarkdownIt
+import pandas as pd
 
 def convert_to_html_pandoc(input_path: str, output_dir: str, input_format: str = "docx") -> str:
     """Converts a document to HTML using Pandoc.
@@ -151,3 +152,62 @@ def convert_markdown_to_pdf(md_content: str, output_path: str):
     # Add basic HTML structure if not already present from markdown rendering for WeasyPrint
     full_html = f"<html><head><meta charset='UTF-8'></head><body>{html_content}</body></html>"
     HTML(string=full_html).write_pdf(output_path)
+
+
+def convert_excel_to_pdf_bytes(input_excel_path: str) -> bytes:
+    """
+    Reads an Excel file (.xls or .xlsx), converts each sheet to a styled
+    HTML table, and renders the result as PDF bytes using WeasyPrint.
+
+    :param input_excel_path: The local file path to the downloaded Excel file.
+    :return: The content of the generated PDF as a bytes object.
+    """
+    try:
+        xls = pd.ExcelFile(input_excel_path)
+    except Exception as e:
+        raise ValueError(f"Failed to read Excel file. It may be corrupt or an unsupported format. Error: {e}")
+
+    # Start building the HTML document in memory
+    html_parts = [
+        "<html><head><title>Spreadsheet</title><style>",
+        "body { font-family: sans-serif; }",
+        # Style for tables to make them look clean and readable
+        "table { border-collapse: collapse; width: 100%; margin-bottom: 25px; font-size: 10pt; }",
+        "th, td { border: 1px solid #cccccc; padding: 6px; text-align: left; word-wrap: break-word; max-width: 250px; }",
+        "th { background-color: #f2f2f2; font-weight: bold; }",
+        # Style for sheet titles, ensuring each new sheet starts on a new page
+        "h1 { font-size: 16pt; page-break-before: always; }",
+        # Prevent a page break before the very first sheet
+        "h1:first-of-type { page-break-before: auto; }",
+        "</style></head><body>"
+    ]
+
+    if not xls.sheet_names:
+        raise ValueError("The provided Excel file has no sheets.")
+
+    # Iterate over each sheet in the Excel file
+    for sheet_name in xls.sheet_names:
+        df = pd.read_excel(xls, sheet_name=sheet_name)
+        # Skip empty sheets
+        if df.empty:
+            continue
+        
+        # Add a title for the sheet
+        html_parts.append(f"<h1>Sheet: {sheet_name}</h1>")
+        # Convert the pandas DataFrame to an HTML table string
+        # index=False prevents writing the pandas index
+        # na_rep='' replaces NaN values with an empty string for a cleaner look
+        html_parts.append(df.to_html(index=False, na_rep=''))
+
+    html_parts.append("</body></html>")
+    full_html_string = "".join(html_parts)
+
+    # Use WeasyPrint to convert the final HTML string to PDF bytes directly
+    try:
+        pdf_bytes = HTML(string=full_html_string).write_pdf()
+        if not pdf_bytes:
+            raise ValueError("WeasyPrint returned empty PDF bytes from Excel conversion.")
+        return pdf_bytes
+    except Exception as e:
+        # Catch potential WeasyPrint errors
+        raise Exception(f"WeasyPrint failed to render PDF from Excel-generated HTML. Error: {e}")
