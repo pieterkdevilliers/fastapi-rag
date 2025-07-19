@@ -10,3 +10,5 @@ markdown
 langchain
 langchain-openai
 tiktoken
+pandas
+openpyxl

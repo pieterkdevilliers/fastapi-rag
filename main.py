@@ -400,7 +400,10 @@ async def generate_chroma_db_datastore(account_unique_id: str,
         print(f"Loaded {len(documents_from_s3)} documents from S3 based on DB query.")
         for db_file in documents_from_s3:
             # Construct S3 key (path in S3) using account_unique_id and file name
-            s3_key = f"{account_unique_id}/{db_file.file_name}"
+            if db_file.original_filename.endswith('.xls') or db_file.original_filename.endswith('.xlsx'):
+                s3_key = f"{account_unique_id}/{db_file.original_filename}"
+            else:
+                s3_key = f"{account_unique_id}/{db_file.file_name}"
             print(f"Attempting to trigger Lambda for file: {s3_key}")
 
             # The payload our Lambda expects
