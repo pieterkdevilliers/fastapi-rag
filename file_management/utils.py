@@ -202,7 +202,9 @@ async def delete_file_from_s3(account_unique_id: str, file, session: Session):
         raise HTTPException(status_code=404, detail={"error": "file_path not found in DB", "file_path": file_path})
     
     s3_object_key = f"{file.account_unique_id}/{file.file_name}"
-    original_file_name_for_logging = file.file_name # For logging/response
+    original_file_name = file.original_filename
+    if original_file_name.endswith('.xls') or original_file_name.endswith('.xlsx'):
+        excel_object_key = f"{file.account_unique_id}/{original_file_name}"
     
     if not s3 or not BUCKET_NAME: # Basic check
         # Log this critical misconfiguration
@@ -212,6 +214,9 @@ async def delete_file_from_s3(account_unique_id: str, file, session: Session):
     try:
         s3.delete_object(Bucket=BUCKET_NAME, Key=s3_object_key)
         logger.info(f"Successfully deleted {s3_object_key} from bucket {BUCKET_NAME}")
+        if original_file_name.endswith('.xls') or original_file_name.endswith('.xlsx'):
+            s3.delete_object(Bucket=BUCKET_NAME, Key=excel_object_key)
+            logger.info(f"Successfully deleted {excel_object_key} from bucket {BUCKET_NAME}")
         return True
 
     except ClientError as e:
