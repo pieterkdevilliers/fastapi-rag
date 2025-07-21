@@ -5,6 +5,7 @@ import shutil
 from weasyprint import HTML, CSS
 from markdown_it import MarkdownIt
 import pandas as pd
+import numpy as np
 
 def convert_to_html_pandoc(input_path: str, output_dir: str, input_format: str = "docx") -> str:
     """Converts a document to HTML using Pandoc.
@@ -154,30 +155,38 @@ def convert_markdown_to_pdf(md_content: str, output_path: str):
     HTML(string=full_html).write_pdf(output_path)
 
 
+def find_best_header_row(df_raw, max_rows_to_scan=10):
+    best_header_index = -1
+    max_non_null_count = -1
+    rows_to_scan = min(len(df_raw), max_rows_to_scan)
+    for i in range(rows_to_scan):
+        row = df_raw.iloc[i]
+        non_null_count = row.notna().sum()
+        if non_null_count >= 2 and non_null_count > max_non_null_count:
+            max_non_null_count = non_null_count
+            best_header_index = i
+    return best_header_index
+
+
 def convert_excel_to_pdf_bytes(input_excel_path: str) -> bytes:
     """
     Reads an Excel file (.xls or .xlsx), converts each sheet to a styled
     HTML table, and renders the result as PDF bytes using WeasyPrint.
-
-    :param input_excel_path: The local file path to the downloaded Excel file.
-    :return: The content of the generated PDF as a bytes object.
+    This version correctly identifies the header row and handles empty/merged header cells.
     """
     try:
         xls = pd.ExcelFile(input_excel_path)
     except Exception as e:
         raise ValueError(f"Failed to read Excel file. It may be corrupt or an unsupported format. Error: {e}")
 
-    # Start building the HTML document in memory
+    # (HTML styling parts remain the same)
     html_parts = [
         "<html><head><title>Spreadsheet</title><style>",
         "body { font-family: sans-serif; }",
-        # Style for tables to make them look clean and readable
         "table { border-collapse: collapse; width: 100%; margin-bottom: 25px; font-size: 10pt; }",
         "th, td { border: 1px solid #cccccc; padding: 6px; text-align: left; word-wrap: break-word; max-width: 250px; }",
         "th { background-color: #f2f2f2; font-weight: bold; }",
-        # Style for sheet titles, ensuring each new sheet starts on a new page
         "h1 { font-size: 16pt; page-break-before: always; }",
-        # Prevent a page break before the very first sheet
         "h1:first-of-type { page-break-before: auto; }",
         "</style></head><body>"
     ]
@@ -185,29 +194,43 @@ def convert_excel_to_pdf_bytes(input_excel_path: str) -> bytes:
     if not xls.sheet_names:
         raise ValueError("The provided Excel file has no sheets.")
 
-    # Iterate over each sheet in the Excel file
     for sheet_name in xls.sheet_names:
-        df = pd.read_excel(xls, sheet_name=sheet_name)
-        # Skip empty sheets
+        # --- REPLACE THE OLD LOGIC WITH THIS NEW BLOCK ---
+        
+        df_raw = pd.read_excel(xls, sheet_name=sheet_name, header=None)
+        header_index = find_best_header_row(df_raw)
+
+        if header_index == -1:
+            continue
+            
+        new_header = df_raw.iloc[header_index].copy()
+        df = df_raw.iloc[header_index + 1:].copy()
+        
+        new_header.fillna('', inplace=True)
+        df.columns = new_header
+        
+        df.dropna(axis=1, how='all', inplace=True)
+        if '' in df.columns:
+            df.drop(columns=[''], inplace=True)
+        
+        df.reset_index(drop=True, inplace=True)
+        
+        # --- END OF REPLACEMENT BLOCK ---
+
         if df.empty:
             continue
         
-        # Add a title for the sheet
         html_parts.append(f"<h1>Sheet: {sheet_name}</h1>")
-        # Convert the pandas DataFrame to an HTML table string
-        # index=False prevents writing the pandas index
-        # na_rep='' replaces NaN values with an empty string for a cleaner look
-        html_parts.append(df.to_html(index=False, na_rep=''))
+        html_parts.append(df.to_html(index=False, na_rep='')) # na_rep='' for clean output
 
+    # (Rest of the function is the same)
     html_parts.append("</body></html>")
     full_html_string = "".join(html_parts)
 
-    # Use WeasyPrint to convert the final HTML string to PDF bytes directly
     try:
         pdf_bytes = HTML(string=full_html_string).write_pdf()
         if not pdf_bytes:
             raise ValueError("WeasyPrint returned empty PDF bytes from Excel conversion.")
         return pdf_bytes
     except Exception as e:
-        # Catch potential WeasyPrint errors
         raise Exception(f"WeasyPrint failed to render PDF from Excel-generated HTML. Error: {e}")

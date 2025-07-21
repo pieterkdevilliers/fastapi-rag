@@ -20,8 +20,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from langchain_openai import OpenAIEmbeddings
 from chromadb.api.types import EmbeddingFunction
-from typing import Optional
+from typing import Optional, List
 import pandas as pd
+import numpy as np
 
 
 # --- Configuration (Loaded from Lambda Environment Variables) ---
@@ -193,61 +194,100 @@ def split_text(documents: list[Document]):
     return chunks
 
 
-def parse_excel_to_chunks(file_content: bytes, s3_key: str, s3_pdf_file_key: str) -> list[Document]:
+def find_best_header_row(df_raw, max_rows_to_scan=10):
+    """
+    Scans the first few rows of a raw DataFrame to find the best candidate for a header row.
+    The "best" row is the one with the most non-null values.
+    """
+    best_header_index = -1
+    max_non_null_count = -1
+
+    # Limit scan to the first N rows or total rows if fewer
+    rows_to_scan = min(len(df_raw), max_rows_to_scan)
+
+    for i in range(rows_to_scan):
+        row = df_raw.iloc[i]
+        non_null_count = row.notna().sum()
+        
+        # A good header should have at least 2 columns
+        if non_null_count >= 2 and non_null_count > max_non_null_count:
+            max_non_null_count = non_null_count
+            best_header_index = i
+            
+    return best_header_index
+
+
+def parse_excel_to_chunks(file_content: bytes, s3_key: str, s3_pdf_file_key: str) -> List[Document]:
     """
     Parses an Excel file and converts each row into a LangChain Document object.
-    Each row becomes a separate chunk with its own metadata.
-
-    :param file_content: The byte content of the .xls or .xlsx file.
-    :param s3_key: The S3 key of the source file for metadata.
-    :return: A list of LangChain Document objects.
+    This version uses a robust algorithm to find the true header row, ignoring titles.
     """
-    print(f"Parsing Excel file {s3_key} with pandas...")
+    print(f"Parsing Excel file {s3_key} with pandas for chunking...")
     all_chunks = []
     
     try:
-        # Use ExcelFile to be able to access all sheets
         xls = pd.ExcelFile(io.BytesIO(file_content))
     except Exception as e:
-        print(f"Pandas could not read the Excel file {s3_key}. It might be corrupt or password-protected. Error: {e}")
+        print(f"Pandas could not read the Excel file {s3_key}. Error: {e}")
         return []
 
     for sheet_name in xls.sheet_names:
         print(f"Processing sheet: '{sheet_name}'")
-        df = pd.read_excel(xls, sheet_name=sheet_name)
+
+        # --- START OF NEW "FIND BEST HEADER" LOGIC ---
         
-        # Filter out completely empty rows
+        df_raw = pd.read_excel(xls, sheet_name=sheet_name, header=None)
+        
+        # Use our intelligent function to find the real header row index
+        header_index = find_best_header_row(df_raw)
+
+        if header_index == -1:
+            print(f"Skipping sheet '{sheet_name}': could not find a suitable header row.")
+            continue
+            
+        print(f"Found best header candidate on row {header_index} for sheet '{sheet_name}'.")
+
+        # Get the header and the data using the determined index
+        new_header = df_raw.iloc[header_index].copy()
+        df = df_raw.iloc[header_index + 1:].copy()
+        
+        # Clean the header (handle NaNs, but no longer need ffill)
+        new_header.fillna('', inplace=True)
+        df.columns = new_header
+        
+        # Drop columns that are completely empty or have an empty name
+        df.dropna(axis=1, how='all', inplace=True)
+        if '' in df.columns:
+            df.drop(columns=[''], inplace=True)
+        
+        df.reset_index(drop=True, inplace=True)
+        
+        # --- END OF NEW "FIND BEST HEADER" LOGIC ---
+
         df.dropna(how='all', inplace=True)
         if df.empty:
             continue
 
-        # Iterate over each row in the DataFrame
         for index, row in df.iterrows():
-            # Convert the row to a descriptive string format
-            # e.g., "Column1: Value1, Column2: Value2, ..."
             row_text_parts = []
             for col, val in row.items():
-                if pd.notna(val) and str(val).strip(): # Ensure value is not null/empty
+                if pd.notna(col) and str(col).strip() and pd.notna(val) and str(val).strip():
                     row_text_parts.append(f"{col}: {val}")
             
             row_text = ", ".join(row_text_parts)
 
-            # Skip if the row ended up being empty after processing
             if not row_text:
                 continue
 
-            # Create rich metadata for each row
             row_metadata = {
                 "excel_source": s3_key,
                 "source": s3_pdf_file_key,
                 "sheet_name": sheet_name,
-                # Add 2 to the index: +1 because index is 0-based, +1 for the header row
-                "row_number": index + 2 
+                "row_number": header_index + index + 2
             }
             
-            # Create a LangChain Document for this single row
             chunk = Document(page_content=row_text, metadata=row_metadata)
             all_chunks.append(chunk)
 
-    print(f"Generated {len(all_chunks)} chunks directly from Excel file {s3_key}.")
+    print(f"Generated {len(all_chunks)} chunks from Excel file {s3_key}.")
     return all_chunks
