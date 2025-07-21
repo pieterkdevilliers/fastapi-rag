@@ -170,33 +170,59 @@ def find_best_header_row(df_raw, max_rows_to_scan=10):
 
 def convert_excel_to_pdf_bytes(input_excel_path: str) -> bytes:
     """
-    Reads an Excel file (.xls or .xlsx), converts each sheet to a styled
-    HTML table, and renders the result as PDF bytes using WeasyPrint.
-    This version correctly identifies the header row and handles empty/merged header cells.
+    Reads an Excel file, converts each sheet to a styled HTML table,
+    and renders the result as a PDF. This version includes CSS enhancements
+    to handle wide tables by using landscape orientation and aggressive text wrapping.
     """
     try:
         xls = pd.ExcelFile(input_excel_path)
     except Exception as e:
-        raise ValueError(f"Failed to read Excel file. It may be corrupt or an unsupported format. Error: {e}")
+        raise ValueError(f"Failed to read Excel file. Error: {e}")
 
-    # (HTML styling parts remain the same)
+    # --- START OF CSS ENHANCEMENTS ---
     html_parts = [
         "<html><head><title>Spreadsheet</title><style>",
+        
+        # Strategy 1: Use landscape orientation and smaller margins for more space.
+        "@page { size: A4 landscape; margin: 1cm; }",
+        
         "body { font-family: sans-serif; }",
-        "table { border-collapse: collapse; width: 100%; margin-bottom: 25px; font-size: 10pt; }",
-        "th, td { border: 1px solid #cccccc; padding: 6px; text-align: left; word-wrap: break-word; max-width: 250px; }",
+        
+        "table {",
+        "  border-collapse: collapse;",
+        "  width: 100%;",
+        "  margin-bottom: 25px;",
+        
+        # Strategy 2: Reduce the font size slightly.
+        "  font-size: 8pt;",
+        
+        # Strategy 3 (Part 1): Force the table to obey the page width.
+        "  table-layout: fixed;",
+        "}",
+        
+        "th, td {",
+        "  border: 1px solid #cccccc;",
+        "  padding: 4px;",
+        "  text-align: left;",
+        
+        # Strategy 3 (Part 2): Force long text to wrap aggressively.
+        "  overflow-wrap: break-word;",
+        "  word-wrap: break-word;",
+        "}",
+
         "th { background-color: #f2f2f2; font-weight: bold; }",
         "h1 { font-size: 16pt; page-break-before: always; }",
         "h1:first-of-type { page-break-before: auto; }",
         "</style></head><body>"
     ]
+    # --- END OF CSS ENHANCEMENTS ---
 
     if not xls.sheet_names:
         raise ValueError("The provided Excel file has no sheets.")
 
     for sheet_name in xls.sheet_names:
-        # --- REPLACE THE OLD LOGIC WITH THIS NEW BLOCK ---
-        
+        # The logic for finding the header and processing the DataFrame is IDENTICAL
+        # to the previous version and does not need to change.
         df_raw = pd.read_excel(xls, sheet_name=sheet_name, header=None)
         header_index = find_best_header_row(df_raw)
 
@@ -215,15 +241,13 @@ def convert_excel_to_pdf_bytes(input_excel_path: str) -> bytes:
         
         df.reset_index(drop=True, inplace=True)
         
-        # --- END OF REPLACEMENT BLOCK ---
-
         if df.empty:
             continue
         
         html_parts.append(f"<h1>Sheet: {sheet_name}</h1>")
-        html_parts.append(df.to_html(index=False, na_rep='')) # na_rep='' for clean output
+        html_parts.append(df.to_html(index=False, na_rep=''))
 
-    # (Rest of the function is the same)
+    # (The rest of the function remains the same)
     html_parts.append("</body></html>")
     full_html_string = "".join(html_parts)
 
