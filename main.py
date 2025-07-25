@@ -100,7 +100,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     """
     Login for Access Token
     """
-    user = authenticate_user(form_data.username, form_data.password, session=session)
+    user = authenticate_user(form_data.username.lower(), form_data.password, session=session)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -1208,7 +1208,7 @@ async def create_user(account_unique_id: str,
 
     return {"response": "success",
             "user": user,
-            "user_email": user.user_email,
+            "user_email": user.user_email.lower(),
             "user_id": user.id}
 
 
@@ -1230,7 +1230,7 @@ async def create_first_user(account_unique_id: str,
 
     return {"response": "success",
             "user": user,
-            "user_email": user.user_email,
+            "user_email": user.user_email.lower(),
             "user_id": user.id}
 
 
