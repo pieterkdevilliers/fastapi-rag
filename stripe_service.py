@@ -15,124 +15,129 @@ def process_stripe_product_created_event(event: dict, session: Session):
     """
     Process Stripe Product Created Event
     """
-    product_data = event.get('data', {}).get('object', {})
-    product_id = product_data.get('id', '')
     product_title = product_data.get('name', '')
-    product_description = product_data.get('description', '')
-    product_statement_descriptor = product_data.get('statement_descriptor', '')
-    product_price = 0
-    product_plan_cycle = ''
-    price_id = product_data.get('default_price', '')
-    if price_id:
-        price_object = get_stripe_price_object_from_price_id(price_id)
+    if "YourDocsAI" in product_title:
+        product_data = event.get('data', {}).get('object', {})
+        product_id = product_data.get('id', '')
+        product_description = product_data.get('description', '')
+        product_statement_descriptor = product_data.get('statement_descriptor', '')
+        product_price = 0
+        product_plan_cycle = ''
+        price_id = product_data.get('default_price', '')
+        if "YourDocsAI" in product_title:
+        if price_id:
+            price_object = get_stripe_price_object_from_price_id(price_id)
 
-        product_price = price_object.get('unit_amount', 0) / 100.0  # Convert cents to dollars
-        product_plan_cycle = price_object.get('recurring', {}).get('interval', '')
-    
+            product_price = price_object.get('unit_amount', 0) / 100.0  # Convert cents to dollars
+            product_plan_cycle = price_object.get('recurring', {}).get('interval', '')
+        
 
-    product = Product(
-        product_id=product_id,
-        product_title=product_title,
-        product_description=product_description,
-        product_statement_descriptor=product_statement_descriptor,
-        product_price=product_price,
-        product_plan_cycle=product_plan_cycle,
-        price_id=price_id
-    )
+        product = Product(
+            product_id=product_id,
+            product_title=product_title,
+            product_description=product_description,
+            product_statement_descriptor=product_statement_descriptor,
+            product_price=product_price,
+            product_plan_cycle=product_plan_cycle,
+            price_id=price_id
+        )
 
-    new_product = create_product_in_db(product, session)
+        new_product = create_product_in_db(product, session)
 
-    return new_product
+        return new_product
 
 
 def process_stripe_product_updated_event(event: dict, session: Session):
     """
     Process Stripe Product Updated Event
     """
-    
-    product_data = event.get('data', {}).get('object', {})
-    product_id = product_data.get('id', '')
     product_title = product_data.get('name', '')
-    product_description = product_data.get('description', '')
-    product_statement_descriptor = product_data.get('statement_descriptor', '')
+    if "YourDocsAI" in product_title:
+        product_data = event.get('data', {}).get('object', {})
+        product_id = product_data.get('id', '')
+        product_title = product_data.get('name', '')
+        product_description = product_data.get('description', '')
+        product_statement_descriptor = product_data.get('statement_descriptor', '')
 
-    price_id = product_data.get('default_price', '')
-    price_object = get_stripe_price_object_from_price_id(price_id)
+        price_id = product_data.get('default_price', '')
+        price_object = get_stripe_price_object_from_price_id(price_id)
 
-    product_price = price_object.get('unit_amount', 0) / 100.0  # Convert cents to dollars
-    product_plan_cycle = price_object.get('recurring', {}).get('interval', '')
+        product_price = price_object.get('unit_amount', 0) / 100.0  # Convert cents to dollars
+        product_plan_cycle = price_object.get('recurring', {}).get('interval', '')
 
-    
-    product = Product(
-        product_id=product_id,
-        product_title=product_title,
-        product_description=product_description,
-        product_statement_descriptor=product_statement_descriptor,
-        product_price=product_price,
-        product_plan_cycle=product_plan_cycle,
-        price_id=price_id
-    )
+        
+        product = Product(
+            product_id=product_id,
+            product_title=product_title,
+            product_description=product_description,
+            product_statement_descriptor=product_statement_descriptor,
+            product_price=product_price,
+            product_plan_cycle=product_plan_cycle,
+            price_id=price_id
+        )
 
-    updated_product = update_product_in_db(product_id, product, session)
+        updated_product = update_product_in_db(product_id, product, session)
 
-    return updated_product
+        return updated_product
 
 
 def process_stripe_subscription_invoice_paid_event(event: dict, session: Session):
     """
     Process Stripe Invoice Paid Event
     """
-    invoice_data = event.get('data', {}).get('object', {})
-    stripe_subscription_id = invoice_data.get('subscription', '')
-    stripe_customer_id = invoice_data.get('customer', '')
-    type = invoice_data.get('lines', {}).get('data', [{}])[0].get('price', {}).get('recurring', {}).get('interval', '')
-    current_period_end = invoice_data.get('lines', {}).get('data', [{}])[0].get('period', {}).get('end', 0)
-    current_period_end = datetime.fromtimestamp(current_period_end, tz=timezone.utc)
-    subscription_start = invoice_data.get('lines', {}).get('data', [{}])[0].get('period', {}).get('start', 0)
-    subscription_start = datetime.fromtimestamp(subscription_start, tz=timezone.utc)
-    status = 'active'  # Assuming the status is active when the invoice is paid
     related_product_title = invoice_data.get('lines', {}).get('data', [{}])[0].get('description', {})
+    if "YourDocsAI" in related_product_title:
+        invoice_data = event.get('data', {}).get('object', {})
+        stripe_subscription_id = invoice_data.get('subscription', '')
+        stripe_customer_id = invoice_data.get('customer', '')
+        type = invoice_data.get('lines', {}).get('data', [{}])[0].get('price', {}).get('recurring', {}).get('interval', '')
+        current_period_end = invoice_data.get('lines', {}).get('data', [{}])[0].get('period', {}).get('end', 0)
+        current_period_end = datetime.fromtimestamp(current_period_end, tz=timezone.utc)
+        subscription_start = invoice_data.get('lines', {}).get('data', [{}])[0].get('period', {}).get('start', 0)
+        subscription_start = datetime.fromtimestamp(subscription_start, tz=timezone.utc)
+        status = 'active'  # Assuming the status is active when the invoice is paid
+        
 
-    db_subscription = session.exec(
-        select(StripeSubscription).where(
-            StripeSubscription.stripe_customer_id == stripe_customer_id
-        )
-    ).first()
+        db_subscription = session.exec(
+            select(StripeSubscription).where(
+                StripeSubscription.stripe_customer_id == stripe_customer_id
+            )
+        ).first()
 
-    # db_subscription = get_db_subscription_by_customer_id(stripe_customer_id, session)
+        # db_subscription = get_db_subscription_by_customer_id(stripe_customer_id, session)
 
-    if db_subscription:
-        print("DEBUG: Subscription already exists in DB, updating it.")
-        subscription = StripeSubscription(
-        stripe_subscription_id=stripe_subscription_id,
-        type=type,
-        current_period_end=current_period_end,
-        subscription_start=subscription_start,
-        related_product_title=related_product_title,
-        stripe_customer_id=stripe_customer_id,
-        status=status
-        )
-
-        updated_subscription = update_stripe_subscription_in_db(
-            stripe_subscription_id, subscription, session
-        )
-
-        return updated_subscription
-    else:
-        print("DEBUG: Subscription does not exist in DB, creating a new one.")
-        subscription = StripeSubscription(
+        if db_subscription:
+            print("DEBUG: Subscription already exists in DB, updating it.")
+            subscription = StripeSubscription(
             stripe_subscription_id=stripe_subscription_id,
-            stripe_customer_id=stripe_customer_id,
             type=type,
             current_period_end=current_period_end,
             subscription_start=subscription_start,
-            status=status,
-            related_product_title=related_product_title
-        )
+            related_product_title=related_product_title,
+            stripe_customer_id=stripe_customer_id,
+            status=status
+            )
 
-        new_subscription = create_stripe_subscription_in_db(subscription, session)
+            updated_subscription = update_stripe_subscription_in_db(
+                stripe_subscription_id, subscription, session
+            )
 
-        return new_subscription
+            return updated_subscription
+        else:
+            print("DEBUG: Subscription does not exist in DB, creating a new one.")
+            subscription = StripeSubscription(
+                stripe_subscription_id=stripe_subscription_id,
+                stripe_customer_id=stripe_customer_id,
+                type=type,
+                current_period_end=current_period_end,
+                subscription_start=subscription_start,
+                status=status,
+                related_product_title=related_product_title
+            )
+
+            new_subscription = create_stripe_subscription_in_db(subscription, session)
+
+            return new_subscription
 
 
 def process_stripe_subscription_checkout_session_completed_event(event: dict, session: Session):
