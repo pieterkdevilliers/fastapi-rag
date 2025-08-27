@@ -363,7 +363,7 @@ async def process_widget_query(
     chat_history = session.exec(
         select(ChatMessage)
         .where(ChatMessage.chat_session_id == chat_session.id)
-        .order_by(ChatMessage.created_at)
+        .order_by(ChatMessage.timestamp)
     ).all()
 
     # Add the new user query to chat history
