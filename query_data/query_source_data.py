@@ -4,7 +4,7 @@ import requests
 # from dataclasses import dataclass
 from sqlmodel import select, Session
 from accounts.models import Account
-from typing import List
+from typing import List, Optional, Dict, Any
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
@@ -122,7 +122,10 @@ Question: {question}
 Answer:
 """
 
-def prepare_db_and_perform_query(query, account_unique_id, session: Session):
+def prepare_db_and_perform_query(query,
+                                 account_unique_id,
+                                 session: Session,
+                                 chat_history: list = None):
     """
     Main function performing the query"""
 
@@ -137,12 +140,15 @@ def prepare_db_and_perform_query(query, account_unique_id, session: Session):
 
     db = prepare_db(account_unique_id)
 
-    result = search_db(db, query_text, relevance_score, k_value, account_unique_id)
+    result = search_db(db, query_text, relevance_score, k_value, account_unique_id, chat_history=chat_history)
 
     return result
 
 
-def query_source_data(query: str, account_unique_id: str, session: Session):
+def query_source_data(query: str,
+                      account_unique_id: str,
+                      session: Session,
+                      chat_history: Optional[List[Dict[str, Any]]] = None):
     """
     Query Source Data and de-duplicate sources.
     """
@@ -150,7 +156,7 @@ def query_source_data(query: str, account_unique_id: str, session: Session):
         return {"error": "No query provided"}
     
     # This variable holds the entire dictionary returned by your query engine
-    query_engine_response = prepare_db_and_perform_query(query, account_unique_id, session)
+    query_engine_response = prepare_db_and_perform_query(query, account_unique_id, session, chat_history=chat_history)
     
     
     # Check if query_engine_response is a dictionary and has a 'sources' key,
@@ -209,7 +215,7 @@ def prepare_db(account_unique_id):
     return db
 
 
-def search_db(db, query, relevance_score, k_value, account_unique_id):
+def search_db(db, query, relevance_score, k_value, account_unique_id, chat_history=None):
     """
     Search the DB
     """
@@ -250,6 +256,17 @@ def search_db(db, query, relevance_score, k_value, account_unique_id):
 
     # Create context text from the list of document strings
     context_text = "\n\n---\n\n".join(doc for doc in documents)
+
+    # Include chat_history in the prompt
+    history_text = ""
+    if chat_history:
+        # Flatten history into a readable format: "User: ... Bot: ..."
+        history_text = "\n".join(
+            f"{msg['sender_type'].capitalize()}: {msg['message_text']}" 
+            for msg in chat_history
+        )
+        # Prepend history to the context
+        context_text = f"{history_text}\n\n---\n\n{context_text}"
 
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(context=context_text, question=query)
