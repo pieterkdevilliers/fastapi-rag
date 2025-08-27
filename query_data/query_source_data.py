@@ -262,8 +262,8 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, chat_histo
     if chat_history:
         # Flatten history into a readable format: "User: ... Bot: ..."
         history_text = "\n".join(
-            f"{getattr(msg, 'sender_type', msg.get('sender_type')).capitalize()}: "
-            f"{getattr(msg, 'message_text', msg.get('message_text'))}"
+            f"{(msg.sender_type if hasattr(msg, 'sender_type') else msg['sender_type']).capitalize()}: "
+            f"{(msg.message_text if hasattr(msg, 'message_text') else msg['message_text'])}"
             for msg in chat_history
         )
         # Prepend history to the context
