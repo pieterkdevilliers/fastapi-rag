@@ -268,6 +268,7 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, chat_histo
         )
         # Prepend history to the context
         context_text = f"{history_text}\n\n---\n\n{context_text}"
+        print("***********Context with History: ", context_text)
 
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(context=context_text, question=query)
