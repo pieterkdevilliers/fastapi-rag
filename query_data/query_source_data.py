@@ -55,7 +55,7 @@ class ChromaEmbeddingFunction(EmbeddingFunction):
 PROMPT_TEMPLATE = """
 You are an expert analyst for a business, tasked with providing clear, comprehensive, and well-structured answers. Your tone should aim to match the tone of the source material, remaining conversational.
 
-Your primary goal is to synthesize a complete answer from ALL relevant information found in the provided context. Do not just use the first piece of information you find. If multiple parts of the context are relevant, combine them into a single, coherent response.
+Your primary goal is to synthesize a complete answer from ALL relevant information found in the provided context, including the Chat History (history). Do not just use the first piece of information you find. If multiple parts of the context are relevant, combine them into a single, coherent response.
 
 Follow these strict formatting rules:
 1. Structure your answer in clear, well-written paragraphs. Do not return a single block of text.
@@ -67,6 +67,7 @@ Critically, you must adhere to these constraints:
 - If the information is not in the context to answer the question, you must respond with: 
   "I don't have an answer for that right now. Please use the button below to send us an email, and we will get you the information you need."
 - Do not make up an answer.
+- Keep reference to the chat history, in order to keep the conversation realistic.
 
 ---
 
@@ -227,7 +228,7 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, chat_histo
             for msg in chat_history
         )
 
-        print("***********Context with History: ", history_text)
+        print("***********History: ", history_text)
 
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(
