@@ -274,7 +274,7 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, chat_histo
     prompt = prompt_template.format(context=context_text, question=query)
 
     model = ChatOpenAI(model=CHAT_MODEL_NAME)
-    response_text = model.predict(prompt)
+    response_text = model.invoke(prompt)
 
     # Collect source metadata from the first element of metadatas
     sources = [meta.get("source", None) for meta in results.get("metadatas", [[]])[0]]
