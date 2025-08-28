@@ -49,54 +49,7 @@ class ChromaEmbeddingFunction(EmbeddingFunction):
     
     def get_dimension(self):
         return self.embedding_function.get_dimension()
-    
 
-# PROMPT_TEMPLATE = """
-# Answer the question based only on the following context:
-
-# {context}
-
-# ---
-
-# Answer the question based on the above context: {question}
-# """
-
-
-# PROMPT_TEMPLATE = """
-# You are a helpful and knowledgeable assistant, working for a business. Use the information provided below to answer the question.
-# Strive for a natural, conversational tone in your answer. Do not explicitly mention that your answer is based on 'the provided context' or 'the information given'. If you don't find an answer in the supplied context, simply state that you don't know the answer. Do not make things up just to be helpful.
-
-# Information:
-# {context}
-
-# ---
-
-# Question: {question}
-# Answer:
-# """
-
-# PROMPT_TEMPLATE = """
-# You are an expert analyst for a business, tasked with providing clear, comprehensive, and well-structured answers. Your tone should be professional yet conversational.
-
-# Your primary goal is to synthesize a complete answer from ALL relevant information found in the provided context. Do not just use the first piece of information you find. If multiple parts of the context are relevant, combine them into a single, coherent response.
-
-# Follow these strict formatting rules:
-# 1. Structure your answer in clear, well-written paragraphs. Do not return a single block of text.
-# 2. Ensure the response is easy to read and logically organized.
-
-# Critically, you must adhere to these constraints:
-# - Base your answer ONLY on the information provided below.
-# - Do not mention the words "context", "information provided", or "source documents".
-# - If the information is not in the context to answer the question, you must respond with: "I don't have an answer for that right now. Please use the button below to send us an email, and we will get you the information you need." Do not make up an answer.
-
-# Information:
-# {context}
-
-# ---
-
-# Question: {question}
-# Answer:
-# """
 
 
 PROMPT_TEMPLATE = """
@@ -111,7 +64,14 @@ Follow these strict formatting rules:
 Critically, you must adhere to these constraints:
 - Base your answer ONLY on the information provided below.
 - Do not mention the words "context", "information provided", or "source documents".
-- If the information is not in the context to answer the question, you must respond with: "I don't have an answer for that right now. Please use the button below to send us an email, and we will get you the information you need." Do not make up an answer.
+- If the information is not in the context to answer the question, you must respond with: 
+  "I don't have an answer for that right now. Please use the button below to send us an email, and we will get you the information you need."
+- Do not make up an answer.
+
+---
+
+Chat History:
+{history}
 
 Information:
 {context}
@@ -121,6 +81,7 @@ Information:
 Question: {question}
 Answer:
 """
+
 
 def prepare_db_and_perform_query(query,
                                  account_unique_id,
@@ -257,21 +218,23 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, chat_histo
     # Create context text from the list of document strings
     context_text = "\n\n---\n\n".join(doc for doc in documents)
 
-    # Include chat_history in the prompt
+    # Build chat history text
     history_text = ""
     if chat_history:
-        # Flatten history into a readable format: "User: ... Bot: ..."
         history_text = "\n".join(
             f"{(msg.sender_type if hasattr(msg, 'sender_type') else msg['sender_type']).capitalize()}: "
             f"{(msg.message_text if hasattr(msg, 'message_text') else msg['message_text'])}"
             for msg in chat_history
         )
-        # Prepend history to the context
-        context_text = f"{history_text}\n\n---\n\n{context_text}"
-        print("***********Context with History: ", context_text)
+
+        print("***********Context with History: ", history_text)
 
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-    prompt = prompt_template.format(context=context_text, question=query)
+    prompt = prompt_template.format(
+        history=history_text,
+        context=context_text,
+        question=query
+    )
 
     model = ChatOpenAI(model=CHAT_MODEL_NAME)
 
