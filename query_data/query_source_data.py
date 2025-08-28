@@ -274,7 +274,19 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, chat_histo
     prompt = prompt_template.format(context=context_text, question=query)
 
     model = ChatOpenAI(model=CHAT_MODEL_NAME)
-    response_text = model.invoke(prompt)
+
+    # NEW
+    result = model.invoke(prompt)
+
+    # Ensure it's always a string
+    if isinstance(result, str):
+        response_text = result
+    elif hasattr(result, "content"):  # BaseMessage
+        response_text = result.content
+    elif isinstance(result, dict) and "text" in result:
+        response_text = result["text"]
+    else:
+        response_text = str(result)  # fallback
 
     # Collect source metadata from the first element of metadatas
     sources = [meta.get("source", None) for meta in results.get("metadatas", [[]])[0]]
