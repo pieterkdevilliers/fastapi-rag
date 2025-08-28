@@ -226,9 +226,8 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, chat_histo
             f"{(msg.message_text if hasattr(msg, 'message_text') else msg['message_text'])}"
             for msg in chat_history
         )
-        # Prepend history to the context
-        context_text = f"{history_text}\n\n---\n\n{context_text}"
-        print("***********Context with History: ", context_text)
+
+        print("***********Context with History: ", history_text)
 
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(
