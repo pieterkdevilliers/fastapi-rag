@@ -5,11 +5,13 @@ from pathlib import Path
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 from alembic import context
+from dotenv import load_dotenv
 from file_management.models import SourceFile, Folder
-from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
+from accounts.models import Account, User, WidgetAPIKey, StripeSubscription, AccountPrompts
 from chat_messages.models import ChatSession, ChatMessage, EmailMessage
 from core.models import Product, PasswordResetToken
 
+load_dotenv()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
