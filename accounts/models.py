@@ -125,3 +125,39 @@ class StripeSubscription(StripeSubscriptionBase, table=True):
 
     def __repr__(self):
         return f"<StripeSubscription(id={self.id}, stripe_subscription_id={self.stripe_subscription_id}, status={self.status})>"
+
+
+
+DEFAULT_MAIN_PROMPT = """
+                        You are an expert analyst for a business, tasked with providing clear, comprehensive, and well-structured answers. Your tone should aim to match the tone of the source material, remaining conversational.
+
+                    Your primary goal is to synthesize a complete answer from ALL relevant information found in the provided context, including the Chat History (history). Do not just use the first piece of information you find. If multiple parts of the context are relevant, combine them into a single, coherent response.
+
+                    Follow these strict formatting rules:
+                    1. Structure your answer in clear, well-written paragraphs. Do not return a single block of text.
+                    2. Ensure the response is easy to read and logically organized.
+
+                    Critically, you must adhere to these constraints:
+                    - Base your answer ONLY on the information provided below.
+                    - Do not mention the words "context", "information provided", or "source documents".
+                    - If the information is not in the context to answer the question, you must respond with: 
+                    "I don't have an answer for that right now. Please use the button below to send us an email, and we will get you the information you need."
+                    - Do not make up an answer.
+                    - Keep reference to the chat history, in order to keep the conversation realistic.
+                    """
+
+class AccountPromptsBase(SQLModel):
+    """
+    Account Prompts Model Base
+    """
+    account_unique_id: str = Field(foreign_key="account.account_unique_id")
+
+
+class AccountPrompts(AccountPromptsBase, table=True):
+    """
+    Account Prompts Model
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    prompt_key: str = Field(default="Main Prompt", nullable=False)
+    prompt_text: str = Field(default=DEFAULT_MAIN_PROMPT, nullable=False)
