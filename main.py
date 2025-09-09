@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import json
 import tempfile
 import stripe
@@ -27,11 +31,12 @@ from file_management.utils import save_file_to_db, update_file_in_db, delete_fil
     fetch_html_content, extract_text_from_html, prepare_for_s3_upload, create_new_folder_in_db, \
     update_folder_in_db, delete_folder_from_db, delete_file_from_s3, get_docs_count_for_user_account, load_documents_from_s3, \
     create_pending_file_in_db, get_processed_docs_count_for_user_account
-from accounts.models import Account, User, WidgetAPIKey, StripeSubscription
+from accounts.models import Account, User, WidgetAPIKey, StripeSubscription, AccountPrompts
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, get_user_by_email, \
     create_password_reset_token, get_reset_token, update_user_password, delete_reset_token, get_account_by_account_unique_id, \
-    check_active_subscription_status, get_account_webhook_url
+    check_active_subscription_status, get_account_webhook_url, create_account_prompt, get_account_prompts, get_most_recent_prompt, \
+    get_account_prompt_by_id
 # from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
@@ -51,6 +56,9 @@ from core.models import Product, PasswordResetToken, ContactPayload
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
 from chroma_db_api import clear_chroma_db_datastore_for_replace
 from webhook_utils import send_chat_messages_webhook_notification
+
+
+load_dotenv()
 
 
 # Initialize the S3 client
@@ -620,6 +628,81 @@ async def widget_contact_us(
         raise HTTPException(status_code=500, detail=str(e))
     
     return {"message": "Contact Us", "account_unique_id": auth_info["account_unique_id"]}
+
+
+############################################
+# Account Prompt Routes
+############################################
+
+
+@app.post("/api/v1/create-account-prompt/{account_unique_id}")
+async def create_new_account_prompt(account_unique_id: str,
+                                current_user: Annotated[User, Depends(get_current_active_user)],
+                                session: Session = Depends(get_session),
+                                prompt_key: str = Body(..., embed=True),
+                                prompt_text: str = Body(..., embed=True)) -> dict[str, Any]:
+    """
+    Create Account Prompt
+    """
+    
+    new_prompt = create_account_prompt(account_unique_id, prompt_key, prompt_text, session)
+    
+    return {"message": "Prompt created successfully", "prompt": new_prompt}
+
+
+@app.get("/api/v1/list-account-prompts/{account_unique_id}")
+async def list_account_prompts(account_unique_id: str,
+                        current_user: Annotated[User, Depends(get_current_active_user)],
+                        session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    List Account Prompts
+    """
+    account_prompts = get_account_prompts(account_unique_id, session)
+    return {"prompts": account_prompts}
+
+
+@app.get("/api/v1/most-recent-prompt/{account_unique_id}")
+async def most_recent_account_prompt(account_unique_id: str,
+                        current_user: Annotated[User, Depends(get_current_active_user)],
+                        session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    Most Recent Account Prompt
+    """
+    most_recent_prompt = get_most_recent_prompt(account_unique_id, session)
+    return {"most_recent_prompt": most_recent_prompt}
+
+
+@app.get("/api/v1/account-prompt/{account_unique_id}/{id}")
+async def get_account_prompt(account_unique_id: str,
+                        id: int,
+                        current_user: Annotated[User, Depends(get_current_active_user)],
+                        session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    Get Account Prompt by Key
+    """
+    prompt = get_account_prompt_by_id(account_unique_id, id, session)
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    return {"prompt": prompt}
+
+
+@app.put("/api/v1/update-account-prompt/{account_unique_id}/{id}")
+async def update_account_prompt(account_unique_id: str,
+                                id: int,
+                                current_user: Annotated[User, Depends(get_current_active_user)],
+                                session: Session = Depends(get_session),
+                                prompt_key: str = Body(None, embed=True),
+                                prompt_text: str = Body(None, embed=True)) -> dict[str, Any]:
+    """
+    Update Account Prompt
+    """
+    prompt = get_account_prompt_by_id(account_unique_id, id, session)
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    
+    revised_prompt = create_account_prompt(account_unique_id, prompt_key, prompt_text, session)
+
+    return {"message": "Prompt updated successfully", "prompt": revised_prompt}
 
 
 ############################################

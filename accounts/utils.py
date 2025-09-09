@@ -1,7 +1,7 @@
 from secrets import token_hex
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
-from accounts.models import Account, User, StripeSubscription
+from accounts.models import Account, User, StripeSubscription, AccountPrompts
 from core.models import PasswordResetToken
 from authentication import get_password_hash
 
@@ -226,3 +226,54 @@ def get_account_webhook_url(account_unique_id: str, session: Session):
     webhook_url = result.first().webhook_url
 
     return webhook_url
+
+
+def create_account_prompt(account_unique_id: str, prompt_key: str, prompt_text: str, session: Session):
+    """
+    Save New Account Prompt to DB
+    """
+
+    prompt = AccountPrompts(account_unique_id=account_unique_id,
+                            prompt_key=prompt_key,
+                            product_description=prompt_text)
+    session.add(prompt)
+    session.commit()
+    session.refresh(prompt)
+    
+    return prompt
+
+
+def get_account_prompts(account_unique_id: str, session: Session):
+    """
+    Retrieve all prompts for an account
+    """
+    statement = select(AccountPrompts).filter(AccountPrompts.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    prompts = result.all()
+
+    return prompts
+
+
+def get_most_recent_prompt(account_unique_id: str, session: Session):
+    """
+    Fetch the most recently created prompt for a given account.
+    Returns None if no prompts exist for the account.
+    """
+    statement = (
+        select(AccountPrompts)
+        .where(AccountPrompts.account_unique_id == account_unique_id)
+        .order_by(AccountPrompts.__table__.c.created_at.desc())  # Use the actual SQLAlchemy column
+    )
+    result = session.exec(statement).first()
+    return result
+
+
+def get_account_prompt_by_id(account_unique_id: str, id, session: Session):
+    """
+    Retrieve a specific prompt for an account by its key
+    """
+    statement = select(AccountPrompts).filter(AccountPrompts.account_unique_id == account_unique_id, AccountPrompts.id == id)
+    result = session.exec(statement)
+    prompt = result.first()
+
+    return prompt
