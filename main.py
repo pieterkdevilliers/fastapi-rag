@@ -125,6 +125,18 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     docs_count = get_docs_count_for_user_account(account_unique_id, session)
     processed_docs_count = get_processed_docs_count_for_user_account(account_unique_id, session)
     active_subscription = check_active_subscription_status(account_unique_id, session)
+
+    account_prompts = get_account_prompts(account_unique_id, session)
+    if not account_prompts:
+        # Create a default prompt if none exist
+        default_prompt = create_account_prompt(
+            account_unique_id=account_unique_id,
+            prompt_key="Main Prompt",
+            prompt_text=None,
+            session=session
+        )
+        account_prompts = [default_prompt]
+
     return Token(account_unique_id=account_unique_id, account_organisation=organisation, docs_count=docs_count, active_subscription=active_subscription, processed_docs_count=processed_docs_count, access_token=access_token, token_type="bearer")
 
 
@@ -333,7 +345,7 @@ async def query_data(query: str, account_unique_id: str, session: Session = Depe
     """
     if not query:
         return {"error": "No query provided"}
-    
+
     response = query_source_data.query_source_data(query, account_unique_id, session)
     return response
 
@@ -1222,6 +1234,13 @@ async def create_account(account_organisation: str, session: Session = Depends(g
     Create Account
     """
     account = create_new_account_in_db(account_organisation, session)
+
+    default_prompt = create_account_prompt(
+            account_unique_id=account.account_unique_id,
+            prompt_key="Main Prompt",
+            prompt_text=None,
+            session=session
+        )
     
     return {"response": "success",
             "account": account,

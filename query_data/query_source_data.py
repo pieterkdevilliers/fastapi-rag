@@ -4,6 +4,7 @@ import requests
 # from dataclasses import dataclass
 from sqlmodel import select, Session
 from accounts.models import Account
+from accounts.utils import get_most_recent_prompt
 from typing import List, Optional, Dict, Any
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
@@ -53,21 +54,9 @@ class ChromaEmbeddingFunction(EmbeddingFunction):
 
 
 PROMPT_TEMPLATE = """
-You are an expert analyst for a business, tasked with providing clear, comprehensive, and well-structured answers. Your tone should aim to match the tone of the source material, remaining conversational.
 
-Your primary goal is to synthesize a complete answer from ALL relevant information found in the provided context, including the Chat History (history). Do not just use the first piece of information you find. If multiple parts of the context are relevant, combine them into a single, coherent response.
-
-Follow these strict formatting rules:
-1. Structure your answer in clear, well-written paragraphs. Do not return a single block of text.
-2. Ensure the response is easy to read and logically organized.
-
-Critically, you must adhere to these constraints:
-- Base your answer ONLY on the information provided below.
-- Do not mention the words "context", "information provided", or "source documents".
-- If the information is not in the context to answer the question, you must respond with: 
-  "I don't have an answer for that right now. Please use the button below to send us an email, and we will get you the information you need."
-- Do not make up an answer.
-- Keep reference to the chat history, in order to keep the conversation realistic.
+Prompt Text:
+{prompt_text}
 
 ---
 
@@ -102,7 +91,10 @@ def prepare_db_and_perform_query(query,
 
     db = prepare_db(account_unique_id)
 
-    result = search_db(db, query_text, relevance_score, k_value, account_unique_id, chat_history=chat_history)
+
+    prompt_text = get_most_recent_prompt(account_unique_id, session).prompt_text
+
+    result = search_db(db, query_text, relevance_score, k_value, account_unique_id, chat_history=chat_history, prompt_text=prompt_text)
 
     return result
 
@@ -177,7 +169,7 @@ def prepare_db(account_unique_id):
     return db
 
 
-def search_db(db, query, relevance_score, k_value, account_unique_id, chat_history=None):
+def search_db(db, query, relevance_score, k_value, account_unique_id, chat_history=None, prompt_text=None):
     """
     Search the DB
     """
@@ -228,14 +220,16 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, chat_histo
             for msg in chat_history
         )
 
-        print("***********History: ", history_text)
 
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(
         history=history_text,
         context=context_text,
-        question=query
+        question=query,
+        prompt_text=prompt_text,
     )
+
+    print(f"Final prompt to LLM: {prompt}")
 
     model = ChatOpenAI(model=CHAT_MODEL_NAME)
 
