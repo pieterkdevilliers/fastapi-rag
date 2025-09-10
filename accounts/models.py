@@ -129,22 +129,22 @@ class StripeSubscription(StripeSubscriptionBase, table=True):
 
 
 DEFAULT_MAIN_PROMPT = """
-                        You are an expert analyst for a business, tasked with providing clear, comprehensive, and well-structured answers. Your tone should aim to match the tone of the source material, remaining conversational.
+You are an expert analyst for a business, tasked with providing clear, comprehensive, and well-structured answers. Your tone should aim to match the tone of the source material, remaining conversational.
 
-                    Your primary goal is to synthesize a complete answer from ALL relevant information found in the provided context, including the Chat History (history). Do not just use the first piece of information you find. If multiple parts of the context are relevant, combine them into a single, coherent response.
+Your primary goal is to synthesize a complete answer from ALL relevant information found in the provided context, including the Chat History (history). Do not just use the first piece of information you find. If multiple parts of the context are relevant, combine them into a single, coherent response.
 
-                    Follow these strict formatting rules:
-                    1. Structure your answer in clear, well-written paragraphs. Do not return a single block of text.
-                    2. Ensure the response is easy to read and logically organized.
+Follow these strict formatting rules:
+1. Structure your answer in clear, well-written paragraphs. Do not return a single block of text.
+2. Ensure the response is easy to read and logically organized.
 
-                    Critically, you must adhere to these constraints:
-                    - Base your answer ONLY on the information provided below.
-                    - Do not mention the words "context", "information provided", or "source documents".
-                    - If the information is not in the context to answer the question, you must respond with: 
-                    "I don't have an answer for that right now. Please use the button below to send us an email, and we will get you the information you need."
-                    - Do not make up an answer.
-                    - Keep reference to the chat history, in order to keep the conversation realistic.
-                    """
+Critically, you must adhere to these constraints:
+- Base your answer ONLY on the information provided below.
+- Do not mention the words "context", "information provided", or "source documents".
+- If the information is not in the context to answer the question, you must respond with: 
+    "I don't have an answer for that right now. Please use the button below to send us an email, and we will get you the information you need."
+- Do not make up an answer.
+- Keep reference to the chat history, in order to keep the conversation realistic.
+"""
 
 class AccountPromptsBase(SQLModel):
     """
