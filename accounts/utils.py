@@ -232,14 +232,12 @@ def create_account_prompt(account_unique_id: str, prompt_key: str, prompt_text: 
     """
     Save New Account Prompt to DB
     """
-
     prompt = AccountPrompts(account_unique_id=account_unique_id,
                             prompt_key=prompt_key,
-                            product_description=prompt_text)
+                            prompt_text=prompt_text)
     session.add(prompt)
     session.commit()
     session.refresh(prompt)
-    
     return prompt
 
 
