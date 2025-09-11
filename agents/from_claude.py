@@ -72,15 +72,12 @@ class AgentState:
 
 # === STEP 3: Embedding Helper ===
 
-async def embed_text(texts: List[str]) -> List[List[float]]:
-    """
-    Use new OpenAI API for embeddings.
-    """
-    response = await openai.embeddings.create(
+def embed_text(texts: list[str]) -> list[list[float]]:
+    response = openai.embeddings.create(
         model="text-embedding-3-small",
         input=texts
     )
-    return [item.embedding for item in response.data]
+    return [e.embedding for e in response.data]
 
 
 # === STEP 4: Similarity Search ===
@@ -95,7 +92,7 @@ async def similarity_search(
     Perform a vector similarity search using local or remote Chroma.
     Returns documents and metadata.
     """
-    query_embedding = (await embed_text([query]))[0]
+    query_embedding = (embed_text([query]))[0]
 
     if ENVIRONMENT == 'development':
         results = db.similarity_search_with_relevance_scores(query, k=k)
