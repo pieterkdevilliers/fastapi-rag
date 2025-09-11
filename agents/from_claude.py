@@ -4,36 +4,35 @@ from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 
 from sqlmodel import select, Session
-from dotenv import load_dotenv
-import openai
-import chromadb
 from pydantic import BaseModel
 from pydantic_ai import Agent, RunContext
 
-from accounts.models import Account
-from accounts.utils import get_most_recent_prompt
+import openai
+from dotenv import load_dotenv
 
 load_dotenv()
 
-# === Environment & API Keys ===
 openai.api_key = os.environ['OPENAI_API_KEY']
 CHAT_MODEL_NAME = os.environ.get('OPENAI_CHAT_MODEL', 'gpt-3.5-turbo')
 print(f"Using OpenAI chat model: {CHAT_MODEL_NAME}")
 
-ENVIRONMENT = os.environ.get('ENVIRONMENT')
 CHROMA_ENDPOINT = os.environ.get('CHROMA_ENDPOINT')
 CHROMA_SERVER_AUTHN_CREDENTIALS = os.environ.get('CHROMA_SERVER_AUTHN_CREDENTIALS')
+ENVIRONMENT = os.environ.get('ENVIRONMENT')
 
 HEADERS = {
     'X-Chroma-Token': CHROMA_SERVER_AUTHN_CREDENTIALS,
     'Content-Type': 'application/json'
 }
 
-# === STEP 1: Pydantic Models ===
+
+# === STEP 1: Define Pydantic Models ===
+
 class RAGQueryInput(BaseModel):
     query: str
     k_value: Optional[int] = None
     relevance_score: Optional[float] = None
+
 
 class RAGQueryOutput(BaseModel):
     query: str
@@ -41,101 +40,100 @@ class RAGQueryOutput(BaseModel):
     sources: List[str]
     context_used: str
 
+
 class ChatMessage(BaseModel):
-    sender_type: str
+    sender_type: str  # "user" or "assistant"
     message_text: str
 
-# === STEP 2: Agent State ===
+
+# === STEP 2: Define Agent State ===
+
 @dataclass
 class AgentState:
     account_unique_id: str
     session: Session
-    account: Account
+    account: Any
     chat_history: List[ChatMessage]
 
     def __post_init__(self):
         if not self.account:
-            stmt = select(Account).filter(Account.account_unique_id == self.account_unique_id)
-            result = self.session.exec(stmt)
+            statement = select(self.account.__class__).filter(
+                self.account.__class__.account_unique_id == self.account_unique_id
+            )
+            result = self.session.exec(statement)
             self.account = result.first()
             if not self.account:
                 raise ValueError(f"Account not found: {self.account_unique_id}")
 
-# === STEP 3: ChromaDB Helper ===
-def prepare_db(account_unique_id: str):
-    """
-    Returns a Chroma collection or local DB connection.
-    """
-    if ENVIRONMENT == 'development':
-        # Local Chroma
-        from chromadb import PersistentClient
-        client = PersistentClient(path=f"./chroma/{account_unique_id}")
-        return client.get_collection(name=f"collection-{account_unique_id}")
-    else:
-        # Remote Chroma HTTP API
-        response = requests.get(f'{CHROMA_ENDPOINT}/collections/collection-{account_unique_id}', headers=HEADERS)
-        if response.status_code != 200:
-            raise RuntimeError(f"Failed to fetch collection: {response.text}")
-        return response.json()
 
-def embed_text(texts: List[str]) -> List[List[float]]:
-    """Get embeddings from OpenAI"""
-    response = openai.Embedding.create(
-        input=texts,
-        model="text-embedding-3-small"
+# === STEP 3: Embedding Helper ===
+
+async def embed_text(texts: List[str]) -> List[List[float]]:
+    """
+    Use new OpenAI API for embeddings.
+    """
+    response = await openai.embeddings.acreate(
+        model="text-embedding-3-small",
+        input=texts
     )
-    return [item['embedding'] for item in response['data']]
+    return [item.embedding for item in response.data]
 
-def similarity_search(db, query: str, k: int, relevance_score: float):
+
+# === STEP 4: Similarity Search ===
+
+async def similarity_search(
+    db,
+    query: str,
+    k: int,
+    relevance_score: float
+):
     """
-    Perform similarity search directly against Chroma DB (local or remote).
-    Returns documents, metadata.
+    Perform a vector similarity search using local or remote Chroma.
+    Returns documents and metadata.
     """
-    query_embedding = embed_text([query])[0]
+    query_embedding = (await embed_text([query]))[0]
 
     if ENVIRONMENT == 'development':
-        # Local Chroma
-        results = db.query(query_embeddings=[query_embedding], n_results=k, include=["documents", "metadatas", "distances"])
-        documents = results.get("documents", [[]])[0]
-        metadatas = results.get("metadatas", [[]])[0]
-        distances = results.get("distances", [[]])[0]
+        results = db.similarity_search_with_relevance_scores(query, k=k)
+        if len(results) == 0 or results[0][1] < relevance_score:
+            return [], []
+        documents = [doc.page_content for doc, _ in results]
+        metadatas = [doc.metadata for doc, _ in results]
     else:
-        # Remote Chroma HTTP API
-        collection_name = f'collection-{db["name"].split("-")[-1]}'
-        payload = {
-            "query_embeddings": [query_embedding],
-            "n_results": k,
-            "include": ["documents", "metadatas", "distances"]
-        }
-        response = requests.post(f"{CHROMA_ENDPOINT}/collections/{collection_name}/query", headers=HEADERS, json=payload)
-        if response.status_code != 200:
-            raise RuntimeError(f"Chroma query failed: {response.text}")
-        res = response.json()
-        documents = res.get("documents", [[]])[0]
-        metadatas = res.get("metadatas", [[]])[0]
-        distances = res.get("distances", [[]])[0]
+        # Remote Chroma via HTTP
+        client_resp = requests.post(
+            f"{CHROMA_ENDPOINT}/collections/collection-{db}/query",
+            headers=HEADERS,
+            json={"query_embeddings": [query_embedding], "n_results": k}
+        )
+        client_data = client_resp.json()
+        documents = client_data.get("documents", [[]])[0]
+        metadatas = client_data.get("metadatas", [[]])[0]
 
-    # Filter by relevance_score
-    filtered_docs = [
-        (doc, meta) for doc, meta, dist in zip(documents, metadatas, distances)
-        if 1 - dist >= relevance_score
-    ]
+    return documents, metadatas
 
-    if not filtered_docs:
-        return [], []
 
-    docs, metas = zip(*filtered_docs)
-    return list(docs), list(metas)
+# === STEP 5: Prepare DB ===
 
-# === STEP 4: Pydantic-AI Agent ===
+def prepare_db(account_unique_id: str):
+    if ENVIRONMENT == "development":
+        from langchain_chroma import Chroma  # only for local dev
+        from langchain_openai import OpenAIEmbeddings
+        embedding_fn = OpenAIEmbeddings()
+        chroma_path = f"./chroma/{account_unique_id}"
+        return Chroma(persist_directory=chroma_path, embedding_function=embedding_fn)
+    else:
+        return account_unique_id  # for remote HTTP query
+
+
+# === STEP 6: Pydantic-AI Agent ===
+
 agent = Agent(
     f"openai:{CHAT_MODEL_NAME}",
-    system_prompt="""
-You are an intelligent assistant with access to a knowledge base through a RAG system.
-Use the 'rag_search' tool if the user query requires specific knowledge.
-Always be clear, helpful, and cite sources when relevant.
-"""
+    system_prompt="""You are an intelligent assistant with access to a knowledge base via a RAG system.
+If the question requires retrieval, use the 'rag_search' tool."""
 )
+
 
 @agent.tool
 async def rag_search(ctx: RunContext[AgentState], query_input: RAGQueryInput) -> RAGQueryOutput:
@@ -144,28 +142,31 @@ async def rag_search(ctx: RunContext[AgentState], query_input: RAGQueryInput) ->
 
     k_value = query_input.k_value or account.k_value
     relevance_score = query_input.relevance_score or account.relevance_score
-    temperature = account.temperature
 
     db = prepare_db(account.account_unique_id)
+    documents, metadatas = await similarity_search(
+        db, query_input.query, k=k_value, relevance_score=relevance_score
+    )
 
-    documents, metadatas = similarity_search(db, query_input.query, k=k_value, relevance_score=relevance_score)
     if not documents:
         return RAGQueryOutput(
             query=query_input.query,
-            response_text=f"Unable to find matching results for: {query_input.query}",
+            response_text=f"No results found for query: {query_input.query}",
             sources=[],
             context_used=""
         )
 
+    # Merge context
     context_text = "\n\n---\n\n".join(documents)
-    sources = [meta.get("source", "Unknown") for meta in metadatas if isinstance(meta, dict)]
 
-    # Construct prompt
-    prompt_text = get_most_recent_prompt(account.account_unique_id, state.session).prompt_text
-    history_text = "\n".join(f"{m.sender_type.capitalize()}: {m.message_text}" for m in state.chat_history)
-    full_prompt = f"""
+    # Build prompt with chat history
+    history_text = "\n".join(
+        f"{msg.sender_type.capitalize()}: {msg.message_text}" for msg in state.chat_history
+    )
+
+    prompt = f"""
 Prompt Text:
-{prompt_text}
+Use the retrieved context to answer the user question.
 
 ---
 
@@ -181,14 +182,16 @@ Question: {query_input.query}
 Answer:
 """
 
-    # Call OpenAI directly
-    completion = openai.ChatCompletion.create(
+    # Query OpenAI chat model
+    chat_response = await openai.chat.completions.acreate(
         model=CHAT_MODEL_NAME,
-        messages=[{"role": "user", "content": full_prompt}],
-        temperature=temperature
+        messages=[{"role": "system", "content": prompt}],
+        temperature=account.temperature
     )
 
-    response_text = completion.choices[0].message.content.strip()
+    response_text = chat_response.choices[0].message.content
+
+    sources = [meta.get("source", "Unknown") for meta in metadatas if isinstance(meta, dict)]
 
     return RAGQueryOutput(
         query=query_input.query,
@@ -197,22 +200,31 @@ Answer:
         context_used=context_text
     )
 
-# === STEP 5: Agent State Helpers ===
+
+# === STEP 7: Agent State Creation ===
+
 def create_agent_state(account_unique_id: str, session: Session, chat_history: Optional[List[Dict]] = None) -> AgentState:
     structured_history = []
     if chat_history:
-        structured_history = [ChatMessage(sender_type=m.get("sender_type", "user"), message_text=m.get("message_text", "")) for m in chat_history]
+        structured_history = [
+            ChatMessage(sender_type=msg.get("sender_type", "user"), message_text=msg.get("message_text", ""))
+            for msg in chat_history
+        ]
     return AgentState(account_unique_id=account_unique_id, session=session, account=None, chat_history=structured_history)
+
+
+# === STEP 8: Query Agent ===
 
 async def query_agent(query: str, agent_state: AgentState) -> Dict[str, Any]:
     agent_state.chat_history.append(ChatMessage(sender_type="user", message_text=query))
     result = await agent.run(query, deps=agent_state)
     agent_state.chat_history.append(ChatMessage(sender_type="assistant", message_text=result.data))
-    return {"query": query, "response": result.data, "tool_calls": [call for call in result.all_messages() if hasattr(call, "tool_name")]}
+    return {"query": query, "response": result.data, "tool_calls": [call for call in result.all_messages() if hasattr(call, 'tool_name')]}
 
-# === STEP 6: Backwards Compatibility ===
-async def query_source_data(query: str, account_unique_id: str, session: Session, chat_history: Optional[List[Dict[str, Any]]] = None):
+
+# === STEP 9: Backwards Compatibility ===
+
+async def query_source_data(query: str, account_unique_id: str, session: Session, chat_history: Optional[List[Dict]] = None):
     agent_state = create_agent_state(account_unique_id, session, chat_history)
-    import asyncio
     result = await query_agent(query, agent_state)
     return {"query": query, "response": {"response_text": result["response"], "sources": []}}
