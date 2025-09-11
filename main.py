@@ -348,7 +348,7 @@ async def pydantic_ai_query_data(query: str, account_unique_id: str, session: Se
     if not query:
         return {"error": "No query provided"}
 
-    response = from_claude.query_source_data(query, account_unique_id, session)
+    response = await from_claude.query_source_data(query, account_unique_id, session)
     return response
 
 
