@@ -338,7 +338,7 @@ Answer:
 
 
 # === STEP 9: Backwards Compatibility Function ===
-def query_source_data(query: str,
+async def query_source_data(query: str,
                       account_unique_id: str,
                       session: Session,
                       chat_history: Optional[List[Dict[str, Any]]] = None):
@@ -352,7 +352,7 @@ def query_source_data(query: str,
     
     # Query the agent (Note: this needs to be called from an async context)
     import asyncio
-    result = asyncio.run(query_agent(query, agent_state))
+    result = await query_agent(query, agent_state)
     
     # Format response to match your existing API
     return {
