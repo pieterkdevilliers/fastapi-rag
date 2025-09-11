@@ -76,7 +76,7 @@ async def embed_text(texts: List[str]) -> List[List[float]]:
     """
     Use new OpenAI API for embeddings.
     """
-    response = await openai.embeddings.acreate(
+    response = await openai.embeddings.create(
         model="text-embedding-3-small",
         input=texts
     )
@@ -187,7 +187,7 @@ Answer:
 """
 
     # Query OpenAI chat model
-    chat_response = await openai.chat.completions.acreate(
+    chat_response = await openai.chat.completions.create(
         model=CHAT_MODEL_NAME,
         messages=[{"role": "system", "content": prompt}],
         temperature=account.temperature
