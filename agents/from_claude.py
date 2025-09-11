@@ -127,16 +127,10 @@ def prepare_db(account_unique_id: str):
         return account_unique_id  # for remote HTTP query
 
 
-# === STEP 6: Pydantic-AI Agent ===
-
-agent = Agent(
-    f"openai:{CHAT_MODEL_NAME}",
-    system_prompt="""You are an intelligent assistant with access to a knowledge base via a RAG system.
-If the question requires retrieval, use the 'rag_search' tool."""
-)
 
 
-@agent.tool
+
+
 async def rag_search(ctx: RunContext[AgentState], query_input: RAGQueryInput) -> RAGQueryOutput:
     state = ctx.deps
     account = state.account
@@ -201,6 +195,16 @@ Answer:
         context_used=context_text
     )
 
+# === STEP 6: Pydantic-AI Agent ===
+
+agent = Agent(
+    f"openai:{CHAT_MODEL_NAME}",
+    system_prompt="""You are an intelligent assistant with access to a knowledge base via a RAG system.
+If the question requires retrieval of company knowledge, ALWAYS call the `rag_search` tool before answering.
+Return a clear and structured response based on both the retrieved context and your reasoning.""",
+    tools=[rag_search],   # ✅ must explicitly register tools
+    deps_type=AgentState, # ✅ if your tool relies on deps (session, account id, etc.)
+)
 
 # === STEP 7: Agent State Creation ===
 
