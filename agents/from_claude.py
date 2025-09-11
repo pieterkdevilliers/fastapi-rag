@@ -313,6 +313,7 @@ Answer:
     # For now, we'll use the existing LangChain approach
     # Later we can integrate this more tightly with Pydantic-AI
     from langchain_openai import ChatOpenAI
+    ChatOpenAI.model_rebuild()
     model = ChatOpenAI(model=CHAT_MODEL_NAME, temperature=temperature)
     result = model.invoke(prompt)
 
