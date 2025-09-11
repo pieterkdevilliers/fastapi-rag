@@ -88,13 +88,14 @@ def prepare_db_and_perform_query(query,
     print(f"account: {account}")
     relevance_score = account.relevance_score
     k_value = account.k_value
+    temperature = account.temperature
 
     db = prepare_db(account_unique_id)
 
 
     prompt_text = get_most_recent_prompt(account_unique_id, session).prompt_text
 
-    result = search_db(db, query_text, relevance_score, k_value, account_unique_id, chat_history=chat_history, prompt_text=prompt_text)
+    result = search_db(db, query_text, relevance_score, k_value, account_unique_id, chat_history=chat_history, prompt_text=prompt_text, temperature=temperature)
 
     return result
 
@@ -169,13 +170,14 @@ def prepare_db(account_unique_id):
     return db
 
 
-def search_db(db, query, relevance_score, k_value, account_unique_id, chat_history=None, prompt_text=None):
+def search_db(db, query, relevance_score, k_value, account_unique_id, chat_history=None, prompt_text=None, temperature=0.2):
     """
     Search the DB
     """
     print(f"Relevant score: {relevance_score}")
     print(f"k value: {k_value}")
     print(f"Type of db: {type(db)}")
+    print(f"Temperature: {temperature}")
     
     embedding_function = ChromaEmbeddingFunction()
     
@@ -231,7 +233,7 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, chat_histo
 
     print(f"Final prompt to LLM: {prompt}")
 
-    model = ChatOpenAI(model=CHAT_MODEL_NAME)
+    model = ChatOpenAI(model=CHAT_MODEL_NAME, temperature=temperature)
 
     # NEW
     result = model.invoke(prompt)

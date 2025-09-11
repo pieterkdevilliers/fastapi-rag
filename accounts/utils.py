@@ -275,3 +275,14 @@ def get_account_prompt_by_id(account_unique_id: str, id, session: Session):
     prompt = result.first()
 
     return prompt
+
+
+def get_account_temperature(account_unique_id: str, session: Session):
+    """
+    Retrieve the temperature setting for an account
+    """
+    statement = select(Account).filter(Account.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    account = result.first()
+
+    return account.temperature if account and account.temperature is not None else 0.2
