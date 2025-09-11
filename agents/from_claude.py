@@ -54,6 +54,7 @@ class AgentState:
     session: Session
     account: Any
     chat_history: List[ChatMessage]
+    account_model: Optional[Any] = None  # <-- add this
 
     def __post_init__(self):
         if not self.account:
@@ -66,6 +67,7 @@ class AgentState:
             self.account = result.first()
             if not self.account:
                 raise ValueError(f"Account not found: {self.account_unique_id}")
+
 
 
 # === STEP 3: Embedding Helper ===
