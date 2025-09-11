@@ -60,6 +60,7 @@ PyJWT==2.9.0
 requests-oauthlib==2.0.0
 rsa==4.9
 email_validator==2.2.0
+passlib==1.7.4
 
 # AWS
 boto3>=1.40.0,<1.41.0
