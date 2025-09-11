@@ -2,7 +2,7 @@ import os
 import requests
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
-
+from accounts.models import Account
 from sqlmodel import select, Session
 from pydantic import BaseModel
 from pydantic_ai import Agent, RunContext
@@ -57,8 +57,10 @@ class AgentState:
 
     def __post_init__(self):
         if not self.account:
-            statement = select(self.account.__class__).filter(
-                self.account.__class__.account_unique_id == self.account_unique_id
+            if not self.account_model:
+                raise ValueError("account_model must be provided to fetch account from DB")
+            statement = select(self.account_model).filter(
+                self.account_model.account_unique_id == self.account_unique_id
             )
             result = self.session.exec(statement)
             self.account = result.first()
@@ -203,14 +205,18 @@ Answer:
 
 # === STEP 7: Agent State Creation ===
 
-def create_agent_state(account_unique_id: str, session: Session, chat_history: Optional[List[Dict]] = None) -> AgentState:
-    structured_history = []
-    if chat_history:
-        structured_history = [
-            ChatMessage(sender_type=msg.get("sender_type", "user"), message_text=msg.get("message_text", ""))
-            for msg in chat_history
-        ]
-    return AgentState(account_unique_id=account_unique_id, session=session, account=None, chat_history=structured_history)
+def create_agent_state(account_unique_id: str, session: Session, chat_history: Optional[List[Dict]] = None):
+    structured_history = [
+        ChatMessage(sender_type=msg.get("sender_type", "user"), message_text=msg.get("message_text", ""))
+        for msg in chat_history or []
+    ]
+    return AgentState(
+        account_unique_id=account_unique_id,
+        session=session,
+        account=None,
+        account_model=Account,  # <- Pass the model class here
+        chat_history=structured_history
+    )
 
 
 # === STEP 8: Query Agent ===
