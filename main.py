@@ -57,6 +57,8 @@ from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_
 from chroma_db_api import clear_chroma_db_datastore_for_replace
 from webhook_utils import send_chat_messages_webhook_notification
 
+from agents import from_claude
+
 
 load_dotenv()
 
@@ -336,6 +338,19 @@ async def update_api_key(account_unique_id: str,
 ############################################
 # Main Routes
 ############################################
+
+
+@app.get("/api/v1/pydantic-ai-query-data/{account_unique_id}")
+async def pydantic_ai_query_data(query: str, account_unique_id: str, session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    Query Data
+    """
+    if not query:
+        return {"error": "No query provided"}
+
+    response = from_claude.query_source_data(query, account_unique_id, session)
+    return response
+
 
 
 @app.get("/api/v1/query-data/{account_unique_id}")
