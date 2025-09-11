@@ -340,16 +340,16 @@ async def update_api_key(account_unique_id: str,
 ############################################
 
 
-@app.get("/api/v1/pydantic-ai-query-data/{account_unique_id}")
-async def pydantic_ai_query_data(query: str, account_unique_id: str, session: Session = Depends(get_session)) -> dict[str, Any]:
-    """
-    Query Data
-    """
-    if not query:
-        return {"error": "No query provided"}
+# @app.get("/api/v1/pydantic-ai-query-data/{account_unique_id}")
+# async def pydantic_ai_query_data(query: str, account_unique_id: str, session: Session = Depends(get_session)) -> dict[str, Any]:
+#     """
+#     Query Data
+#     """
+#     if not query:
+#         return {"error": "No query provided"}
 
-    response = await from_claude.query_source_data(query, account_unique_id, session)
-    return response
+#     response = await from_claude.query_source_data(query, account_unique_id, session)
+#     return response
 
 
 
