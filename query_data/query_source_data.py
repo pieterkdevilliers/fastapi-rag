@@ -11,6 +11,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from chromadb.api.types import EmbeddingFunction
+from chromadb.config import Settings
 import chromadb
 import openai 
 from dotenv import load_dotenv
@@ -146,27 +147,45 @@ def query_source_data(query: str,
 
 def prepare_db(account_unique_id):
     """
-    Prepare the DB
+    Prepare the DB.
+    - Local dev uses embedded Chroma (duckdb+parquet) with persistence.
+    - Other environments use remote Chroma HTTP API.
     """
-    embedding_function = OpenAIEmbeddings()
-    
+
     if ENVIRONMENT == 'development':
+        print("Using local embedded Chroma DB")
         chroma_path = f"./chroma/{account_unique_id}"
-        db = Chroma(persist_directory=chroma_path, embedding_function=embedding_function)
-    else:
-        response_data = requests.get(f'{CHROMA_ENDPOINT}/collections/collection-{account_unique_id}', headers=headers).json()
-        collection_id = response_data.get('id', None)
+
+        # Ensure the directory exists
+        os.makedirs(chroma_path, exist_ok=True)
+
+        # Simple approach - just use PersistentClient
+        client = chromadb.PersistentClient(path=chroma_path)
         
-        data = {
-            "name": (f"collection-{account_unique_id}"),
-            }
-        db = requests.post(f'{CHROMA_ENDPOINT}/collections/{collection_id}/get', headers=headers, json=data)
-        print(f"db: {db}")
-        # Assuming 'db' is the response object
-        if db.status_code == 200:
-            print(f"Type of db_data: {type(db)}")
-        else:
+        db = Chroma(
+            client=client,
+            embedding_function=embedding_function
+        )
+    else:
+        # Remote Chroma HTTP API
+        response_data = requests.get(
+            f'{CHROMA_ENDPOINT}/collections/collection-{account_unique_id}',
+            headers=headers
+        ).json()
+
+        collection_id = response_data.get('id', None)
+        data = {"name": f"collection-{account_unique_id}"}
+        db = requests.post(
+            f'{CHROMA_ENDPOINT}/collections/{collection_id}/get',
+            headers=headers,
+            json=data,
+        )
+
+        if db.status_code != 200:
             print(f"Failed to retrieve data: {db.status_code} - {db.text}")
+        else:
+            print(f"Retrieved remote collection for account {account_unique_id}")
+
     return db
 
 
