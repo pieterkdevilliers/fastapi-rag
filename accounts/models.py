@@ -32,7 +32,8 @@ class Account(AccountBase, table=True):
         sa_relationship_kwargs={"uselist": False}
     )
     relevance_score: float = Field(default=0.7, nullable=True)
-    k_value: int = Field(default=4, nullable=True)
+    k_value: int = Field(default=7, nullable=True)
+    temperature: float = Field(default=0.2, nullable=True)
     chunk_size: int = Field(default=1000, nullable=True)
     chunk_overlap: int = Field(default=200, nullable=True)
     webhook_url: str = Field(default=None, nullable=True)
