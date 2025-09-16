@@ -31,7 +31,7 @@ from file_management.utils import save_file_to_db, update_file_in_db, delete_fil
     fetch_html_content, extract_text_from_html, prepare_for_s3_upload, create_new_folder_in_db, \
     update_folder_in_db, delete_folder_from_db, delete_file_from_s3, get_docs_count_for_user_account, load_documents_from_s3, \
     create_pending_file_in_db, get_processed_docs_count_for_user_account
-from accounts.models import Account, User, WidgetAPIKey, StripeSubscription, AccountPrompts
+from accounts.models import Account, User, WidgetAPIKey, StripeSubscription, AccountPrompts, WidgetConfig
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, get_user_by_email, \
     create_password_reset_token, get_reset_token, update_user_password, delete_reset_token, get_account_by_account_unique_id, \
@@ -246,10 +246,13 @@ async def get_docs_count(account_unique_id: str,
 #  API Key Management
 ############################################
 
-
 class APIKeyCreateRequest(BaseModel):
     name: str
     allowed_origins: List[str]
+    button_text: str
+    widget_title: str
+    welcome_message: str
+    opt_in_required: bool
 
 @app.post("/api/v1/create-api-key/{account_unique_id}")
 async def create_api_key(
@@ -270,6 +273,18 @@ async def create_api_key(
                                display_prefix=display_prefix)
     session.add(new_api_key)
     session.commit()
+
+    new_widget_config = WidgetConfig(
+        widget_id=new_api_key.id,
+        account_unique_id=account_unique_id,
+        button_text=api_key_create_request.button_text,
+        widget_title=api_key_create_request.widget_title,
+        welcome_message=api_key_create_request.welcome_message,
+        opt_in_required=api_key_create_request.opt_in_required)
+    
+    session.add(new_widget_config)
+    session.commit()
+    
     return {"api_key": api_key, "account_unique_id": account_unique_id, "allowed_origins": api_key_create_request.allowed_origins}
 
 
