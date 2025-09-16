@@ -93,6 +93,31 @@ class WidgetAPIKey(WidgetAPIKeyBase, table=True):
     account: "Account" = Relationship(back_populates="widget_api_keys")
 
 
+class WidgetConfigBase(SQLModel):
+    """
+    Base model for the widget config
+    """
+    account_unique_id: str = Field(
+        foreign_key="account.account_unique_id",
+        index=True
+    )
+    widget_id: int = Field(
+        foreign_key="widgetapikey.id",
+        primary_key=True
+    )
+
+
+class WidgetConfig(WidgetConfigBase, table=True):
+    """
+    Widget Config Model
+    """
+    theme_colour: Optional[str] = Field(nullable=True)
+    button_text: Optional[str] = Field(nullable=True)
+    widget_title: Optional[str] = Field(nullable=True)
+    welcome_message: Optional[str] = Field(nullable=True, default="Hi there, how can I help?")
+    opt_in_required: bool = Field(default=False)
+
+
 class StripeSubscriptionBase(SQLModel):
     """
     Stripe Subscription Model Base
