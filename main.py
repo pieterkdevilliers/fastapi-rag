@@ -351,9 +351,7 @@ async def delete_api_key(account_unique_id: str,
     api_key = result.first()
     if not api_key:
         return {"error": "API Key not found"}
-    session.delete(api_key)
-    session.commit()
-
+    
     config_statement = select(WidgetConfig).where(WidgetConfig.widget_id == api_key_id)
     config_result = session.exec(config_statement)
     widget_config = config_result.first()
@@ -364,6 +362,9 @@ async def delete_api_key(account_unique_id: str,
     else:
         session.delete(widget_config)
         session.commit()
+
+    session.delete(api_key)
+    session.commit()
 
     return {"message": "API Key deleted successfully"}
 
