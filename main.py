@@ -15,6 +15,7 @@ from secrets import token_hex
 import shutil
 import boto3
 import convert_to_pdf
+from sqlmodel import SQLModel
 import io
 from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite, update_active_customer_groups, update_cancelled_customer_groups
 from aws_ses_service import EmailService, get_email_service
@@ -288,17 +289,66 @@ async def create_api_key(
     return {"api_key": api_key, "account_unique_id": account_unique_id, "allowed_origins": api_key_create_request.allowed_origins}
 
 
+# @app.get("/api/v1/list-api-keys/{account_unique_id}")
+# async def list_api_keys(account_unique_id: str,
+#                         current_user: Annotated[User, Depends(get_current_active_user)],
+#                         session: Session = Depends(get_session)) -> dict[str, Any]:
+#     """
+#     List API Keys
+#     """
+#     statement = select(WidgetAPIKey).where(WidgetAPIKey.account_unique_id == account_unique_id)
+#     result = session.exec(statement)
+#     api_keys = result.all()
+#     return {"api_keys": api_keys}
+
+
+class WidgetAPIKeyWithConfig(SQLModel):
+    """Response model for API key with its configuration"""
+    id: int
+    name: Optional[str]
+    display_prefix: Optional[str]
+    created_at: datetime
+    last_used_at: Optional[datetime]
+    is_active: bool
+    allowed_origins: List[str]
+    widget_config: Optional[WidgetConfig] = None
+
 @app.get("/api/v1/list-api-keys/{account_unique_id}")
 async def list_api_keys(account_unique_id: str,
                         current_user: Annotated[User, Depends(get_current_active_user)],
-                        session: Session = Depends(get_session)) -> dict[str, Any]:
+                        session: Session = Depends(get_session)) -> dict[str, List[WidgetAPIKeyWithConfig]]:
     """
-    List API Keys
+    List API Keys with their configurations
     """
-    statement = select(WidgetAPIKey).where(WidgetAPIKey.account_unique_id == account_unique_id)
-    result = session.exec(statement)
-    api_keys = result.all()
-    return {"api_keys": api_keys}
+    # Get API keys
+    api_keys_stmt = select(WidgetAPIKey).where(WidgetAPIKey.account_unique_id == account_unique_id)
+    api_keys = session.exec(api_keys_stmt).all()
+    
+    # Get configs for these API keys
+    api_key_ids = [key.id for key in api_keys]
+    configs_stmt = select(WidgetConfig).where(WidgetConfig.widget_id.in_(api_key_ids))
+    configs = session.exec(configs_stmt).all()
+    
+    # Create a mapping of widget_id to config
+    config_map = {config.widget_id: config for config in configs}
+    
+    # Combine the data
+    result = []
+    for api_key in api_keys:
+        widget_config = config_map.get(api_key.id)
+        combined = WidgetAPIKeyWithConfig(
+            id=api_key.id,
+            name=api_key.name,
+            display_prefix=api_key.display_prefix,
+            created_at=api_key.created_at,
+            last_used_at=api_key.last_used_at,
+            is_active=api_key.is_active,
+            allowed_origins=api_key.allowed_origins,
+            widget_config=widget_config
+        )
+        result.append(combined)
+    
+    return {"api_keys": result}
 
 
 @app.delete("/api/v1/delete-api-key/{account_unique_id}/{api_key_id}")
