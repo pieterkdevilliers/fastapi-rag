@@ -289,19 +289,6 @@ async def create_api_key(
     return {"api_key": api_key, "account_unique_id": account_unique_id, "allowed_origins": api_key_create_request.allowed_origins}
 
 
-# @app.get("/api/v1/list-api-keys/{account_unique_id}")
-# async def list_api_keys(account_unique_id: str,
-#                         current_user: Annotated[User, Depends(get_current_active_user)],
-#                         session: Session = Depends(get_session)) -> dict[str, Any]:
-#     """
-#     List API Keys
-#     """
-#     statement = select(WidgetAPIKey).where(WidgetAPIKey.account_unique_id == account_unique_id)
-#     result = session.exec(statement)
-#     api_keys = result.all()
-#     return {"api_keys": api_keys}
-
-
 class WidgetAPIKeyWithConfig(SQLModel):
     """Response model for API key with its configuration"""
     id: int
@@ -372,6 +359,11 @@ async def delete_api_key(account_unique_id: str,
 class APIKeyUpdateRequest(BaseModel):
     name: str = None
     allowed_origins: List[str] = None
+    theme_colour: str = None
+    button_text: str = None
+    widget_title: str = None
+    welcome_message: str = None
+    opt_in_required: bool = False
 
 
 @app.put("/api/v1/update-api-key/{account_unique_id}/{api_key_id}")
@@ -397,8 +389,24 @@ async def update_api_key(account_unique_id: str,
 
     session.add(api_key)
     session.commit()
+
+    config_statement = select(WidgetConfig).where(WidgetConfig.widget_id == api_key_id)
+    config_result = session.exec(config_statement)
+    widget_config = config_result.first()
+
+    if not widget_config:
+        pass
+
+    widget_config.button_text = api_key_update_request.button_text
+    widget_config.theme_colour = api_key_update_request.theme_colour
+    widget_config.widget_title = api_key_update_request.widget_title
+    widget_config.welcome_message = api_key_update_request.welcome_message
+    widget_config.opt_in_required = api_key_update_request.opt_in_required
+
+    session.add(widget_config)
+    session.commit()
     
-    return {"message": "API Key updated successfully", "api_key": api_key}
+    return {"message": "API Key updated successfully", "api_key": api_key, "widget_config": widget_config}
 
 ############################################
 # Main Routes
