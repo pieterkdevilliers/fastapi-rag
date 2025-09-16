@@ -353,6 +353,18 @@ async def delete_api_key(account_unique_id: str,
         return {"error": "API Key not found"}
     session.delete(api_key)
     session.commit()
+
+    config_statement = select(WidgetConfig).where(WidgetConfig.widget_id == api_key_id)
+    config_result = session.exec(config_statement)
+    widget_config = config_result.first()
+
+    if not widget_config:
+        pass
+
+    else:
+        session.delete(widget_config)
+        session.commit()
+
     return {"message": "API Key deleted successfully"}
 
 
@@ -397,14 +409,15 @@ async def update_api_key(account_unique_id: str,
     if not widget_config:
         pass
 
-    widget_config.button_text = api_key_update_request.button_text
-    widget_config.theme_colour = api_key_update_request.theme_colour
-    widget_config.widget_title = api_key_update_request.widget_title
-    widget_config.welcome_message = api_key_update_request.welcome_message
-    widget_config.opt_in_required = api_key_update_request.opt_in_required
+    else:
+        widget_config.button_text = api_key_update_request.button_text
+        widget_config.theme_colour = api_key_update_request.theme_colour
+        widget_config.widget_title = api_key_update_request.widget_title
+        widget_config.welcome_message = api_key_update_request.welcome_message
+        widget_config.opt_in_required = api_key_update_request.opt_in_required
 
-    session.add(widget_config)
-    session.commit()
+        session.add(widget_config)
+        session.commit()
     
     return {"message": "API Key updated successfully", "api_key": api_key, "widget_config": widget_config}
 
