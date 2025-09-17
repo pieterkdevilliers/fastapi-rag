@@ -43,6 +43,13 @@ class ContactPayload(BaseModel):
     sessionId: int
     visitorUuid: str
 
+
+class OptInPayload(BaseModel):
+    name: str
+    email: str
+    sessionId: int
+    visitorUuid: str
+
 # --- Models for the Webhook ---
 class WebhookChatMessage(BaseModel):
     timestamp: datetime
