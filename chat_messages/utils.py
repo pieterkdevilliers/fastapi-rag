@@ -14,7 +14,7 @@ def create_or_identify_chat_session(account_unique_id: str, visitor_uuid: str, s
     ).first()
 
     if not chat_session:
-        chat_session = ChatSession(account_unique_id=account_unique_id, visitor_uuid=visitor_uuid, name=name, email=email)
+        chat_session = ChatSession(account_unique_id=account_unique_id, visitor_uuid=visitor_uuid, visitor_name=name, visitor_email=email)
         session.add(chat_session)
         session.commit()
         session.refresh(chat_session)
