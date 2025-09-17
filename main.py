@@ -1,50 +1,59 @@
-import json
 import os
-import io
+from dotenv import load_dotenv
+
+load_dotenv()
+
+import json
+import tempfile
+import stripe
 import secrets
-from datetime import timedelta
+import chromadb
+from bs4 import BeautifulSoup
 from typing import Any, Union, Annotated, List, Optional
 from datetime import datetime, timezone
 from secrets import token_hex
-import stripe
-import chromadb
-from bs4 import BeautifulSoup
+import shutil
 import boto3
-from sqlmodel import SQLModel, select, Session
+import convert_to_pdf
+from sqlmodel import SQLModel
+import io
+from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite, update_active_customer_groups, update_cancelled_customer_groups
+from aws_ses_service import EmailService, get_email_service
+from datetime import timedelta
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request, Security, responses
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from sqlmodel import select, Session, Field
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from pydantic import BaseModel, EmailStr, Field
-from dotenv import load_dotenv
-from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite, update_active_customer_groups, update_cancelled_customer_groups
-from aws_ses_service import EmailService, get_email_service
-from chat_messages.models import ChatSession, ChatMessage
-from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
-    get_chat_messages_by_session_id, get_chat_session_count, get_questions_answered_count, create_email_message, \
-    get_email_message_count, update_session_with_contact_details
 from file_management.models import SourceFile, Folder
-from file_management.utils import update_file_in_db, delete_file_from_db, \
+from file_management.utils import save_file_to_db, update_file_in_db, delete_file_from_db, \
     fetch_html_content, extract_text_from_html, prepare_for_s3_upload, create_new_folder_in_db, \
     update_folder_in_db, delete_folder_from_db, delete_file_from_s3, get_docs_count_for_user_account, load_documents_from_s3, \
     create_pending_file_in_db, get_processed_docs_count_for_user_account
-from accounts.models import Account, User, WidgetAPIKey, StripeSubscription, WidgetConfig
+from accounts.models import Account, User, WidgetAPIKey, StripeSubscription, AccountPrompts, WidgetConfig
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, get_user_by_email, \
     create_password_reset_token, get_reset_token, update_user_password, delete_reset_token, get_account_by_account_unique_id, \
     check_active_subscription_status, get_account_webhook_url, create_account_prompt, get_account_prompts, get_most_recent_prompt, \
     get_account_prompt_by_id
+# from create_database import generate_chroma_db
+from db import engine
 import query_data.query_source_data as query_source_data
 from authentication import oauth2_scheme, Token, authenticate_user, get_password_hash, create_access_token, \
-    get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user, get_api_key_hash, get_internal_api_key
+    get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user, get_api_key_hash, get_api_key, get_internal_api_key
 from dependencies import get_session
-
+from chat_messages.models import ChatSession, ChatMessage
+from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
+    get_chat_messages_by_session_id, get_chat_session_count, get_questions_answered_count, create_email_message, \
+    get_email_message_count, update_session_with_contact_details
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
-    process_stripe_subscription_checkout_session_completed_event, \
-    process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
+    process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, \
+    process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
     process_stripe_subscription_updated_event, process_stripe_subscription_deleted_event, process_in_app_subscription_cancellation, \
     get_stripe_customer_from_customer_id
-from core.models import Product, ContactPayload, OptInPayload
+from core.models import Product, PasswordResetToken, ContactPayload, OptInPayload
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
 from chroma_db_api import clear_chroma_db_datastore_for_replace
 from webhook_utils import send_chat_messages_webhook_notification
