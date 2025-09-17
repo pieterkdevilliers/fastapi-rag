@@ -14,13 +14,15 @@ def create_or_identify_chat_session(account_unique_id: str, visitor_uuid: str, s
     ).first()
 
     if not chat_session:
-        chat_session = ChatSession(account_unique_id=account_unique_id, visitor_uuid=visitor_uuid)
+        chat_session = ChatSession(account_unique_id=account_unique_id, visitor_uuid=visitor_uuid, name=name, email=email)
         session.add(chat_session)
         session.commit()
         session.refresh(chat_session)
     else:
         # Optionally, you can update the session's end time if needed
         chat_session.end_time = datetime.now(timezone.utc)
+        chat_session.visitor_name = name
+        chat_session.visitor_email = name
         session.add(chat_session)
         session.commit()
         session.refresh(chat_session)
