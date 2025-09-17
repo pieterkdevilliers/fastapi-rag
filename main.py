@@ -657,14 +657,14 @@ async def widget_contact_us(
         visitor_uuid=payload.visitorUuid,
         session=session
     )
-
-    updated_chat_session = update_session_with_contact_details(
-        account_unique_id=auth_info["account_unique_id"],
-        visitor_uuid=payload.visitorUuid,
-        session=session,
-        name=payload.name,
-        email=payload.email
-    )
+    if chat_session_id:
+        updated_chat_session = update_session_with_contact_details(
+            account_unique_id=auth_info["account_unique_id"],
+            visitor_uuid=payload.visitorUuid,
+            session=session,
+            name=payload.name,
+            email=payload.email
+        )
 
     if not chat_session_id:
         print(f"No chat session found for visitor UUID {payload.visitorUuid} in account {auth_info['account_unique_id']}.")
