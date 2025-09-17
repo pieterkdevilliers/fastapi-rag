@@ -53,7 +53,7 @@ from stripe_service import process_stripe_product_created_event, process_stripe_
     process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
     process_stripe_subscription_updated_event, process_stripe_subscription_deleted_event, process_in_app_subscription_cancellation, \
     get_stripe_customer_from_customer_id
-from core.models import Product, PasswordResetToken, ContactPayload
+from core.models import Product, PasswordResetToken, ContactPayload, OptInPayload
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
 from chroma_db_api import clear_chroma_db_datastore_for_replace
 from webhook_utils import send_chat_messages_webhook_notification
@@ -634,6 +634,39 @@ async def clear_chroma_db_datastore(account_unique_id: str, current_user: Annota
             detail="An error occurred while trying to clear the database."
         )
     
+
+@app.post("/api/v1/widget/opt-in")
+async def widget_opt_in(
+                        payload: OptInPayload, 
+                        auth_info: dict = Security(get_widget_api_key_user),
+                        session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    Contact Us
+    """
+    if not payload.name or not payload.email:
+        raise HTTPException(status_code=400, detail="Name, email, and message are required fields")
+
+    chat_session_id = create_or_identify_chat_session(
+        account_unique_id=auth_info["account_unique_id"],
+        visitor_uuid=payload.visitorUuid,
+        session=session,
+        name=payload.name,
+        email=payload.email,
+    ).id
+    
+    webhook_url = get_account_webhook_url(account_unique_id=auth_info["account_unique_id"], session=session)
+    print("Webhook URL Found: ", webhook_url)
+
+    if webhook_url:
+        await send_chat_messages_webhook_notification(
+            account_unique_id=auth_info["account_unique_id"],
+            chat_session_id=chat_session_id,
+            payload=payload,
+            webhook_url=webhook_url,
+            session=session
+        )
+    
+    return {"message": "Contact Us", "account_unique_id": auth_info["account_unique_id"]}    
 
 
 @app.post("/api/v1/widget/contact-us")
