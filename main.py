@@ -654,19 +654,8 @@ async def widget_opt_in(
         email=payload.email,
     ).id
     
-    webhook_url = get_account_webhook_url(account_unique_id=auth_info["account_unique_id"], session=session)
-    print("Webhook URL Found: ", webhook_url)
-
-    if webhook_url:
-        await send_chat_messages_webhook_notification(
-            account_unique_id=auth_info["account_unique_id"],
-            chat_session_id=chat_session_id,
-            payload=payload,
-            webhook_url=webhook_url,
-            session=session
-        )
     
-    return {"message": "Contact Us", "account_unique_id": auth_info["account_unique_id"]}    
+    return {"message": "Opt-in", "account_unique_id": auth_info["account_unique_id"], "chat_session_id": chat_session_id}    
 
 
 @app.post("/api/v1/widget/contact-us")
