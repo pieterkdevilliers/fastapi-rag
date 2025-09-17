@@ -475,7 +475,9 @@ async def process_widget_query(
     # Identify the chat session
     try:
         chat_session = create_or_identify_chat_session(
-            account_unique_id, payload.visitor_uuid, session
+            account_unique_id,
+            payload.visitor_uuid,
+            session
         )
     except Exception as e:
         print(f"Error creating/identifying chat session: {e}")
@@ -661,7 +663,9 @@ async def widget_contact_us(
         chat_session_id = create_or_identify_chat_session(
             account_unique_id=auth_info["account_unique_id"],
             visitor_uuid=payload.visitorUuid,
-            session=session
+            session=session,
+            name=payload.name,
+            email=payload.email,
         ).id
     
     webhook_url = get_account_webhook_url(account_unique_id=auth_info["account_unique_id"], session=session)

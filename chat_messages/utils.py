@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import datetime, timezone, timedelta
 
 
-def create_or_identify_chat_session(account_unique_id: str, visitor_uuid: str, session: Session):
+def create_or_identify_chat_session(account_unique_id: str, visitor_uuid: str, session: Session, name: str = None, email: str = None):
     """
     Create or Identify Chat Session
     """
