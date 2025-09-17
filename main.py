@@ -47,7 +47,7 @@ from dependencies import get_session
 from chat_messages.models import ChatSession, ChatMessage
 from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
     get_chat_messages_by_session_id, get_chat_session_count, get_questions_answered_count, create_email_message, \
-    get_email_message_count
+    get_email_message_count, update_session_with_contact_details
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
     process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, \
     process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
@@ -656,6 +656,14 @@ async def widget_contact_us(
         account_unique_id=auth_info["account_unique_id"],
         visitor_uuid=payload.visitorUuid,
         session=session
+    )
+
+    updated_chat_session = update_session_with_contact_details(
+        account_unique_id=auth_info["account_unique_id"],
+        visitor_uuid=payload.visitor_uuid,
+        session=session,
+        name=payload.name,
+        email=payload.email
     )
 
     if not chat_session_id:
