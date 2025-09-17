@@ -23,6 +23,8 @@ class ChatSession(ChatSessionBase, table=True):
     visitor_uuid: str = Field(default=None, nullable=False, index=True)
     start_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     end_time: Optional[datetime] = Field(default=None, nullable=True)
+    visitor_name: Optional[str] = Field(nullable=True)
+    visitor_email: Optional[str] = Field(nullable=True)
 
 
 class ChatMessageBase(SQLModel):
