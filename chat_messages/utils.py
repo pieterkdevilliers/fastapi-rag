@@ -29,6 +29,7 @@ def create_or_identify_chat_session(account_unique_id: str, visitor_uuid: str, s
 
     return chat_session
 
+
 def get_session_id_by_visitor_uuid(account_unique_id: str, visitor_uuid: str, session: Session) -> Optional[int]:
     """
     Get Chat Session ID by Visitor UUID
@@ -38,6 +39,25 @@ def get_session_id_by_visitor_uuid(account_unique_id: str, visitor_uuid: str, se
     ).first()
     
     return chat_session if chat_session else None
+
+
+def update_session_with_contact_details(account_unique_id: str, visitor_uuid: str, session: Session, name: str, email: str):
+    """
+    Update existing ChatSession with contact details
+    """
+    chat_session = session.exec(
+        select(ChatSession).where(ChatSession.visitor_uuid == visitor_uuid, ChatSession.account_unique_id == account_unique_id)
+    ).first()
+    if not chat_session:
+        return {"message": "Chat session not found"}
+    else:
+        chat_session.visitor_name = name
+        chat_session.visitor_email = email
+        session.add(chat_session)
+        session.commit()
+        session.refresh(chat_session)
+
+    return chat_session
 
 
 def get_chat_messages_by_session_id(chat_session_id: int, session: Session) -> list[ChatMessage]:
