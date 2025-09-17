@@ -21,8 +21,9 @@ def create_or_identify_chat_session(account_unique_id: str, visitor_uuid: str, s
     else:
         # Optionally, you can update the session's end time if needed
         chat_session.end_time = datetime.now(timezone.utc)
-        chat_session.visitor_name = name
-        chat_session.visitor_email = email
+        if name and email:
+            chat_session.visitor_name = name
+            chat_session.visitor_email = email
         session.add(chat_session)
         session.commit()
         session.refresh(chat_session)
