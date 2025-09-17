@@ -660,7 +660,7 @@ async def widget_contact_us(
 
     updated_chat_session = update_session_with_contact_details(
         account_unique_id=auth_info["account_unique_id"],
-        visitor_uuid=payload.visitor_uuid,
+        visitor_uuid=payload.visitorUuid,
         session=session,
         name=payload.name,
         email=payload.email
