@@ -652,7 +652,7 @@ async def widget_opt_in(
         email=payload.email,
     ).id
 
-    print("chat_session_id: ", chat_session_id)
+    payload.sessionId = chat_session_id
 
     if webhook_url:
         await send_opt_in_webhook_notification(
