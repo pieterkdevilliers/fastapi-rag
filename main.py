@@ -642,7 +642,7 @@ async def widget_opt_in(
     if not payload.name or not payload.email:
         raise HTTPException(status_code=400, detail="Name, email, and message are required fields")
 
-    webhook_url = get_account_webhook_url(account_unique_id=auth_info["account_unique_id"], session=session)
+    webhook_url = get_opt_in_webhook_url(account_unique_id=auth_info["account_unique_id"], session=session)
 
     chat_session_id = create_or_identify_chat_session(
         account_unique_id=auth_info["account_unique_id"],
