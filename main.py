@@ -37,7 +37,7 @@ from accounts.utils import create_new_account_in_db, update_account_in_db, delet
     create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, get_user_by_email, \
     create_password_reset_token, get_reset_token, update_user_password, delete_reset_token, get_account_by_account_unique_id, \
     check_active_subscription_status, get_account_webhook_url, create_account_prompt, get_account_prompts, get_most_recent_prompt, \
-    get_account_prompt_by_id
+    get_account_prompt_by_id, get_opt_in_webhook_url
 # from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
@@ -642,6 +642,8 @@ async def widget_opt_in(
     if not payload.name or not payload.email:
         raise HTTPException(status_code=400, detail="Name, email, and message are required fields")
 
+    webhook_url = get_account_webhook_url(account_unique_id=auth_info["account_unique_id"], session=session)
+
     chat_session_id = create_or_identify_chat_session(
         account_unique_id=auth_info["account_unique_id"],
         visitor_uuid=payload.visitorUuid,
@@ -649,6 +651,15 @@ async def widget_opt_in(
         name=payload.name,
         email=payload.email,
     ).id
+
+    if webhook_url:
+        await send_chat_messages_webhook_notification(
+            account_unique_id=auth_info["account_unique_id"],
+            chat_session_id=chat_session_id,
+            payload=payload,
+            webhook_url=webhook_url,
+            session=session
+        )
     
     
     return {"message": "Opt-in", "account_unique_id": auth_info["account_unique_id"], "chat_session_id": chat_session_id}    
