@@ -228,6 +228,17 @@ def get_account_webhook_url(account_unique_id: str, session: Session):
     return webhook_url
 
 
+def get_opt_in_webhook_url(account_unique_id: str, session: Session):
+    """
+    Get the account's webhook_url
+    """
+    statement = select(Account).filter(Account.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    webhook_url = result.first().opt_in_webhook_url
+
+    return webhook_url
+
+
 def create_account_prompt(account_unique_id: str, prompt_key: str, prompt_text: str, session: Session):
     """
     Save New Account Prompt to DB
