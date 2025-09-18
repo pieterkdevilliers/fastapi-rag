@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional, List
 from sqlmodel import Session
 from chat_messages.utils import get_chat_messages_by_session_id
-from core.models import ContactPayload, WebhookData, WebhookChatMessage
+from core.models import ContactPayload, WebhookData, WebhookChatMessage, OptInPayload
 
 
 async def send_chat_messages_webhook_notification(account_unique_id: str, chat_session_id: int, payload: ContactPayload, webhook_url: str, session: Session):
@@ -83,6 +83,35 @@ async def send_webhook_notification(webhook_url: str, payload: WebhookData):
         except httpx.RequestError as e:
             # Catches connection errors, timeouts, etc.
             print(f"ERROR: Could not send webhook to {webhook_url}. Error: {e}")
+        except Exception as e:
+            # Catch other potential errors
+            print(f"ERROR: An unexpected error occurred during webhook sending. Error: {e}")
+
+
+async def send_opt_in_webhook_notification( opt_in_webhook_url: str, payload: OptInPayload):
+    """
+    Send the opt-in details to the webhook endpoint
+    """
+    if not opt_in_webhook_url:
+        return
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            payload_data = payload.model_dump(mode="json")
+
+            response = await client.post(
+                opt_in_webhook_url,
+                json=payload_data,
+                headers={"Content-Type": "application/json"},
+                timeout=10.0, # Set a reasonable timeout
+            )
+
+            response.raise_for_status() 
+            print(f"Webhook sent successfully to {opt_in_webhook_url}. Status: {response.status_code}")
+
+        except httpx.RequestError as e:
+            # Catches connection errors, timeouts, etc.
+            print(f"ERROR: Could not send webhook to {opt_in_webhook_url}. Error: {e}")
         except Exception as e:
             # Catch other potential errors
             print(f"ERROR: An unexpected error occurred during webhook sending. Error: {e}")
