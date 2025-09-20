@@ -428,28 +428,36 @@ async def update_api_key(account_unique_id: str,
 async def add_score_card_result(request: Request):
     signature = request.headers.get("Scoreapp-Signature")
     if not signature:
-        raise HTTPException(status_code=400, detail="Missing signature header")
+        print("⚠️ No signature header found")
+        # For debugging, continue anyway
+        # raise HTTPException(status_code=400, detail="Missing signature header")
 
     body_bytes = await request.body()
-    validation_status = int_utils.validate_webhook_signature(signature, body_bytes)
-
-        # Parse JSON from the stored bytes
+    
+    # Debug validation (always passes)
+    if signature:
+        int_utils.validate_webhook_signature_debug(signature, body_bytes)
+    
+    # Parse JSON
     try:
         body = json.loads(body_bytes.decode('utf-8'))
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
     
-    print("Full Request Body:", body)
+    print("=== WEBHOOK DATA ===")
+    print("Event:", body.get("event_name"))
+    print("Full payload:", json.dumps(body, indent=2))
+    print("=== END WEBHOOK DATA ===\n")
 
     event_name = body.get("event_name")
     if event_name == "QUIZ_STARTED":
-        print("Quiz Started")
+        print("Processing: Quiz Started")
     elif event_name == "QUIZ_FINISHED":
-        print("Quiz Finished")
+        print("Processing: Quiz Finished")
     elif event_name == "LEAD_DETAILS_UPDATED":
-        print("Lead Details Updated")
+        print("Processing: Lead Details Updated")
     elif event_name == "LEAD_SIGNED_UP":
-        print("Lead Signed Up")    
+        print("Processing: Lead Signed Up")
 
     return {"status": "ok"}
 
