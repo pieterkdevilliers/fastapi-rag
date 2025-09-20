@@ -17,15 +17,18 @@ def validate_webhook_signature(signature: str, body: bytes):
     digest = hmac.new(SIGNING_SECRET.encode(), body, hashlib.sha256).digest()
 
     # Convert digest to lowercase hex string
-    computed_hex = digest.hex()
+    computed_signature = digest.hex()
 
     print("Signature header:", signature)
-    print("Computed hex:", computed_hex)
+    print("Computed signature:", computed_signature)
+    print("Body bytes length:", len(body))
+    print("Body content:", body.decode('utf-8')[:200]) 
 
-    if not hmac.compare_digest(signature, computed_hex):
+    if not hmac.compare_digest(signature, computed_signature):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
     print("✅ Webhook signature matched")
+    return True
 
 
 async def create_score_card_result():

@@ -433,8 +433,12 @@ async def add_score_card_result(request: Request):
     body_bytes = await request.body()
     validation_status = int_utils.validate_webhook_signature(signature, body_bytes)
 
-    # Parse JSON after validation
-    body = await request.json()
+        # Parse JSON from the stored bytes
+    try:
+        body = json.loads(body_bytes.decode('utf-8'))
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+    
     print("Full Request Body:", body)
 
     event_name = body.get("event_name")
