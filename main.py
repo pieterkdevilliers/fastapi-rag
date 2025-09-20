@@ -437,6 +437,8 @@ async def add_score_card_result(request: Request):
 
     if body.get("event_name") == "QUIZ_FINISHED":
         print("Quiz Finished")
+        signature = request.headers.get('Scoreapp-Signature')
+        print("Signature: ", signature)
 
     if body.get("event_name") == "LEAD_DETAILS_UPDATED":
         print("Lead Details Updated")
