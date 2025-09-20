@@ -9,7 +9,7 @@ from sqlmodel.sql.expression import select
 SIGNING_SECRET = "12345"
 
 
-def validate_webhook_signature_temporary(signature: str, body: bytes):
+def validate_webhook_signature(signature: str, body: bytes):
     """
     Temporary workaround for ScoreApp signature bug
     """
