@@ -21,3 +21,20 @@ class ScoreCardResult(ScoreCardBase, table=True):
     email: str = Field(nullable=True)
     key: str = Field(nullable=False)
     report_url: str = Field(nullable=False)
+
+
+class ScoreAppAccountBase(SQLModel):
+    """
+    ScoreApp Account Base Model
+    """
+    scoreapp_id: str = Field(nullable=False)  # Renamed to avoid conflict
+    account_unique_id: str = Field(foreign_key="account.account_unique_id")
+
+
+class ScoreAppAccount(ScoreAppAccountBase, table=True):
+    """
+    ScoreApp Account Model
+    """
+    __tablename__ = "scoreapp_account"  # Explicit table name
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
