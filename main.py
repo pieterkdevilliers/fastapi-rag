@@ -435,13 +435,18 @@ async def add_score_card_result(request: Request):
     # Validate signature
     validation_status = int_utils.validate_webhook_signature(signature, body_bytes)
 
-    # Parse JSON from the stored bytes
-    try:
-        body = json.loads(body_bytes.decode('utf-8'))
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+    if validation_status:
+        # Parse JSON from the stored bytes
+        try:
+            body = json.loads(body_bytes.decode('utf-8'))
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
     
-    print("Full Request Body:", body)
+    
+    if body:
+        print("Full Request Body:", body)
+        report_url = body.get("report", "")
+        account_unique_id = await int_utils.get_account_unique_id(report_url)
 
     event_name = body.get("event_name")
     if event_name == "QUIZ_STARTED":

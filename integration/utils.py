@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+from urllib.parse import urlparse
 from fastapi import HTTPException
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
@@ -30,6 +31,34 @@ def validate_webhook_signature(signature: str, body: bytes):
 
     print("✅ Webhook signature matched")
     return True
+
+
+async def get_account_unique_id(report_url: str):
+    """
+    Retrieve the account identifier
+    """
+    sub_domain = extract_subdomain_from_report(report_url)
+    print("subdomain: ", sub_domain)
+    account_unique_id = sub_domain
+
+    return account_unique_id 
+
+
+def extract_subdomain_from_report(report_url):
+    """
+    Extract subdomain from ScoreApp report URL
+    """
+    if not report_url:
+        return None
+        
+    parsed = urlparse(report_url)
+    hostname = parsed.netloc
+    
+    if '.scoreapp.com' in hostname:
+        subdomain = hostname.split('.scoreapp.com')[0]
+        return subdomain
+    
+    return None
 
 
 
