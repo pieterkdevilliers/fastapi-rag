@@ -428,26 +428,41 @@ async def update_api_key(account_unique_id: str,
 async def add_score_card_result(request: Request):
     signature = request.headers.get("Scoreapp-Signature")
     if not signature:
-        print("⚠️ No signature header found")
-    
+        raise HTTPException(status_code=400, detail="Missing signature header")
+
     body_bytes = await request.body()
     
-    # Run comprehensive debug
-    if signature:
-        found_match, match_details = int_utils.comprehensive_signature_debug(signature, body_bytes)
-        if found_match:
-            print(f"🎉🎉🎉 SUCCESS! Use this: {match_details}")
-    
-    # Parse and process webhook data
+    # Validate signature
+    validation_status = int_utils.validate_webhook_signature(signature, body_bytes)
+
+    # Parse JSON from the stored bytes
     try:
         body = json.loads(body_bytes.decode('utf-8'))
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
     
-    print("=== WEBHOOK DATA ===")
-    print("Event:", body.get("event_name"))
-    print("Data keys:", list(body.get("data", {}).keys()))
-    print("=== END WEBHOOK DATA ===\n")
+    print("Full Request Body:", body)
+
+    event_name = body.get("event_name")
+    if event_name == "QUIZ_STARTED":
+        print("Processing: Quiz Started")
+        # Add your quiz started logic here
+        
+    elif event_name == "QUIZ_FINISHED":
+        print("Processing: Quiz Finished")
+        # Add your quiz finished logic here
+        data = body.get("data", {})
+        user_email = data.get("email")
+        total_score = data.get("total_score", {})
+        print(f"User: {user_email}, Score: {total_score.get('percent')}%")
+        
+    elif event_name == "LEAD_DETAILS_UPDATED":
+        print("Processing: Lead Details Updated")
+        # Add your lead updated logic here
+        
+    elif event_name == "LEAD_SIGNED_UP":
+        print("Processing: Lead Signed Up")
+        # Add your lead signup logic here
 
     return {"status": "ok"}
 
