@@ -57,6 +57,7 @@ from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_
 from chroma_db_api import clear_chroma_db_datastore_for_replace
 from webhook_utils import send_chat_messages_webhook_notification, send_opt_in_webhook_notification
 import integration.utils as int_utils
+from integration.models import ScoreAppAccount
 load_dotenv()
 
 
@@ -422,6 +423,24 @@ async def update_api_key(account_unique_id: str,
 ############################################
 # Integration Routes
 ############################################
+
+
+@app.post("/api/v1/create-score-app-account/{account_unique_id}/{scoreapp_id}")
+async def create_score_app_account(
+                        account_unique_id: str,
+                        scoreapp_id: str,
+                        current_user: Annotated[User, Depends(get_current_active_user)],
+                        session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    Create ScoreApp Account
+    """
+
+    new_score_app_account = ScoreAppAccount(account_unique_id=account_unique_id,
+                               scoreapp_id=scoreapp_id)
+    session.add(new_score_app_account)
+    session.commit()
+    
+    return {"scoreapp_id": scoreapp_id, "account_unique_id": account_unique_id}
 
 
 @app.post("/api/v1/score-card-result")
