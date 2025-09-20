@@ -438,36 +438,42 @@ async def add_score_card_result(request: Request):
     if validation_status:
         # Parse JSON from the stored bytes
         try:
-            data = json.loads(body_bytes.decode('utf-8'))
+            webhook_data = json.loads(body_bytes.decode('utf-8'))
         except json.JSONDecodeError as e:
             raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
     
-    
-    if data:
-        print("Full Request Body:", data)
-        report_url = data.get("report", "")
-        account_unique_id = await int_utils.get_account_unique_id(report_url)
+        print("Full Request Body:", webhook_data)
+        
+        # Extract event name from the root level
+        event_name = webhook_data.get("event_name")
+        
+        # Extract the nested data object
+        nested_data = webhook_data.get("data", {})
+        
+        # Get report URL from the nested data (not from root)
+        report_url = nested_data.get("report", "")
+        if report_url:
+            account_unique_id = await int_utils.get_account_unique_id(report_url)
+            print(f"Account ID: {account_unique_id}")
 
-    event_name = data.get("event_name")
-    if event_name == "QUIZ_STARTED":
-        print("Processing: Quiz Started")
-        # Add your quiz started logic here
-        
-    elif event_name == "QUIZ_FINISHED":
-        print("Processing: Quiz Finished")
-        # Add your quiz finished logic here
-        data = data.get("data", {})
-        user_email = data.get("email")
-        total_score = data.get("total_score", {})
-        print(f"User: {user_email}, Score: {total_score.get('percent')}%")
-        
-    elif event_name == "LEAD_DETAILS_UPDATED":
-        print("Processing: Lead Details Updated")
-        # Add your lead updated logic here
-        
-    elif event_name == "LEAD_SIGNED_UP":
-        print("Processing: Lead Signed Up")
-        # Add your lead signup logic here
+        if event_name == "QUIZ_STARTED":
+            print("Processing: Quiz Started")
+            # Add your quiz started logic here
+            
+        elif event_name == "QUIZ_FINISHED":
+            print("Processing: Quiz Finished")
+            # Access nested data correctly
+            user_email = nested_data.get("email")
+            total_score = nested_data.get("total_score", {})
+            print(f"User: {user_email}, Score: {total_score.get('percent')}%")
+            
+        elif event_name == "LEAD_DETAILS_UPDATED":
+            print("Processing: Lead Details Updated")
+            # Add your lead updated logic here
+            
+        elif event_name == "LEAD_SIGNED_UP":
+            print("Processing: Lead Signed Up")
+            # Add your lead signup logic here
 
     return {"status": "ok"}
 
