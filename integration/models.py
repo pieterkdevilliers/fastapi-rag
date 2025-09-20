@@ -1,37 +1,39 @@
-from typing import Optional
-from sqlmodel import SQLModel, Field
+"""create new scorecard result table
+
+Revision ID: 92d5a05b4570
+Revises: 5b51ebd73387
+Create Date: 2025-09-20 16:03:10.997761
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
 
 
-class ScoreCardResult(SQLModel, table=True):
-    """
-    Score Card Result Model
-    """
-    __tablename__ = "scorecardresult"
-
-    id: Optional[int] = Field(default=None, primary_key=True)  # auto-increment PK
-    result_id: str = Field(nullable=False, unique=True)       # UUID string
-    account_unique_id: str = Field(foreign_key="account.account_unique_id")
-
-    status: str = Field(nullable=False)
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    email: Optional[str] = None
-    key: str = Field(nullable=False)
-    report_url: str = Field(nullable=False)
+# revision identifiers, used by Alembic.
+revision: str = '92d5a05b4570'
+down_revision: Union[str, None] = '5b51ebd73387'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
 
 
-class ScoreAppAccountBase(SQLModel):
-    """
-    ScoreApp Account Base Model
-    """
-    scoreapp_id: str = Field(nullable=False)  # Renamed to avoid conflict
-    account_unique_id: str = Field(foreign_key="account.account_unique_id")
+def upgrade() -> None:
+    # Create new scorecardresult table
+    op.create_table(
+        'scorecardresult',
+        sa.Column('id', sa.Integer, primary_key=True, autoincrement=True),
+        sa.Column('result_id', sa.String, nullable=False, unique=True),
+        sa.Column('account_unique_id', sa.String, sa.ForeignKey('account.account_unique_id')),
+        sa.Column('status', sa.String, nullable=False),
+        sa.Column('first_name', sa.String, nullable=True),
+        sa.Column('last_name', sa.String, nullable=True),
+        sa.Column('email', sa.String, nullable=True),
+        sa.Column('key', sa.String, nullable=False),
+        sa.Column('report_url', sa.String, nullable=False),
+    )
 
 
-class ScoreAppAccount(ScoreAppAccountBase, table=True):
-    """
-    ScoreApp Account Model
-    """
-    __tablename__ = "scoreapp_account"  # Explicit table name
-    
-    id: Optional[int] = Field(default=None, primary_key=True)
+def downgrade() -> None:
+    # Drop the table if downgrading
+    op.drop_table('scorecardresult')
