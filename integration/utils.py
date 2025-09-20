@@ -1,21 +1,20 @@
 import hashlib
 import hmac
-import base64
 from fastapi import HTTPException
-from secrets import token_hex
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
 
 
 SIGNING_SECRET = "12345"
 
-async def validate_webhook_signature(signature, body):
+async def validate_webhook_signature(signature: str, body: bytes):
     """
     validate the incoming webhook signature - ScoreApp
     """
     print("Raw body bytes:", body)
     print("Raw body str:", body.decode("utf-8", errors="ignore"))
         # Compute signature
+    print("Raw body hex:", body.hex())
     computed_signature = hmac.new(
         SIGNING_SECRET.encode(),
         body,
