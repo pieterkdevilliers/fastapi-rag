@@ -428,18 +428,18 @@ async def add_score_card_result(request: Request):
     """
     Endpoint receiving completed scorecard triggers
     """
-    print("Full Request: ", request)
-    if request.event_name == "QUIZ_STARTED":
+    print("Full Request: ", request.body)
+    if request.body.event_name == "QUIZ_STARTED":
         signature = request.headers.get('Scoreapp-Signature')
         print("Quiz Started")
 
-    if request.event_name == "QUIZ_FINISHED":
+    if request.body.event_name == "QUIZ_FINISHED":
         print("Quiz Finished")
 
-    if request.event_name == "LEAD_DETAILS_UPDATED":
+    if request.body.event_name == "LEAD_DETAILS_UPDATED":
         print("Lead Details Updated")
 
-    if request.event_name == "LEAD_SIGNED_UP":
+    if request.body.event_name == "LEAD_SIGNED_UP":
         print("Lead Signed Up")    
 
 ############################################
