@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-
 load_dotenv()
 
 import json
@@ -418,22 +417,34 @@ async def update_api_key(account_unique_id: str,
     
     return {"message": "API Key updated successfully", "api_key": api_key, "widget_config": widget_config}
 
+
+############################################
+# Integration Routes
+############################################
+
+
+@app.post("/api/v1/score-card-result")
+async def add_score_card_result(request: Request):
+    """
+    Endpoint receiving completed scorecard triggers
+    """
+    print("Full Request: ", request)
+    if request.event_name == "QUIZ_STARTED":
+        signature = request.headers.get('Scoreapp-Signature')
+        print("Quiz Started")
+
+    if request.event_name == "QUIZ_FINISHED":
+        print("Quiz Finished")
+
+    if request.event_name == "LEAD_DETAILS_UPDATED":
+        print("Lead Details Updated")
+
+    if request.event_name == "LEAD_SIGNED_UP":
+        print("Lead Signed Up")    
+
 ############################################
 # Main Routes
 ############################################
-
-
-# @app.get("/api/v1/pydantic-ai-query-data/{account_unique_id}")
-# async def pydantic_ai_query_data(query: str, account_unique_id: str, session: Session = Depends(get_session)) -> dict[str, Any]:
-#     """
-#     Query Data
-#     """
-#     if not query:
-#         return {"error": "No query provided"}
-
-#     response = await from_claude.query_source_data(query, account_unique_id, session)
-#     return response
-
 
 
 @app.get("/api/v1/query-data/{account_unique_id}")
