@@ -438,17 +438,17 @@ async def add_score_card_result(request: Request):
     if validation_status:
         # Parse JSON from the stored bytes
         try:
-            body = json.loads(body_bytes.decode('utf-8'))
+            data = json.loads(body_bytes.decode('utf-8'))
         except json.JSONDecodeError as e:
             raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
     
     
-    if body:
-        print("Full Request Body:", body)
-        report_url = body.get("report", "")
+    if data:
+        print("Full Request Body:", data)
+        report_url = data.get("report", "")
         account_unique_id = await int_utils.get_account_unique_id(report_url)
 
-    event_name = body.get("event_name")
+    event_name = data.get("event_name")
     if event_name == "QUIZ_STARTED":
         print("Processing: Quiz Started")
         # Add your quiz started logic here
@@ -456,7 +456,7 @@ async def add_score_card_result(request: Request):
     elif event_name == "QUIZ_FINISHED":
         print("Processing: Quiz Finished")
         # Add your quiz finished logic here
-        data = body.get("data", {})
+        data = data.get("data", {})
         user_email = data.get("email")
         total_score = data.get("total_score", {})
         print(f"User: {user_email}, Score: {total_score.get('percent')}%")
