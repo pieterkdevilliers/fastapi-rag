@@ -57,7 +57,7 @@ async def get_account_unique_id(report_url: str, session: Session):
     """
     scoreapp_id = extract_subdomain_from_report(report_url)
 
-    statement = select(ScoreAppAccount).filter(scoreapp_id=scoreapp_id)
+    statement = select(ScoreAppAccount).where(ScoreAppAccount.scoreapp_id == scoreapp_id)
     result = session.exec(statement)
     scoreapp_account = result.first()
     account_unique_id = scoreapp_account.account_unique_id
