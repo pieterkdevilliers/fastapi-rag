@@ -9,6 +9,22 @@ from sqlmodel.sql.expression import select
 SIGNING_SECRET = "12345"
 
 
+def extract_subdomain_from_report(report_url):
+    """
+    Extract subdomain from ScoreApp report URL
+    """
+    if not report_url:
+        return None
+        
+    parsed = urlparse(report_url)
+    hostname = parsed.netloc
+    
+    if '.scoreapp.com' in hostname:
+        subdomain = hostname.split('.scoreapp.com')[0]
+        return subdomain
+    
+    return None
+
 def validate_webhook_signature(signature: str, body: bytes):
     """
     Validate incoming ScoreApp webhook signature.
@@ -32,7 +48,6 @@ def validate_webhook_signature(signature: str, body: bytes):
     print("✅ Webhook signature matched")
     return True
 
-
 async def get_account_unique_id(report_url: str):
     """
     Retrieve the account identifier
@@ -40,25 +55,7 @@ async def get_account_unique_id(report_url: str):
     sub_domain = extract_subdomain_from_report(report_url)
     print("subdomain: ", sub_domain)
     account_unique_id = sub_domain
-
     return account_unique_id 
-
-
-def extract_subdomain_from_report(report_url):
-    """
-    Extract subdomain from ScoreApp report URL
-    """
-    if not report_url:
-        return None
-        
-    parsed = urlparse(report_url)
-    hostname = parsed.netloc
-    
-    if '.scoreapp.com' in hostname:
-        subdomain = hostname.split('.scoreapp.com')[0]
-        return subdomain
-    
-    return None
 
 
 
