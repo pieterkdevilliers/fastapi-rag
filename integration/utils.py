@@ -12,9 +12,6 @@ async def validate_webhook_signature(signature: str, body: bytes):
     validate the incoming webhook signature - ScoreApp
     """
     print("Raw body bytes:", body)
-    print("Raw body str:", body.decode("utf-8", errors="ignore"))
-        # Compute signature
-    print("Raw body hex:", body.hex())
     computed_signature = hmac.new(
         SIGNING_SECRET.encode(),
         body,
