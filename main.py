@@ -426,35 +426,26 @@ async def update_api_key(account_unique_id: str,
 
 @app.post("/api/v1/score-card-result")
 async def add_score_card_result(request: Request):
-    """
-    Endpoint receiving completed scorecard triggers
-    """
     signature = request.headers.get("Scoreapp-Signature")
     if not signature:
         raise HTTPException(status_code=400, detail="Missing signature header")
 
-    # Get raw request body as bytes (important!)
     body_bytes = await request.body()
-    print("Raw body bytes:", body_bytes)
-
-    # Validate signature
     validation_status = int_utils.validate_webhook_signature(signature, body_bytes)
 
-    # Parse JSON only after validating
+    # Parse JSON after validation
     body = await request.json()
     print("Full Request Body:", body)
 
     event_name = body.get("event_name")
     if event_name == "QUIZ_STARTED":
         print("Quiz Started")
-        # score_card_result = int_utils.create_score_card_result()
     elif event_name == "QUIZ_FINISHED":
         print("Quiz Finished")
-        # score_card_result = int_utils.create_or_update_score_card_result()
     elif event_name == "LEAD_DETAILS_UPDATED":
         print("Lead Details Updated")
     elif event_name == "LEAD_SIGNED_UP":
-        print("Lead Signed Up")
+        print("Lead Signed Up")    
 
     return {"status": "ok"}
 

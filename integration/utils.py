@@ -8,14 +8,15 @@ from sqlmodel.sql.expression import select
 
 SIGNING_SECRET = "12345"
 
-def validate_webhook_signature(signature: str, body_bytes: bytes):
+def validate_webhook_signature(signature: str, body: bytes):
     """
-    Validate ScoreApp webhook signature.
+    Validate incoming ScoreApp webhook signature.
     """
-    # Compute HMAC digest (raw bytes)
-    digest = hmac.new(SIGNING_SECRET.encode(), body_bytes, hashlib.sha256).digest()
+    print("SECRET: ", SIGNING_SECRET)
+    # Compute raw HMAC digest
+    digest = hmac.new(SIGNING_SECRET.encode(), body, hashlib.sha256).digest()
 
-    # Hex string (lowercase) of the digest
+    # Convert digest to lowercase hex string
     computed_hex = digest.hex()
 
     print("Signature header:", signature)
@@ -23,7 +24,7 @@ def validate_webhook_signature(signature: str, body_bytes: bytes):
 
     if not hmac.compare_digest(signature, computed_hex):
         raise HTTPException(status_code=401, detail="Invalid signature")
-    
+
     print("✅ Webhook signature matched")
 
 
