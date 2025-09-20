@@ -1,10 +1,11 @@
 import hashlib
 import hmac
+import json
 from urllib.parse import urlparse
 from fastapi import HTTPException
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
-from integration.models import ScoreAppAccount
+from integration.models import ScoreAppAccount, ScoreCardResult
 
 
 SIGNING_SECRET = "12345"
@@ -66,28 +67,59 @@ async def get_account_unique_id(report_url: str, session: Session):
 
 
 
-async def create_score_card_result():
+async def create_score_card_result(nested_data: dict, account_unique_id: str, session: Session):
     """
     Create score card result in DB
     """
-    pass
+    status = nested_data.get("status", "")
+    first_name = nested_data.get("first_name", "")
+    last_name = nested_data.get("last_name", "")
+    email = nested_data.get("email", "")
+    key = nested_data.get("key", "")
+    report_url = nested_data.get("report", "")  # Note: field name is "report", not "report_url"
+    result_id = nested_data.get("id", "")
+
+    score_card_result = ScoreCardResult(
+        status=status,
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        key=key,
+        report_url=report_url,
+        account_unique_id=account_unique_id,
+        result_id=result_id  # Don't use 'id' as it conflicts with the auto-generated primary key
+    )
+    
+    session.add(score_card_result)
+    session.commit()
+    session.refresh(score_card_result)
+
+    return score_card_result
 
 
-async def create_or_update_score_card_result():
+async def create_or_update_score_card_result(result_id: str, nested_data: dict, account_unique_id: str, session: Session):
     """
     Create or update a score card result
     """
-    pass
+    # Fix the query syntax
+    statement = select(ScoreCardResult).where(ScoreCardResult.result_id == result_id)
+    result = session.exec(statement)
+    scorecard_result = result.first()
 
-# def create_new_account_in_db(account_organisation: str, session: Session):
-#     """
-#     Save New Account to DB
-#     """
-#     account_unique_id = token_hex(8)
-#     account = Account(account_organisation=account_organisation,
-#                       account_unique_id=account_unique_id)
-#     session.add(account)
-#     session.commit()
-#     session.refresh(account)
-    
-#     return account
+    if scorecard_result:
+        # Update existing record
+        scorecard_result.status = nested_data.get("status", scorecard_result.status)
+        scorecard_result.first_name = nested_data.get("first_name", scorecard_result.first_name)
+        scorecard_result.last_name = nested_data.get("last_name", scorecard_result.last_name)
+        scorecard_result.email = nested_data.get("email", scorecard_result.email)
+        scorecard_result.key = nested_data.get("key", scorecard_result.key)
+        scorecard_result.report_url = nested_data.get("report", scorecard_result.report_url)
+        
+        session.add(scorecard_result)
+        session.commit()
+        session.refresh(scorecard_result)
+        
+        return scorecard_result
+    else:
+        # Create new record
+        return await create_score_card_result(nested_data, account_unique_id, session)

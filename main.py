@@ -480,14 +480,15 @@ async def add_score_card_result(request: Request, session: Session = Depends(get
 
         if event_name == "QUIZ_STARTED":
             print("Processing: Quiz Started")
-            # Add your quiz started logic here
+            score_card_result = await int_utils.create_score_card_result(nested_data, account_unique_id, session)
+            print("score_card_result: ", score_card_result)
             
         elif event_name == "QUIZ_FINISHED":
             print("Processing: Quiz Finished")
             # Access nested data correctly
-            user_email = nested_data.get("email")
-            total_score = nested_data.get("total_score", {})
-            print(f"User: {user_email}, Score: {total_score.get('percent')}%")
+            result_id = nested_data.get("result_id")
+            score_card_result = await int_utils.create_or_update_score_card_result(result_id, result_id, account_unique_id, session)
+            print("score_card_result: ", score_card_result)
             
         elif event_name == "LEAD_DETAILS_UPDATED":
             print("Processing: Lead Details Updated")
