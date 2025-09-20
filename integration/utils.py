@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 from fastapi import HTTPException
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
+from integration.models import ScoreAppAccount
 
 
 SIGNING_SECRET = "12345"
@@ -50,13 +51,17 @@ def extract_subdomain_from_report(report_url):
     return None
 
 
-async def get_account_unique_id(report_url: str):
+async def get_account_unique_id(report_url: str, session: Session):
     """
     Retrieve the account identifier
     """
-    sub_domain = extract_subdomain_from_report(report_url)
-    print("subdomain: ", sub_domain)
-    account_unique_id = sub_domain
+    scoreapp_id = extract_subdomain_from_report(report_url)
+
+    statement = select(ScoreAppAccount).filter(scoreapp_id=scoreapp_id)
+    result = session.exec(statement)
+    scoreapp_account = result.first()
+    account_unique_id = scoreapp_account.account_unique_id
+
     return account_unique_id 
 
 
