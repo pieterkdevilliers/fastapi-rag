@@ -444,7 +444,10 @@ async def create_score_app_account(
 
 
 @app.post("/api/v1/score-card-result")
-async def add_score_card_result(request: Request):
+async def add_score_card_result(request: Request, session: Session = Depends(get_session)):
+    """
+    Validate and create a scorecard result in the db
+    """
     signature = request.headers.get("Scoreapp-Signature")
     if not signature:
         raise HTTPException(status_code=400, detail="Missing signature header")
@@ -472,7 +475,7 @@ async def add_score_card_result(request: Request):
         # Get report URL from the nested data (not from root)
         report_url = nested_data.get("report", "")
         if report_url:
-            account_unique_id = await int_utils.get_account_unique_id(report_url)
+            account_unique_id = await int_utils.get_account_unique_id(report_url, session)
             print(f"Account ID: {account_unique_id}")
 
         if event_name == "QUIZ_STARTED":
