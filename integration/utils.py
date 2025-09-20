@@ -19,6 +19,8 @@ async def validate_webhook_signature(signature, body):
         hashlib.sha256
     ).hexdigest()
 
+    print("signature: ", signature)
+    print("Conputed Signature: ", computed_signature)
     # Compare securely
     if not hmac.compare_digest(signature, computed_signature):
         raise HTTPException(status_code=401, detail="Invalid signature")
