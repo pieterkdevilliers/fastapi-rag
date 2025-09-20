@@ -2,25 +2,22 @@ from typing import Optional
 from sqlmodel import SQLModel, Field
 
 
-class ScoreCardBase(SQLModel):
-    """
-    ScoreCard Model Base
-    """
-    id: int = Field(primary_key=True)  # make this the PK
-    account_unique_id: str = Field(foreign_key="account.account_unique_id")
-
-
-class ScoreCardResult(ScoreCardBase, table=True):
+class ScoreCardResult(SQLModel, table=True):
     """
     Score Card Result Model
     """
+    __tablename__ = "scorecardresult"
+
+    id: Optional[int] = Field(default=None, primary_key=True)  # auto-increment PK
+    result_id: str = Field(nullable=False, unique=True)       # UUID string
+    account_unique_id: str = Field(foreign_key="account.account_unique_id")
+
     status: str = Field(nullable=False)
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     email: Optional[str] = None
     key: str = Field(nullable=False)
     report_url: str = Field(nullable=False)
-    result_id: str = Field(nullable=False)
 
 
 class ScoreAppAccountBase(SQLModel):
