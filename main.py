@@ -432,30 +432,31 @@ async def add_score_card_result(request: Request):
     signature = request.headers.get("Scoreapp-Signature")
     if not signature:
         raise HTTPException(status_code=400, detail="Missing signature header")
-    
+
+    # Get raw request body as bytes (important!)
+    body_bytes = await request.body()
+    print("Raw body bytes:", body_bytes)
+
+    # Validate signature
+    validation_status = int_utils.validate_webhook_signature(signature, body_bytes)
+
+    # Parse JSON only after validating
     body = await request.json()
-    validation_status = await int_utils.validate_webhook_signature(signature, body)
+    print("Full Request Body:", body)
 
-    if validation_status is not True:
-        return {"validation_status": False, "message": "Invalid Webhook Secret Key"}
-
-
-    body = await request.json()
-
-    print("Full Request Body: ", body)
-    if body.get("event_name") == "QUIZ_STARTED":
+    event_name = body.get("event_name")
+    if event_name == "QUIZ_STARTED":
         print("Quiz Started")
-        score_card_result = int_utils.create_score_card_result()
-
-    if body.get("event_name") == "QUIZ_FINISHED":
+        # score_card_result = int_utils.create_score_card_result()
+    elif event_name == "QUIZ_FINISHED":
         print("Quiz Finished")
-        score_card_result = int_utils.create_or_update_score_card_result()
-
-    if body.get("event_name") == "LEAD_DETAILS_UPDATED":
+        # score_card_result = int_utils.create_or_update_score_card_result()
+    elif event_name == "LEAD_DETAILS_UPDATED":
         print("Lead Details Updated")
+    elif event_name == "LEAD_SIGNED_UP":
+        print("Lead Signed Up")
 
-    if body.get("event_name") == "LEAD_SIGNED_UP":
-        print("Lead Signed Up")    
+    return {"status": "ok"}
 
 ############################################
 # Main Routes
