@@ -10,26 +10,18 @@ SIGNING_SECRET = "12345"
 
 def validate_webhook_signature(signature: str, body_bytes: bytes):
     """
-    Validate the incoming webhook signature - ScoreApp
+    Validate ScoreApp webhook signature.
     """
-    # Compute hex digest
-    computed_hex = hmac.new(
-        SIGNING_SECRET.encode(),
-        body_bytes,
-        hashlib.sha256
-    ).hexdigest()
+    # Compute HMAC digest (raw bytes)
+    digest = hmac.new(SIGNING_SECRET.encode(), body_bytes, hashlib.sha256).digest()
 
-    # Compute base64 digest (some platforms send base64 instead)
-    computed_base64 = base64.b64encode(
-        hmac.new(SIGNING_SECRET.encode(), body_bytes, hashlib.sha256).digest()
-    ).decode()
+    # Hex string (lowercase) of the digest
+    computed_hex = digest.hex()
 
-    print("Signature from header: ", signature)
-    print("Computed hex:        ", computed_hex)
-    print("Computed base64:     ", computed_base64)
+    print("Signature header:", signature)
+    print("Computed hex:", computed_hex)
 
-    if not (hmac.compare_digest(signature, computed_hex) or
-            hmac.compare_digest(signature, computed_base64)):
+    if not hmac.compare_digest(signature, computed_hex):
         raise HTTPException(status_code=401, detail="Invalid signature")
     
     print("✅ Webhook signature matched")
