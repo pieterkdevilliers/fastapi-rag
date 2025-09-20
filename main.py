@@ -433,7 +433,7 @@ async def add_score_card_result(request: Request):
     if not signature:
         raise HTTPException(status_code=400, detail="Missing signature header")
     
-    body = await request.body()
+    body = await request.json()
     validation_status = await int_utils.validate_webhook_signature(signature, body)
 
     if validation_status is not True:
