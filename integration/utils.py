@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import base64
 from fastapi import HTTPException
 from secrets import token_hex
 from sqlmodel import Session
@@ -12,12 +13,20 @@ async def validate_webhook_signature(signature, body):
     """
     validate the incoming webhook signature - ScoreApp
     """
+    print("Raw body bytes:", body)
+    print("Raw body str:", body.decode("utf-8", errors="ignore"))
         # Compute signature
     computed_signature = hmac.new(
         SIGNING_SECRET.encode(),
         body,
         hashlib.sha256
     ).hexdigest()
+
+    computed_base64 = base64.b64encode(computed_base64).decode()
+
+    print("Signature from header: ", signature)
+    print("Computed hex:        ", computed_signature)
+    print("Computed base64:     ", computed_base64)
 
     print("signature: ", signature)
     print("Conputed Signature: ", computed_signature)
@@ -26,7 +35,11 @@ async def validate_webhook_signature(signature, body):
         raise HTTPException(status_code=401, detail="Invalid signature")
     
     # Compare securely
-    if not hmac.compare_digest(signature, computed_signature):
+    if hmac.compare_digest(signature, computed_signature):
+        print("✅ Matched using hex")
+    elif hmac.compare_digest(signature, computed_base64):
+        print("✅ Matched using base64")
+    else:
         raise HTTPException(status_code=401, detail="Invalid signature")
     
     return True
