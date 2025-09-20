@@ -56,6 +56,7 @@ from core.models import Product, PasswordResetToken, ContactPayload, OptInPayloa
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
 from chroma_db_api import clear_chroma_db_datastore_for_replace
 from webhook_utils import send_chat_messages_webhook_notification, send_opt_in_webhook_notification
+import integration.utils as int_utils
 load_dotenv()
 
 
@@ -428,17 +429,27 @@ async def add_score_card_result(request: Request):
     """
     Endpoint receiving completed scorecard triggers
     """
+    signature = request.headers.get("Scoreapp-Signature")
+    if not signature:
+        raise HTTPException(status_code=400, detail="Missing signature header")
+    
+    body = await request.body()
+    validation_status = await int_utils.validate_webhook_signature(signature, body)
+
+    if validation_status is not True:
+        return {"validation_status": False, "message": "Invalid Webhook Secret Key"}
+
+
     body = await request.json()
+
     print("Full Request Body: ", body)
     if body.get("event_name") == "QUIZ_STARTED":
-        signature = request.headers.get('Scoreapp-Signature')
-        print("Signature: ", signature)
         print("Quiz Started")
+        score_card_result = int_utils.create_score_card_result()
 
     if body.get("event_name") == "QUIZ_FINISHED":
         print("Quiz Finished")
-        signature = request.headers.get('Scoreapp-Signature')
-        print("Signature: ", signature)
+        score_card_result = int_utils.create_or_update_score_card_result()
 
     if body.get("event_name") == "LEAD_DETAILS_UPDATED":
         print("Lead Details Updated")
