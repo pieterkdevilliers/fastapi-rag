@@ -1,6 +1,6 @@
 import hashlib
 import hmac
-import base64
+import json
 from fastapi import HTTPException
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
@@ -13,22 +13,56 @@ def validate_webhook_signature(signature: str, body: bytes):
     Validate incoming ScoreApp webhook signature.
     """
     print("SECRET: ", SIGNING_SECRET)
-    # Compute raw HMAC digest
-    digest = hmac.new(SIGNING_SECRET.encode(), body, hashlib.sha256).digest()
-
-    # Convert digest to lowercase hex string
-    computed_signature = digest.hex()
+    
+    # Try multiple approaches based on ScoreApp documentation inconsistencies
+    
+    # Approach 1: Raw bytes (like Flask example)
+    computed_signature_1 = hmac.new(
+        SIGNING_SECRET.encode(), 
+        body, 
+        hashlib.sha256
+    ).hexdigest()
+    
+    # Approach 2: Parse JSON then stringify (like Node.js example)
+    try:
+        parsed_json = json.loads(body.decode('utf-8'))
+        json_string = json.dumps(parsed_json, separators=(',', ':'))  # Compact JSON
+        computed_signature_2 = hmac.new(
+            SIGNING_SECRET.encode(), 
+            json_string.encode('utf-8'), 
+            hashlib.sha256
+        ).hexdigest()
+    except:
+        computed_signature_2 = "JSON_PARSE_ERROR"
+    
+    # Approach 3: JSON with spaces (default Python formatting)
+    try:
+        parsed_json = json.loads(body.decode('utf-8'))
+        json_string_spaced = json.dumps(parsed_json)  # Default formatting
+        computed_signature_3 = hmac.new(
+            SIGNING_SECRET.encode(), 
+            json_string_spaced.encode('utf-8'), 
+            hashlib.sha256
+        ).hexdigest()
+    except:
+        computed_signature_3 = "JSON_PARSE_ERROR"
 
     print("Signature header:", signature)
-    print("Computed signature:", computed_signature)
+    print("Approach 1 (raw bytes):", computed_signature_1)
+    print("Approach 2 (compact JSON):", computed_signature_2)  
+    print("Approach 3 (spaced JSON):", computed_signature_3)
     print("Body bytes length:", len(body))
-    print("Body content:", body.decode('utf-8')[:200]) 
+    print("Body content:", body.decode('utf-8')[:200])
 
-    if not hmac.compare_digest(signature, computed_signature):
-        raise HTTPException(status_code=401, detail="Invalid signature")
+    # Check all approaches
+    if (hmac.compare_digest(signature, computed_signature_1) or 
+        hmac.compare_digest(signature, computed_signature_2) or
+        hmac.compare_digest(signature, computed_signature_3)):
+        print("✅ Webhook signature matched")
+        return True
+    
+    raise HTTPException(status_code=401, detail="Invalid signature")
 
-    print("✅ Webhook signature matched")
-    return True
 
 
 async def create_score_card_result():
