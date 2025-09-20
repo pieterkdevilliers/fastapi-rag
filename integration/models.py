@@ -6,7 +6,7 @@ class ScoreCardBase(SQLModel):
     """
     ScoreCard Model Base
     """
-    id: str = Field(nullable=False)
+    result_id: str = Field(nullable=False)
     account_unique_id: str = Field(foreign_key="account.account_unique_id")
 
 
