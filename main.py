@@ -488,7 +488,7 @@ async def delete_score_app_account(scoreapp_id: str,
     """
     Delete ScoreApp Account Key
     """
-    response = await int_utils.delete_scoreapp_account_from_db(scoreapp_id, account_unique_id, session)
+    response = await int_utils.delete_scoreapp_account_from_db(scoreapp_id, session)
 
     return response
 
