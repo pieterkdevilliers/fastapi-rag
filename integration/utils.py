@@ -78,6 +78,23 @@ async def get_score_app_account(account_unique_id: str, session: Session):
     return scoreapp_account
 
 
+async def update_scoreapp_account_in_db(account_id: int, subdomain:str, session: Session):
+    """
+    Update Account in DB
+    """
+    account = session.get(ScoreAppAccount, account_id)
+    if not account:
+        return {"error": "ScoreApp Account not found"}
+    
+    account.scoreapp_id = subdomain
+        
+    session.add(account)
+    session.commit()
+    session.refresh(account)
+    
+    return account
+
+
 
 async def create_score_card_result(nested_data: dict, account_unique_id: str, session: Session):
     """

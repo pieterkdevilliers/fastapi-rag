@@ -456,6 +456,22 @@ async def get_score_app_account(account_unique_id: str,
     return {"account": account}
 
 
+@app.put("/api/v1/score-app-account/{account_id}")
+async def update_score_app_account(
+                        account_id: int,
+                        subdomain: str,
+                        current_user: Annotated[User, Depends(get_current_active_user)],
+                        session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    Edit Account Score App Subdomain
+    """
+    updated_account = await int_utils.update_scoreapp_account_in_db(account_id, subdomain, session)
+    if not updated_account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    
+    return {"updated_account": updated_account}
+
+
 @app.post("/api/v1/score-card-result")
 async def add_score_card_result(request: Request, session: Session = Depends(get_session)):
     """
