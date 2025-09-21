@@ -95,11 +95,11 @@ async def update_scoreapp_account_in_db(account_id: int, scoreapp_id:str, sessio
     return account
 
 
-async def delete_scoreapp_account_from_db(scoreapp_id: int,  session: Session):
+async def delete_scoreapp_account_from_db(scoreapp_id: int,  account_unique_id:str, session: Session):
     """
     Delete ScoreApp Account from DB
     """
-    statement = select(ScoreAppAccount).where(ScoreAppAccount.scoreapp_id == scoreapp_id)
+    statement = select(ScoreAppAccount).where(ScoreAppAccount.scoreapp_id == scoreapp_id, ScoreAppAccount.account_unique_id == account_unique_id)
     result = session.exec(statement)
     account = result.first()
     

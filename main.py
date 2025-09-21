@@ -482,14 +482,14 @@ async def update_score_app_account(
 
 
 @app.delete("/api/v1/score-app-account/{scoreapp_id}")
-async def delete_score_app_account(account_unique_id: str,
-                         scoreapp_id: str,
+async def delete_score_app_account(scoreapp_id: str,
                           current_user: Annotated[User, Depends(get_current_active_user)],
                           session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Delete ScoreApp Account Key
     """
-    response = await int_utils.delete_scoreapp_account_from_db(scoreapp_id, session)
+    account_unique_id = current_user.account_unique_id
+    response = await int_utils.delete_scoreapp_account_from_db(scoreapp_id, account_unique_id, session)
 
     return response
 
