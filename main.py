@@ -453,7 +453,8 @@ async def get_score_app_account(account_unique_id: str,
     account = await int_utils.get_score_app_account(account_unique_id, session)
     if not account:
         account = {}
-    return {"account": account}
+    widget_key = os.getenv("SCOREAPP_WEBHOOK_SECRET_KEY")
+    return {"account": account, "widget_key": widget_key}
 
 
 class ScoreAppUpdate(BaseModel):
