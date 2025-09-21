@@ -443,7 +443,7 @@ async def create_score_app_account(
     return {"scoreapp_id": scoreapp_id, "account_unique_id": account_unique_id}
 
 
-@app.get("/api/v1/score-app-accout/{account_unique_id}")
+@app.get("/api/v1/score-app-account/{account_unique_id}")
 async def get_score_app_account(account_unique_id: str,
                         current_user: Annotated[User, Depends(get_current_active_user)],
                         session: Session = Depends(get_session)) -> dict[str, Any]:
