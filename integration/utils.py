@@ -17,7 +17,6 @@ def validate_webhook_signature(signature: str, body: bytes):
     """
     Temporary workaround for ScoreApp signature bug
     """
-    print("SECRET: ", SIGNING_SECRET)
     
     computed_signature = hmac.new(
         SIGNING_SECRET.encode(), 
