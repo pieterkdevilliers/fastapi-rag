@@ -481,6 +481,19 @@ async def update_score_app_account(
     return {"updated_account": updated_account}
 
 
+@app.delete("/api/v1/score-app-account/{scoreapp_id}")
+async def delete_score_app_account(account_unique_id: str,
+                         scoreapp_id: str,
+                          current_user: Annotated[User, Depends(get_current_active_user)],
+                          session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    Delete ScoreApp Account Key
+    """
+    response = await int_utils.delete_scoreapp_account_from_db(scoreapp_id, session)
+
+    return response
+
+
 @app.post("/api/v1/score-card-result")
 async def add_score_card_result(request: Request, session: Session = Depends(get_session)):
     """

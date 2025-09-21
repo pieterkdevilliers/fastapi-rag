@@ -80,11 +80,11 @@ async def get_score_app_account(account_unique_id: str, session: Session):
 
 async def update_scoreapp_account_in_db(account_id: int, scoreapp_id:str, session: Session):
     """
-    Update Account in DB
+    Update ScoreApp Account in DB
     """
     account = session.get(ScoreAppAccount, account_id)
     if not account:
-        return {"error": "ScoreApp Account not found"}
+        return {"error": "ScoreApp Integration not found"}
     
     account.scoreapp_id = scoreapp_id
         
@@ -93,6 +93,24 @@ async def update_scoreapp_account_in_db(account_id: int, scoreapp_id:str, sessio
     session.refresh(account)
     
     return account
+
+
+async def delete_scoreapp_account_from_db(scoreapp_id: int,  session: Session):
+    """
+    Delete ScoreApp Account from DB
+    """
+    statement = select(ScoreAppAccount).where(ScoreAppAccount.scoreapp_id == scoreapp_id)
+    result = session.exec(statement)
+    account = result.first()
+    
+    if not account:
+        return {"error": "ScoreApp Account not found"}
+    
+    session.delete(account)
+    session.commit()
+    
+    return {"response": "ScoreApp Integration Deleted",
+            "scoreapp_id": scoreapp_id}
 
 
 
