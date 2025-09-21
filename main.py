@@ -456,16 +456,24 @@ async def get_score_app_account(account_unique_id: str,
     return {"account": account}
 
 
+class ScoreAppUpdate(BaseModel):
+    scoreapp_id: str
+
 @app.put("/api/v1/score-app-account/{account_id}")
 async def update_score_app_account(
-                        account_id: int,
-                        subdomain: str,
-                        current_user: Annotated[User, Depends(get_current_active_user)],
-                        session: Session = Depends(get_session)) -> dict[str, Any]:
+    account_id: int,
+    update_data: ScoreAppUpdate,  # Accept as JSON body
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    session: Session = Depends(get_session)
+) -> dict[str, Any]:
     """
     Edit Account Score App Subdomain
     """
-    updated_account = await int_utils.update_scoreapp_account_in_db(account_id, subdomain, session)
+    updated_account = await int_utils.update_scoreapp_account_in_db(
+        account_id, 
+        update_data.scoreapp_id,  # Access from the model
+        session
+    )
     if not updated_account:
         raise HTTPException(status_code=404, detail="Account not found")
     
