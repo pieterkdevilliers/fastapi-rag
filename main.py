@@ -452,7 +452,7 @@ async def get_score_app_account(account_unique_id: str,
     """
     account = await int_utils.get_score_app_account(account_unique_id, session)
     if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
+        account = {}
     return {"account": account}
 
 
