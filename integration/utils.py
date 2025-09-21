@@ -64,7 +64,18 @@ async def get_account_unique_id(report_url: str, session: Session):
     scoreapp_account = result.first()
     account_unique_id = scoreapp_account.account_unique_id
 
-    return account_unique_id 
+    return account_unique_id
+
+
+async def get_score_app_account(account_unique_id: str, session: Session):
+    """
+    Retrieve the scoreapp account object
+    """
+    statement = select(ScoreAppAccount).where(ScoreAppAccount.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    scoreapp_account = result.first()
+
+    return scoreapp_account
 
 
 

@@ -443,6 +443,19 @@ async def create_score_app_account(
     return {"scoreapp_id": scoreapp_id, "account_unique_id": account_unique_id}
 
 
+@app.get("/api/v1/score-app-accout/{account_unique_id}")
+async def get_score_app_account(account_unique_id: str,
+                        current_user: Annotated[User, Depends(get_current_active_user)],
+                        session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    Get Account Score App Account
+    """
+    account = await int_utils.get_score_app_account(account_unique_id, session)
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return {"account": account}
+
+
 @app.post("/api/v1/score-card-result")
 async def add_score_card_result(request: Request, session: Session = Depends(get_session)):
     """
