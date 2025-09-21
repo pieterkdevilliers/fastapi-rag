@@ -78,7 +78,7 @@ async def get_score_app_account(account_unique_id: str, session: Session):
     return scoreapp_account
 
 
-async def update_scoreapp_account_in_db(account_id: int, subdomain:str, session: Session):
+async def update_scoreapp_account_in_db(account_id: int, scoreapp_id:str, session: Session):
     """
     Update Account in DB
     """
@@ -86,7 +86,7 @@ async def update_scoreapp_account_in_db(account_id: int, subdomain:str, session:
     if not account:
         return {"error": "ScoreApp Account not found"}
     
-    account.scoreapp_id = subdomain
+    account.scoreapp_id = scoreapp_id
         
     session.add(account)
     session.commit()
