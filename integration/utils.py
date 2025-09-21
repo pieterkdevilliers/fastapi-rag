@@ -1,14 +1,16 @@
+import os
 import hashlib
 import hmac
-import json
+from dotenv import load_dotenv
 from urllib.parse import urlparse
 from fastapi import HTTPException
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
 from integration.models import ScoreAppAccount, ScoreCardResult
 
+load_dotenv()
 
-SIGNING_SECRET = "12345"
+SIGNING_SECRET = os.getenv("SCOREAPP_WEBHOOK_SECRET_KEY")
 
 
 def validate_webhook_signature(signature: str, body: bytes):
