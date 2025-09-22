@@ -1,4 +1,7 @@
 from urllib.parse import urlparse
+from sqlmodel import Session
+from sqlmodel.sql.expression import select
+from integration.models import ScoreCardResult
 
 def normalize_origin(origin: str) -> str:
     """
@@ -35,3 +38,15 @@ def normalize_origin(origin: str) -> str:
         hostname = hostname[4:]
         
     return hostname.lower()
+
+
+def get_scoreapp_report(accout_unique_id: str, visitor_email: str, session: Session):
+    """
+    Retrieve the visitor's ScoreApp Report if one exists
+    """
+    statement = select(ScoreCardResult).where(ScoreCardResult.accout_unique_id == accout_unique_id, ScoreCardResult.email == visitor_email)
+    result = session.exec(statement)
+    scoreapp_report = result.first()
+    scoreapp_report_text = scoreapp_report.extracted_report_text
+
+    return {"scoreapp_report_text": scoreapp_report_text}
