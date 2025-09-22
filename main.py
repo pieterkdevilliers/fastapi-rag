@@ -57,7 +57,7 @@ from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_
 from chroma_db_api import clear_chroma_db_datastore_for_replace
 from webhook_utils import send_chat_messages_webhook_notification, send_opt_in_webhook_notification
 import integration.utils as int_utils
-from integration.models import ScoreAppAccount
+from integration.models import ScoreAppAccount, ScoreCardResult
 load_dotenv()
 
 
@@ -77,6 +77,8 @@ FE_BASE_URL = os.getenv('FE_BASE_URL', 'http://localhost:3000')  # Default to lo
 CHROMA_SERVER_AUTHN_CREDENTIALS = os.environ['CHROMA_SERVER_AUTHN_CREDENTIALS']
 chroma_headers = {'X-Chroma-Token': CHROMA_SERVER_AUTHN_CREDENTIALS}
 CHROMA_ENDPOINT = os.environ['CHROMA_ENDPOINT']
+
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
 app = FastAPI()
 
@@ -538,6 +540,7 @@ async def add_score_card_result(request: Request, session: Session = Depends(get
             # Access nested data correctly
             result_id = nested_data.get("result_id")
             score_card_result = await int_utils.create_or_update_score_card_result(result_id, nested_data, account_unique_id, session)
+            extracted_text = int_utils.trigger_extraction(score_card_result.id)
             print("score_card_result: ", score_card_result)
             
         elif event_name == "LEAD_DETAILS_UPDATED":
@@ -549,6 +552,32 @@ async def add_score_card_result(request: Request, session: Session = Depends(get
             # Add your lead signup logic here
 
     return {"status": "ok"}
+
+
+@app.post("/api/v1/internal/scorecardresult/callback")
+async def scorecardresult_callback(
+    request: Request, session: Session = Depends(get_session)
+):
+    # Verify internal key
+    api_key = request.headers.get("X-Internal-API-Key")
+    if api_key != INTERNAL_API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    payload = await request.json()
+    id = payload.get("scorecard_id")
+
+    result = session.get(ScoreCardResult, id)
+    if not result:
+        raise HTTPException(status_code=404, detail="ScorecardResult not found")
+
+    if payload["status"] == "COMPLETED":
+        result.extracted_report_text = payload.get("extracted_report_text")
+    else:
+        result.extracted_report_text = f"[ERROR] {payload.get('error_message')}"
+
+    session.add(result)
+    session.commit()
+    return {"status": "updated", "scorecard_id": id}
 
 ############################################
 # Main Routes
