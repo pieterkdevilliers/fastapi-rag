@@ -614,6 +614,7 @@ async def process_widget_query(
     account_unique_id = auth_info["account_unique_id"]
     query = payload.query.strip() if payload.query else None
     visitor_email = payload.email if payload.email else None
+    print('******Payload: ', payload)
 
     if not query:
         return {"error": "No query provided"}
