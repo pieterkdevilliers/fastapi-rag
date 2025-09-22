@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Text
 
 
 class ScoreCardResult(SQLModel, table=True):
@@ -18,6 +18,7 @@ class ScoreCardResult(SQLModel, table=True):
     email: Optional[str] = None
     key: str = Field(nullable=False)
     report_url: str = Field(nullable=False)
+    extracted_report_text: Optional[str] = Field(default=None)
 
 
 class ScoreAppAccountBase(SQLModel):
