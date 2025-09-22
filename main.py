@@ -600,6 +600,7 @@ class WidgetQueryPayload(BaseModel):
     query: str
     chat_session_id: int
     visitor_uuid: str
+    email: str
 
 
 
@@ -612,6 +613,7 @@ async def process_widget_query(
 ):
     account_unique_id = auth_info["account_unique_id"]
     query = payload.query.strip() if payload.query else None
+    visitor_email = payload.email if payload.email else None
 
     if not query:
         return {"error": "No query provided"}
@@ -643,7 +645,7 @@ async def process_widget_query(
     active_subscription = check_active_subscription_status(account_unique_id, session)
     if active_subscription:
         response = query_source_data.query_source_data(
-            query, account_unique_id, session, chat_history=chat_history
+            query, visitor_email, account_unique_id, session, chat_history=chat_history
         )
     else:
         # Handle unsubscribed users

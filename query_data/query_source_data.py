@@ -5,6 +5,7 @@ import requests
 from sqlmodel import select, Session
 from accounts.models import Account
 from accounts.utils import get_most_recent_prompt
+import query_data.utils as query_utils
 from typing import List, Optional, Dict, Any
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
@@ -61,6 +62,11 @@ Prompt Text:
 
 ---
 
+ScoreApp Report:
+{scoreapp_report}
+
+---
+
 Chat History:
 {history}
 
@@ -75,6 +81,7 @@ Answer:
 
 
 def prepare_db_and_perform_query(query,
+                                 visitor_email,
                                  account_unique_id,
                                  session: Session,
                                  chat_history: list = None):
@@ -96,12 +103,13 @@ def prepare_db_and_perform_query(query,
 
     prompt_text = get_most_recent_prompt(account_unique_id, session).prompt_text
 
-    result = search_db(db, query_text, relevance_score, k_value, account_unique_id, chat_history=chat_history, prompt_text=prompt_text, temperature=temperature)
+    result = search_db(db, query_text, relevance_score, k_value, account_unique_id, visitor_email, session, chat_history=chat_history, prompt_text=prompt_text, temperature=temperature)
 
     return result
 
 
 def query_source_data(query: str,
+                      visitor_email: str,
                       account_unique_id: str,
                       session: Session,
                       chat_history: Optional[List[Dict[str, Any]]] = None):
@@ -112,7 +120,7 @@ def query_source_data(query: str,
         return {"error": "No query provided"}
     
     # This variable holds the entire dictionary returned by your query engine
-    query_engine_response = prepare_db_and_perform_query(query, account_unique_id, session, chat_history=chat_history)
+    query_engine_response = prepare_db_and_perform_query(query, visitor_email, account_unique_id, session, chat_history=chat_history)
     
     
     # Check if query_engine_response is a dictionary and has a 'sources' key,
@@ -189,7 +197,7 @@ def prepare_db(account_unique_id):
     return db
 
 
-def search_db(db, query, relevance_score, k_value, account_unique_id, chat_history=None, prompt_text=None, temperature=0.2):
+def search_db(db, query, relevance_score, k_value, account_unique_id, visitor_email, session, chat_history=None, prompt_text=None, temperature=0.2):
     """
     Search the DB
     """
@@ -241,6 +249,8 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, chat_histo
             for msg in chat_history
         )
 
+    scoreapp_report_text = query_utils.get_scoreapp_report(account_unique_id, visitor_email, session)
+    print('************CoreApp Report Text: ', scoreapp_report_text)
 
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(
@@ -248,6 +258,7 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, chat_histo
         context=context_text,
         question=query,
         prompt_text=prompt_text,
+        scoreapp_report=scoreapp_report_text,
     )
 
     print(f"Final prompt to LLM: {prompt}")
