@@ -177,7 +177,7 @@ async def trigger_extraction(scorecard_id: int, lambda_client):
     """
     Extracts scorecard result text"""
     response = lambda_client.invoke(
-        FunctionName="extract-scorecard-text",
+        FunctionName="ScorecardPdfExtractor",
         InvocationType="RequestResponse",
         Payload=json.dumps({"scorecardresult_id": scorecard_id}),
     )
