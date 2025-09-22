@@ -540,7 +540,7 @@ async def add_score_card_result(request: Request, session: Session = Depends(get
             # Access nested data correctly
             result_id = nested_data.get("result_id")
             score_card_result = await int_utils.create_or_update_score_card_result(result_id, nested_data, account_unique_id, session)
-            extracted_text = int_utils.trigger_extraction(score_card_result.id)
+            extracted_text = await int_utils.trigger_extraction(score_card_result.id, lambda_client)
             print("score_card_result: ", score_card_result)
             
         elif event_name == "LEAD_DETAILS_UPDATED":
