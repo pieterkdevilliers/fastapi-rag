@@ -1,7 +1,6 @@
 import os
 import hashlib
 import hmac
-import boto3
 import json
 from dotenv import load_dotenv
 from urllib.parse import urlparse
@@ -10,7 +9,6 @@ from sqlmodel import Session
 from sqlmodel.sql.expression import select
 from integration.models import ScoreAppAccount, ScoreCardResult
 
-lambda_client = boto3.client("lambda")
 load_dotenv()
 
 SIGNING_SECRET = os.getenv("SCOREAPP_WEBHOOK_SECRET_KEY")
@@ -175,7 +173,7 @@ async def create_or_update_score_card_result(result_id: str, nested_data: dict, 
         return await create_score_card_result(nested_data, account_unique_id, session)
     
 
-async def trigger_extraction(scorecard_id: int):
+async def trigger_extraction(scorecard_id: int, lambda_client):
     """
     Extracts scorecard result text"""
     response = lambda_client.invoke(
