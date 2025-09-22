@@ -600,7 +600,7 @@ class WidgetQueryPayload(BaseModel):
     query: str
     chat_session_id: int
     visitor_uuid: str
-    email: str
+    email: Optional[str] = None
 
 
 
