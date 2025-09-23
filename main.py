@@ -37,6 +37,8 @@ from accounts.utils import create_new_account_in_db, update_account_in_db, delet
     create_password_reset_token, get_reset_token, update_user_password, delete_reset_token, get_account_by_account_unique_id, \
     check_active_subscription_status, get_account_webhook_url, create_account_prompt, get_account_prompts, get_most_recent_prompt, \
     get_account_prompt_by_id, get_opt_in_webhook_url
+
+import accounts.utils as account_utils
 # from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
@@ -1561,9 +1563,27 @@ async def delete_account(account_unique_id: str,
     """
     Delete Account
     """
-    response = delete_account_from_db(account_unique_id, session)
-    return {'response': 'success',
-            'account_unique_id': response['account_unique_id']}
+
+    if not current_user.get('is_account_owner'):
+        return {"message": "Action restricted to account owners only"}
+    
+    widget_api_keys = account_utils.get_widget_api_keys_for_account(account_unique_id, session)
+
+    widget_configs = account_utils.get_widget_configs_for_account(account_unique_id, session)
+
+    for widget_api_key in widget_api_keys:
+        widget_api_key_delete_result = account_utils.delete_widget_api_key_from_db(widget_api_key.id, session)
+        print('*****widget_api_key_delete_result: ', widget_api_key_delete_result)
+    
+    for widget_config in widget_configs:
+        widget_config_delete_result = account_utils.delete_widget_config_from_db(widget_config.widget_id, session)
+        print('*****widget_config_delete_result: ', widget_config_delete_result)
+        
+
+    return {"message": "Delete account test run completed"}
+    # response = delete_account_from_db(account_unique_id, session)
+    # return {'response': 'success',
+    #         'account_unique_id': response['account_unique_id']}
 
 
 @app.get("/api/v1/accounts/{account_unique_id}")
