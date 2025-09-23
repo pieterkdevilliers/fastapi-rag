@@ -49,6 +49,7 @@ from chat_messages.models import ChatSession, ChatMessage
 from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
     get_chat_messages_by_session_id, get_chat_session_count, get_questions_answered_count, create_email_message, \
     get_email_message_count, update_session_with_contact_details
+import chat_messages.utils as chat_utils
 from stripe_service import process_stripe_product_created_event, process_stripe_product_updated_event, get_stripe_price_object_from_price_id, \
     process_stripe_subscription_checkout_session_completed_event, get_stripe_subscription_from_subscription_id, \
     process_retrieved_stripe_subscription_data, process_stripe_subscription_invoice_paid_event, add_account_unique_id_to_subscription, \
@@ -1567,16 +1568,9 @@ async def delete_account(account_unique_id: str,
     if not current_user.get('is_account_owner'):
         return {"message": "Action restricted to account owners only"}
     
-    # Identify items to delete
     widget_api_keys = account_utils.get_widget_api_keys_for_account(account_unique_id, session)
-
     widget_configs = account_utils.get_widget_configs_for_account(account_unique_id, session)
 
-    score_card_results = await int_utils.get_score_card_results_for_account(account_unique_id, session)
-
-    scoreapp_account = await int_utils.get_score_app_account(account_unique_id, session)
-
-    # Process deleting identified items
     for widget_api_key in widget_api_keys:
         widget_api_key_delete_result = account_utils.delete_widget_api_key_from_db(widget_api_key.id, session)
         print('*****widget_api_key_delete_result: ', widget_api_key_delete_result)
@@ -1584,14 +1578,32 @@ async def delete_account(account_unique_id: str,
     for widget_config in widget_configs:
         widget_config_delete_result = account_utils.delete_widget_config_from_db(widget_config.widget_id, session)
         print('*****widget_config_delete_result: ', widget_config_delete_result)
-    
+
+    score_card_results = await int_utils.get_score_card_results_for_account(account_unique_id, session)
+    scoreapp_account = await int_utils.get_score_app_account(account_unique_id, session)
+
     for score_card_result in score_card_results:
         score_card_result_delete_result = await int_utils.delete_score_card_result_from_db(score_card_result.result_id, session)
         print('*****score_card_result_delete_result: ', score_card_result_delete_result)
     
     scoreapp_account_delete_result = await int_utils.delete_scoreapp_account_from_db(scoreapp_account.scoreapp_id, session)
     print('*****scoreapp_account_delete_result: ', scoreapp_account_delete_result)
-        
+
+    chat_sessions = chat_utils.get_chat_sessions_for_account(account_unique_id, session)
+    for chat_session in chat_sessions:
+        chat_messages = chat_utils.get_chat_messages_for_chat_session(chat_session.id, session)
+        for chat_message in chat_messages:
+            chat_message_delete_result = chat_utils.delete_chat_message_from_db(chat_message.message_id, session)
+            print('*****chat_message_delete_result: ', chat_message_delete_result)
+        email_messages = chat_utils.get_email_messages_for_chat_session(chat_session.id, session)
+        for email_message in email_messages:
+            email_message_delete_result = chat_utils.delete_email_message_from_db(email_message.message_id, session)
+            print('*****email_message_delete_result: ', email_message_delete_result)
+    
+    for chat_session in chat_sessions:
+        chat_session_delete_result = chat_utils.delete_chat_session_from_db(chat_session.id, session)
+        print('*****chat_session_delete_result: ', chat_session_delete_result)
+
 
     return {"message": "Delete account test run completed"}
     # response = delete_account_from_db(account_unique_id, session)

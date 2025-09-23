@@ -172,3 +172,90 @@ def get_email_message_count(account_unique_id: str, session: Session):
     email_message_count = session.exec(statement).one()
 
     return email_message_count
+
+
+def get_chat_sessions_for_account(account_unique_id: str, session: Session):
+    """
+    Retrieve all the chat_session objects for an account
+    """
+    statement = select (ChatSession).filter(ChatSession.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    chat_sessions = result.all()
+
+    return chat_sessions
+
+
+def delete_chat_session_from_db(id, session: Session):
+    """
+    Delete ChatSession from DB
+    """
+    statement = select(ChatSession).filter(ChatSession.id == id)
+    result = session.exec(statement)
+    chat_session = result.first()
+    
+    if not chat_session:
+        return {"error": "ChatSession not found"}
+    
+    session.delete(chat_session)
+    session.commit()
+    
+    return {"response": "success",
+            "chat_session deleted": id}
+
+
+def get_chat_messages_for_chat_session(chat_session_id: int, session: Session):
+    """
+    Retrieve all the chat_messages for a specific chat_session
+    """
+    statement = select (ChatMessage).filter(ChatMessage.chat_session_id == chat_session_id)
+    result = session.exec(statement)
+    chat_messages = result.all()
+
+    return chat_messages
+
+
+def delete_chat_message_from_db(message_id, session: Session):
+    """
+    Delete WidgetAPIKey from DB
+    """
+    statement = select(ChatMessage).filter(ChatMessage.message_id == message_id)
+    result = session.exec(statement)
+    chat_message = result.first()
+    
+    if not chat_message:
+        return {"error": "ChatMessage not found"}
+    
+    session.delete(ChatMessage)
+    session.commit()
+    
+    return {"response": "success",
+            "WidgetAPIKey deleted": message_id}
+
+
+def get_email_messages_for_chat_session(chat_session_id: int, session: Session):
+    """
+    Retrieve all the email_message objects for a specific chat_session
+    """
+    statement = select (EmailMessage).filter(EmailMessage.chat_session_id == chat_session_id)
+    result = session.exec(statement)
+    email_messages = result.all()
+
+    return email_messages
+
+
+def delete_email_message_from_db(message_id, session: Session):
+    """
+    Delete EmailMessage from DB
+    """
+    statement = select(EmailMessage).filter(EmailMessage.message_id == message_id)
+    result = session.exec(statement)
+    email_message = result.first()
+    
+    if not email_message:
+        return {"error": "EmailMessage not found"}
+    
+    session.delete(email_message)
+    session.commit()
+    
+    return {"response": "success",
+            "email_message deleted": message_id}
