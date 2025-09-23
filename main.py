@@ -58,7 +58,7 @@ from stripe_service import process_stripe_product_created_event, process_stripe_
     get_stripe_customer_from_customer_id
 from core.models import Product, PasswordResetToken, ContactPayload, OptInPayload
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
-from chroma_db_api import clear_chroma_db_datastore_for_replace
+from chroma_db_api import clear_chroma_db_datastore_for_replace, check_chroma_db_collection_status
 from webhook_utils import send_chat_messages_webhook_notification, send_opt_in_webhook_notification
 import integration.utils as int_utils
 from integration.models import ScoreAppAccount, ScoreCardResult
@@ -1628,6 +1628,13 @@ async def delete_account(account_unique_id: str,
     for prompt in prompts:
         delete_prompt_result = account_utils.delete_prompt_from_db(prompt.id, session)
         print('*****delete_prompt_result: ', delete_prompt_result)
+
+    # Chroma Data Store
+    collection_status = check_chroma_db_collection_status(account_unique_id)
+    print("collection_status: ", collection_status["status"])
+    if not collection_status["status"] == 404:
+        delete_vector_store_result = await clear_chroma_db_datastore(account_unique_id, current_user)
+        print('*****delete_vector_store_result: ', delete_vector_store_result)
 
 
     return {"message": "Delete account test run completed"}
