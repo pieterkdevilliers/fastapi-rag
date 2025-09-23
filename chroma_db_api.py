@@ -27,6 +27,24 @@ CHROMA_SERVER_AUTHN_CREDENTIALS = os.environ['CHROMA_SERVER_AUTHN_CREDENTIALS']
 chroma_headers = {'X-Chroma-Token': CHROMA_SERVER_AUTHN_CREDENTIALS}
 CHROMA_ENDPOINT = os.environ['CHROMA_ENDPOINT']
 
+def check_chroma_db_collection_status(account_unique_id: str):
+    """
+    Checks if a Vector Store Collection exists
+    """
+    chroma_client = chromadb.HttpClient(
+        host=CHROMA_ENDPOINT,
+        headers=chroma_headers
+    )
+
+    print("Successfully connected to ChromaDB.")
+    collection_name = f"collection-{account_unique_id}"
+    try:
+        collection_status = chroma_client.get_collection(name=collection_name)
+        print("Collection Status: ", collection_status)
+    except:
+        return {"status": 404, "message": f"Collection {collection_name} does not exist"}
+
+    return collection_status
 
 def clear_chroma_db_datastore_for_replace(account_unique_id: str):
     """
