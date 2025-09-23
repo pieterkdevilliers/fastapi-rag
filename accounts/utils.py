@@ -288,6 +288,25 @@ def get_account_prompt_by_id(account_unique_id: str, id, session: Session):
     return prompt
 
 
+def delete_prompt_from_db(id, session: Session):
+    """
+    Delete Account Prompt from DB
+    """
+    statement = select(AccountPrompts).filter(AccountPrompts.id == id)
+    result = session.exec(statement)
+    prompt = result.first()
+    
+    if not prompt:
+        return {"error": "Prompt not found",
+                "prompt": id}
+    
+    session.delete(prompt)
+    session.commit()
+    
+    return {"response": "success",
+            "prompt": id}
+
+
 def get_account_temperature(account_unique_id: str, session: Session):
     """
     Retrieve the temperature setting for an account

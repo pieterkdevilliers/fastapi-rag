@@ -1623,6 +1623,12 @@ async def delete_account(account_unique_id: str,
         folder_delete_result = file_utils.delete_folder_from_db(folder.id, session)
         print('*****folder_delete_result: ', folder_delete_result)
 
+    # Account Prompts
+    prompts = account_utils.get_account_prompts(account_unique_id, session)
+    for prompt in prompts:
+        delete_prompt_result = account_utils.delete_prompt_from_db(prompt.id, session)
+        print('*****delete_prompt_result: ', delete_prompt_result)
+
 
     return {"message": "Delete account test run completed"}
     # response = delete_account_from_db(account_unique_id, session)
