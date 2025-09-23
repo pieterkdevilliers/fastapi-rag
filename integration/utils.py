@@ -183,3 +183,32 @@ async def trigger_extraction(scorecard_id: int, lambda_client):
     )
     result = json.loads(response['Payload'].read())
     return result
+
+
+async def get_score_card_results_for_account(account_unique_id: str, session: Session):
+    """
+    Retrieve the scorecard results for an account
+    """
+    statement = select(ScoreCardResult).where(ScoreCardResult.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    score_card_results = result.all()
+
+    return score_card_results
+
+
+async def delete_score_card_result_from_db(result_id: int, session: Session):
+    """
+    Delete ScoreApp Account from DB
+    """
+    statement = select(ScoreCardResult).where(ScoreCardResult.result_id == result_id)
+    result = session.exec(statement)
+    score_card_result = result.first()
+    
+    if not score_card_result:
+        return {"error": "Scorecard Result not found"}
+    
+    session.delete(score_card_result)
+    session.commit()
+    
+    return {"response": "Scorecard Result Deleted",
+            "scoreapp_id": result_id}
