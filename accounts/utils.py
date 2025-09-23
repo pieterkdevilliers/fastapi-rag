@@ -124,7 +124,7 @@ def get_notification_users(account_unique_id: str, session: Session):
     """
     Get Users who should receive notifications
     """
-    statement = select(User).filter(User.account_unique_id == account_unique_id, User.receive_notifications == True)
+    statement = select(User).filter(User.account_unique_id == account_unique_id, User.receive_notifications is True)
     result = session.exec(statement)
     users = result.all()
     
@@ -132,6 +132,17 @@ def get_notification_users(account_unique_id: str, session: Session):
         return {"error": "No users found"}
     
     return [user.model_dump() for user in users]
+
+
+def get_users_for_account(account_unique_id: str, session: Session):
+    """
+    Retrieves all the users for an account
+    """
+    statement = select(User).filter(User.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    users = result.all()
+
+    return users
 
 
 def get_user_by_email(email: str, session: Session):
