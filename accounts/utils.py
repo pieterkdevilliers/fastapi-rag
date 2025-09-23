@@ -67,11 +67,11 @@ def get_account_by_account_unique_id(account_unique_id: str, session: Session):
 
     return account
 
-def create_new_user_in_db(user_email: str, user_password: str, account_unique_id: str, session: Session, receive_notifications: bool = False):
+def create_new_user_in_db(user_email: str, user_password: str, account_unique_id: str, session: Session, receive_notifications: bool = False, is_account_owner: bool = False):
     """
     Save New User to DB
     """
-    user = User(user_email=user_email, user_password=user_password, account_unique_id=account_unique_id, receive_notifications=receive_notifications)
+    user = User(user_email=user_email, user_password=user_password, account_unique_id=account_unique_id, receive_notifications=receive_notifications, is_account_owner=is_account_owner)
     session.add(user)
     session.commit()
     session.refresh(user)
