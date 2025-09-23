@@ -1616,6 +1616,12 @@ async def delete_account(account_unique_id: str,
         print('*****delete_file_from_s3_result: ', delete_file_from_s3_result)
         delete_file_from_db_result = await file_utils.delete_file_from_db(account_unique_id, source_file.id, session)
         print('*****delete_file_from_db_result: ', delete_file_from_db_result)
+    
+    # Folders
+    folders = file_utils.get_folders_for_account(account_unique_id, session)
+    for folder in folders:
+        folder_delete_result = file_utils.delete_folder_from_db(folder.id, session)
+        print('*****folder_delete_result: ', folder_delete_result)
 
 
     return {"message": "Delete account test run completed"}

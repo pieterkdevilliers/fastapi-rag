@@ -282,6 +282,17 @@ def update_folder_in_db(folder_id: int, updated_folder: Folder, session: Session
     return folder
 
 
+def get_folders_for_account(account_unique_id: str, session: Session):
+    """
+    Retrieve all the folder objects for an account
+    """
+    statement = select (Folder).filter(Folder.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    folders = result.all()
+
+    return folders
+
+
 def delete_folder_from_db(folder_id: str, session: Session):
     """
     Delete Account from DB
