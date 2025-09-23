@@ -1567,10 +1567,16 @@ async def delete_account(account_unique_id: str,
     if not current_user.get('is_account_owner'):
         return {"message": "Action restricted to account owners only"}
     
+    # Identify items to delete
     widget_api_keys = account_utils.get_widget_api_keys_for_account(account_unique_id, session)
 
     widget_configs = account_utils.get_widget_configs_for_account(account_unique_id, session)
 
+    score_card_results = await int_utils.get_score_card_results_for_account(account_unique_id, session)
+
+    scoreapp_account = await int_utils.get_score_app_account(account_unique_id, session)
+
+    # Process deleting identified items
     for widget_api_key in widget_api_keys:
         widget_api_key_delete_result = account_utils.delete_widget_api_key_from_db(widget_api_key.id, session)
         print('*****widget_api_key_delete_result: ', widget_api_key_delete_result)
@@ -1578,6 +1584,13 @@ async def delete_account(account_unique_id: str,
     for widget_config in widget_configs:
         widget_config_delete_result = account_utils.delete_widget_config_from_db(widget_config.widget_id, session)
         print('*****widget_config_delete_result: ', widget_config_delete_result)
+    
+    for score_card_result in score_card_results:
+        score_card_result_delete_result = await int_utils.delete_score_card_result_from_db(score_card_result.result_id, session)
+        print('*****score_card_result_delete_result: ', score_card_result_delete_result)
+    
+    scoreapp_account_delete_result = await int_utils.delete_scoreapp_account_from_db(scoreapp_account.scoreapp_id, session)
+    print('*****scoreapp_account_delete_result: ', scoreapp_account_delete_result)
         
 
     return {"message": "Delete account test run completed"}
