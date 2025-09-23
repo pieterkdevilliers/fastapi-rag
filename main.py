@@ -1635,12 +1635,20 @@ async def delete_account(account_unique_id: str,
     if not collection_status["status"] == 404:
         delete_vector_store_result = await clear_chroma_db_datastore(account_unique_id, current_user)
         print('*****delete_vector_store_result: ', delete_vector_store_result)
+    
+    # Users
+    users = account_utils.get_users_for_account(account_unique_id, session)
+    print("******USERS: ", users)
+    for user in users:
+        delete_user_result = account_utils.delete_user_from_db(account_unique_id, user.id, session)
+        print('*****delete_user_result: ', delete_user_result)
 
+    # Account
+    delete_account_result = account_utils.delete_account_from_db(account_unique_id, session)
+    print('*****delete_account_result: ', delete_account_result)
 
-    return {"message": "Delete account test run completed"}
-    # response = delete_account_from_db(account_unique_id, session)
-    # return {'response': 'success',
-    #         'account_unique_id': response['account_unique_id']}
+    return {'response': 'success',
+            'delete_account_result': delete_account_result}
 
 
 @app.get("/api/v1/accounts/{account_unique_id}")
