@@ -33,6 +33,7 @@ class Token(BaseModel):
     active_subscription: bool
     processed_docs_count: int
     access_token: str
+    is_account_owner: bool
     token_type: str
 
 
