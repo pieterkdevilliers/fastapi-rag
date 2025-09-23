@@ -1,7 +1,7 @@
 from secrets import token_hex
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
-from accounts.models import Account, User, StripeSubscription, AccountPrompts
+from accounts.models import Account, User, StripeSubscription, AccountPrompts, WidgetConfig, WidgetAPIKey
 from core.models import PasswordResetToken
 from authentication import get_password_hash
 
@@ -297,3 +297,61 @@ def get_account_temperature(account_unique_id: str, session: Session):
     account = result.first()
 
     return account.temperature if account and account.temperature is not None else 0.2
+
+
+def get_widget_configs_for_account(account_unique_id: str, session: Session):
+    """
+    Retrieve all the widget_config objects for an account
+    """
+    statement = select (WidgetConfig).filter(WidgetConfig.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    widget_configs = result.all()
+
+    return widget_configs
+
+
+def delete_widget_config_from_db(id, session: Session):
+    """
+    Delete WidgetConfig from DB
+    """
+    statement = select(WidgetConfig).filter(WidgetConfig.widget_id == id)
+    result = session.exec(statement)
+    widget_config = result.first()
+    
+    if not widget_config:
+        return {"error": "WidgetConfig not found"}
+    
+    session.delete(widget_config)
+    session.commit()
+    
+    return {"response": "success",
+            "widget_config deleted": id}
+
+
+def get_widget_api_keys_for_account(account_unique_id: str, session: Session):
+    """
+    Retrieve all the widget_api_key objects for an account
+    """
+    statement = select (WidgetAPIKey).filter(WidgetAPIKey.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    widget_api_keys = result.all()
+
+    return widget_api_keys
+
+
+def delete_widget_api_key_from_db(id, session: Session):
+    """
+    Delete WidgetAPIKey from DB
+    """
+    statement = select(WidgetAPIKey).filter(WidgetAPIKey.id == id)
+    result = session.exec(statement)
+    widget_api_key = result.first()
+    
+    if not widget_api_key:
+        return {"error": "WidgetAPIKey not found"}
+    
+    session.delete(widget_api_key)
+    session.commit()
+    
+    return {"response": "success",
+            "widget_api_key deleted": id}
