@@ -56,6 +56,7 @@ class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     account: Account = Relationship(back_populates="users")
     receive_notifications: bool = Field(default=False, nullable=True)
+    is_account_owner: bool = Field(default=False, nullable=True)
 
 class WidgetAPIKeyBase(SQLModel):
     """
