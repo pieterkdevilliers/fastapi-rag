@@ -31,6 +31,7 @@ from file_management.utils import save_file_to_db, update_file_in_db, delete_fil
     fetch_html_content, extract_text_from_html, prepare_for_s3_upload, create_new_folder_in_db, \
     update_folder_in_db, delete_folder_from_db, delete_file_from_s3, get_docs_count_for_user_account, load_documents_from_s3, \
     create_pending_file_in_db, get_processed_docs_count_for_user_account
+import file_management.utils as file_utils
 from accounts.models import Account, User, WidgetAPIKey, StripeSubscription, AccountPrompts, WidgetConfig
 from accounts.utils import create_new_account_in_db, update_account_in_db, delete_account_from_db, \
     create_new_user_in_db, update_user_in_db, delete_user_from_db, get_notification_users, get_user_by_email, \
@@ -1568,6 +1569,7 @@ async def delete_account(account_unique_id: str,
     if not current_user.get('is_account_owner'):
         return {"message": "Action restricted to account owners only"}
     
+    # WidgetConfig and WidgetAPIKey
     widget_api_keys = account_utils.get_widget_api_keys_for_account(account_unique_id, session)
     widget_configs = account_utils.get_widget_configs_for_account(account_unique_id, session)
 
@@ -1579,6 +1581,7 @@ async def delete_account(account_unique_id: str,
         widget_config_delete_result = account_utils.delete_widget_config_from_db(widget_config.widget_id, session)
         print('*****widget_config_delete_result: ', widget_config_delete_result)
 
+    # ScoreAppAccount and ScoreCardResult
     score_card_results = await int_utils.get_score_card_results_for_account(account_unique_id, session)
     scoreapp_account = await int_utils.get_score_app_account(account_unique_id, session)
 
@@ -1586,9 +1589,11 @@ async def delete_account(account_unique_id: str,
         score_card_result_delete_result = await int_utils.delete_score_card_result_from_db(score_card_result.result_id, session)
         print('*****score_card_result_delete_result: ', score_card_result_delete_result)
     
-    scoreapp_account_delete_result = await int_utils.delete_scoreapp_account_from_db(scoreapp_account.scoreapp_id, session)
-    print('*****scoreapp_account_delete_result: ', scoreapp_account_delete_result)
+    if scoreapp_account:
+        scoreapp_account_delete_result = await int_utils.delete_scoreapp_account_from_db(scoreapp_account.scoreapp_id, session)
+        print('*****scoreapp_account_delete_result: ', scoreapp_account_delete_result)
 
+    # ChatSession, ChatMessage and EmailMessage
     chat_sessions = chat_utils.get_chat_sessions_for_account(account_unique_id, session)
     for chat_session in chat_sessions:
         chat_messages = chat_utils.get_chat_messages_for_chat_session(chat_session.id, session)
@@ -1603,6 +1608,14 @@ async def delete_account(account_unique_id: str,
     for chat_session in chat_sessions:
         chat_session_delete_result = chat_utils.delete_chat_session_from_db(chat_session.id, session)
         print('*****chat_session_delete_result: ', chat_session_delete_result)
+    
+    # SourceFile From S3 and DB
+    source_files = file_utils.get_files_for_account(account_unique_id, session)
+    for source_file in source_files:
+        delete_file_from_s3_result = await file_utils.delete_file_from_s3(account_unique_id, source_file, session)
+        print('*****delete_file_from_s3_result: ', delete_file_from_s3_result)
+        delete_file_from_db_result = await file_utils.delete_file_from_db(account_unique_id, source_file.id, session)
+        print('*****delete_file_from_db_result: ', delete_file_from_db_result)
 
 
     return {"message": "Delete account test run completed"}

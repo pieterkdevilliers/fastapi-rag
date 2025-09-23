@@ -356,3 +356,14 @@ def create_pending_file_in_db(
     session.commit()
     session.refresh(pending_file)
     return pending_file
+
+
+def get_files_for_account(account_unique_id: str, session: Session):
+    """
+    Retrieve all the source_file objects for an account
+    """
+    statement = select (SourceFile).filter(SourceFile.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    source_files = result.all()
+
+    return source_files
