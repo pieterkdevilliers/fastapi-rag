@@ -1631,6 +1631,12 @@ async def delete_account(account_unique_id: str,
         delete_prompt_result = account_utils.delete_prompt_from_db(prompt.id, session)
         print('*****delete_prompt_result: ', delete_prompt_result)
 
+    # User Products
+    user_products = prod_utils.get_user_products_for_account(account_unique_id, session)
+    for user_product in user_products:
+        delete_user_products_result = prod_utils.delete_user_product_from_db(account_unique_id, user_product.id, session)
+        print('*****delete_user_products_result: ', delete_user_products_result)
+
     # Chroma Data Store
     collection_status = check_chroma_db_collection_status(account_unique_id)
     print("collection_status: ", collection_status["status"])
