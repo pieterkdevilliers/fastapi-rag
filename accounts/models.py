@@ -4,6 +4,7 @@ from sqlalchemy import Column
 from sqlalchemy.sql.sqltypes import JSON
 from sqlmodel import SQLModel, Field, Relationship
 from file_management.models import SourceFile, Folder
+from products.models import UserProduct
 # Conditional import for type checking
 if TYPE_CHECKING:
     from chat_messages.models import ChatSession
@@ -27,6 +28,7 @@ class Account(AccountBase, table=True):
     source_files: List["SourceFile"] = Relationship(back_populates="account")
     widget_api_keys: List["WidgetAPIKey"] = Relationship(back_populates="account")
     chat_sessions: List["ChatSession"] = Relationship(back_populates="account")
+    user_products: List["UserProduct"] = Relationship(back_populates="account")
     stripe_subscription: Optional["StripeSubscription"] = Relationship(
         back_populates="account",
         sa_relationship_kwargs={"uselist": False}
