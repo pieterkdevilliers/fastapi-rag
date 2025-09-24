@@ -10,6 +10,7 @@ from file_management.models import SourceFile, Folder
 from accounts.models import Account, User, WidgetAPIKey, StripeSubscription, AccountPrompts
 from chat_messages.models import ChatSession, ChatMessage, EmailMessage
 from core.models import Product, PasswordResetToken
+from products.models import UserProduct
 
 load_dotenv()
 
