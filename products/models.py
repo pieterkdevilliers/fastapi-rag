@@ -19,7 +19,7 @@ class UserProduct(UserProductBase, table=True):
     User Product Model
     """
     id: Optional[int] = Field(default=None, primary_key=True)
-    account: "Account" = Relationship(back_populates="products")
+    account: "Account" = Relationship(back_populates="user_products")
     product_title: str = Field(default=None, nullable=False)
     product_description: str = Field(default=None, nullable=False)
     product_sale_url: str = Field(default=None, nullable=False)

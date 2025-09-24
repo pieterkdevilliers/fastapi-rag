@@ -62,6 +62,7 @@ from chroma_db_api import clear_chroma_db_datastore_for_replace, check_chroma_db
 from webhook_utils import send_chat_messages_webhook_notification, send_opt_in_webhook_notification
 import integration.utils as int_utils
 from integration.models import ScoreAppAccount, ScoreCardResult
+import products.utils as prod_utils
 load_dotenv()
 
 
@@ -2181,3 +2182,127 @@ async def get_dashboard_data(account_unique_id: str,
             "questions_answered_count": questions_answered_count,
             "processed_docs_count": processed_docs_count,
             "email_message_count": email_message_count}
+
+
+############################################
+#  UserProduct Routes
+############################################
+
+@app.get("/api/v1/user-products/{account_unique_id}")
+async def get_user_products(account_unique_id: str,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      session: Session = Depends(get_session)):
+    """
+    Get UserProducts
+    """
+    user_products = prod_utils.get_user_products_for_account(account_unique_id, session)
+
+    if not user_products:
+        return {"error": "No user products found"}
+    
+    if user_products:
+        return {"response": "success",
+                "user_products": user_products}
+    
+
+@app.get("/api/v1/acuser-products/{account_unique_id}")
+async def get_active_user_products(account_unique_id: str,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      session: Session = Depends(get_session)):
+    """
+    Get Active UserProducts
+    """
+    active_user_products = prod_utils.get_active_user_products_for_account(account_unique_id, session)
+
+    if not active_user_products:
+        return {"error": "No active user products found"}
+    
+    if active_user_products:
+        return {"response": "success",
+                "active_user_products": active_user_products}
+
+
+@app.get("/api/v1/user-products/{account_unique_id}/{product_id}")
+async def get_user_product(account_unique_id: str,
+                     product_id: int,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      session: Session = Depends(get_session)):
+    """
+    Get UserProduct
+    """
+    user_product = prod_utils.get_user_product_by_id(account_unique_id, product_id, session)
+    
+    if not user_product:
+        return {"error": "No user product found"}
+    
+    if user_product:
+        return {"response": "success",
+                "user_product": user_product}
+
+
+class UserProduct(BaseModel):
+    product_title: str = Field(default="", nullable=False)
+    product_description: str = Field(default="", nullable=False)
+    product_sale_url: str = Field(default="", nullable=False)
+    who_is_this_for: str = Field(default="", nullable=False)
+    is_active: bool = Field(default=True, nullable=False)
+
+
+@app.post("/api/v1/user-products/{account_unique_id}")
+async def create_user_product(account_unique_id: str,
+                        payload: UserProduct,
+                        current_user: Annotated[User, Depends(get_current_active_user)],
+                        session: Session = Depends(get_session)):
+    """
+    Create UserProduct
+    """
+    user_product = prod_utils.get_user_product_by_product_title(account_unique_id, payload.product_title, session)
+    
+    if user_product:
+        return {"error": "UserProduct already exists",
+                "product_title": user_product.product_title,
+                "product_id": user_product.id,
+                "account_unique_id": account_unique_id}
+        
+    user_product = prod_utils.create_new_user_product_in_db(account_unique_id, payload, session)
+    
+    return {"response": "success",
+            "user_product": user_product,
+            "product_title": user_product.product_title,
+            "account_unique_id": user_product.account_unique_id}
+    
+
+@app.put("/api/v1/user-products/{account_unique_id}/{product_id}")
+async def edit_user_product(account_unique_id: str, product_id: int, payload: UserProduct,
+                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      session: Session = Depends(get_session)):
+    """
+    Edit UserProduct
+    """
+    user_product = prod_utils.get_user_product_by_id(account_unique_id, product_id, session)
+    
+    if not user_product:
+        return {"error": "UserProduct not found",
+                "user_product": user_product}
+    
+    updated_user_product = prod_utils.update_user_product(account_unique_id, product_id, payload, session)
+    
+    return updated_user_product
+
+
+@app.delete("/api/v1/user-products/{account_unique_id}/{product_id}")
+async def delete_user_product(
+                        product_id: int,
+                        account_unique_id: str,
+                        current_user: Annotated[User, Depends(get_current_active_user)],
+                        session: Session = Depends(get_session)):
+    """
+    Delete UserProduct
+    """
+    response = prod_utils.delete_user_product_from_db(account_unique_id, product_id, session)
+    if response.get('error'):
+        return {"error": response['error'],
+                'product_id': product_id}
+    
+    return {'response': 'success',
+            'product_id': product_id}
