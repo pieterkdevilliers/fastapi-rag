@@ -104,3 +104,16 @@ def delete_user_product_from_db(account_unique_id: str, product_id: int,  sessio
     session.commit()
     
     return {"response": "success"}
+
+
+def format_user_products_for_prompt(user_products: list[dict]) -> str:
+    """
+    Convert user_products JSON into a clean, LLM-friendly text format.
+    """
+    lines = ["Available Products:\n"]
+    for i, product in enumerate(user_products, start=1):
+        lines.append(f"{i}. {product['product_title']}")
+        lines.append(f"   - Description: {product['product_description']}")
+        lines.append(f"   - For: {product['who_is_this_for']}")
+        lines.append(f"   - URL: {product['product_sale_url']}\n")
+    return "\n".join(lines)

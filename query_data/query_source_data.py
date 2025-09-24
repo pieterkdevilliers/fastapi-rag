@@ -6,6 +6,7 @@ from sqlmodel import select, Session
 from accounts.models import Account
 from accounts.utils import get_most_recent_prompt
 import query_data.utils as query_utils
+import products.utils as prod_utils
 from typing import List, Optional, Dict, Any
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
@@ -64,6 +65,11 @@ Prompt Text:
 
 ScoreApp Report:
 {scoreapp_report}
+
+---
+
+Available Products:
+{user_products_prompt}
 
 ---
 
@@ -252,6 +258,11 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, visitor_em
     scoreapp_report_text = query_utils.get_scoreapp_report(account_unique_id, visitor_email, session)
     print('************CoreApp Report Text: ', scoreapp_report_text)
 
+    user_products = prod_utils.get_active_user_products_for_account(account_unique_id, session)
+    if user_products:
+        user_products_prompt = prod_utils.format_user_products_for_prompt(user_products)
+        print("***********UserProucts Prompt : ", user_products_prompt)
+
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(
         history=history_text,
@@ -259,6 +270,7 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, visitor_em
         question=query,
         prompt_text=prompt_text,
         scoreapp_report=scoreapp_report_text,
+        user_products_prompt=user_products_prompt,
     )
 
     print(f"Final prompt to LLM: {prompt}")
