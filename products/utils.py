@@ -71,8 +71,10 @@ def update_user_product(account_unique_id: str, product_id: int, payload, sessio
     """
     Update UserProduct
     """
-    user_product = select(UserProduct).filter(UserProduct.account_unique_id == account_unique_id, UserProduct.id == product_id)
-    
+    statement = select(UserProduct).filter(UserProduct.account_unique_id == account_unique_id, UserProduct.id == product_id)
+    result = session.exec(statement)
+    user_product = result.first()
+
     if not user_product:
         return {"error": "UserProduct not found"}
     
