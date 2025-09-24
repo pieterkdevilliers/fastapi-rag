@@ -2205,7 +2205,7 @@ async def get_user_products(account_unique_id: str,
                 "user_products": user_products}
     
 
-@app.get("/api/v1/acuser-products/{account_unique_id}")
+@app.get("/api/v1/active-user-products/{account_unique_id}")
 async def get_active_user_products(account_unique_id: str,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       session: Session = Depends(get_session)):
