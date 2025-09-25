@@ -23,6 +23,7 @@ from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, sta
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi_cors import cross_origin
 from sqlmodel import select, Session, Field
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from pydantic import BaseModel, EmailStr, Field
@@ -94,20 +95,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
-)
-
-# --- Internal sub-app ---
-internal = FastAPI()
-internal.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3001",
-        "https://expertecho-yjtdtd6hlq-nw.a.run.app",
-        "https://expertecho.ai",
-    ],
-    allow_credentials=True,  # allow cookies/sessions
-    allow_methods=["*"],
-    allow_headers=["*"],
 )
 
 
@@ -695,7 +682,16 @@ async def process_widget_query(
 
 
 # Queries received from the in-app test widget
-@internal.post("/api/v1/internal/widget/query")
+@app.post("/api/v1/internal/widget/query")
+@cross_origin(
+    origins=[
+        "http://localhost:3001",
+        "https://expertecho.ai",
+        "https://expertecho-yjtdtd6hlq-nw.a.run.app"
+    ],
+    methods=["POST"],
+    allow_headers=["*"],
+    allow_credentials=True)
 async def process_internal_widget_query(
     payload: WidgetQueryPayload,
     current_user: Annotated[User, Depends(get_current_active_user)],
@@ -1918,7 +1914,16 @@ async def process_widget_message(
     print(f"Chat message processed successfully: {chat_message.message_text} from {chat_message.sender_type}")
 
 
-@internal.post("/api/v1/internal/widget/messages")
+@app.post("/api/v1/internal/widget/messages")
+@cross_origin(
+    origins=[
+        "http://localhost:3001",
+        "https://expertecho.ai",
+        "https://expertecho-yjtdtd6hlq-nw.a.run.app"
+    ],
+    methods=["POST"],
+    allow_headers=["*"],
+    allow_credentials=True)
 async def process_internal_widget_message(
                                     payload: ChatMessagePayload,
                                     current_user: Annotated[User, Depends(get_current_active_user)],
