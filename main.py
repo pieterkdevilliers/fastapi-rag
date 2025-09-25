@@ -87,19 +87,21 @@ INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
 app = FastAPI()
 
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Replace with your frontend's origin
-    allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
-)
+
 
 internal_router = APIRouter()
 # Include the router
 app.include_router(internal_router)
 
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # 2. Internal-specific CORS
 internal = FastAPI()
 internal.add_middleware(
