@@ -19,11 +19,10 @@ import io
 from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite, update_active_customer_groups, update_cancelled_customer_groups
 from aws_ses_service import EmailService, get_email_service
 from datetime import timedelta
-from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request, Security, responses
+from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request, Security, responses, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from fastapi_cors import cross_origin
 from sqlmodel import select, Session, Field
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from pydantic import BaseModel, EmailStr, Field
@@ -96,6 +95,25 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
 )
+
+internal_router = APIRouter()
+# Include the router
+app.include_router(internal_router)
+
+# 2. Internal-specific CORS
+internal = FastAPI()
+internal.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3001",
+        "https://expertecho.ai",
+        "https://expertecho-yjtdtd6hlq-nw.a.run.app",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.mount("/internal", internal)
 
 
 ############################################
@@ -682,16 +700,7 @@ async def process_widget_query(
 
 
 # Queries received from the in-app test widget
-@app.post("/api/v1/internal/widget/query")
-@cross_origin(
-    origins=[
-        "http://localhost:3001",
-        "https://expertecho.ai",
-        "https://expertecho-yjtdtd6hlq-nw.a.run.app"
-    ],
-    methods=["POST"],
-    allow_headers=["*"],
-    allow_credentials=True)
+@internal_router.post("/api/v1/internal/widget/query")
 async def process_internal_widget_query(
     payload: WidgetQueryPayload,
     current_user: Annotated[User, Depends(get_current_active_user)],
@@ -1914,16 +1923,7 @@ async def process_widget_message(
     print(f"Chat message processed successfully: {chat_message.message_text} from {chat_message.sender_type}")
 
 
-@app.post("/api/v1/internal/widget/messages")
-@cross_origin(
-    origins=[
-        "http://localhost:3001",
-        "https://expertecho.ai",
-        "https://expertecho-yjtdtd6hlq-nw.a.run.app"
-    ],
-    methods=["POST"],
-    allow_headers=["*"],
-    allow_credentials=True)
+@internal_router.post("/api/v1/internal/widget/messages")
 async def process_internal_widget_message(
                                     payload: ChatMessagePayload,
                                     current_user: Annotated[User, Depends(get_current_active_user)],
