@@ -36,6 +36,7 @@ email_validator==2.2.0
 emoji==2.13.2
 fastapi==0.115.0
 fastapi-cli==0.0.5
+fastapi-cors==0.0.6
 filelock==3.16.1
 filetype==1.2.0
 flatbuffers==24.3.25
