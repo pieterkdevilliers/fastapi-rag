@@ -722,12 +722,6 @@ async def process_internal_widget_query(
             query, visitor_email, account_unique_id, session, chat_history=chat_history
         )
 
-    response = {
-        "response": {
-            "response_text": "Unable to process your query at this time, please contact us via email."
-        }
-    }
-
     return response
 
 
