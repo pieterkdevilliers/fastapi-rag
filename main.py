@@ -688,7 +688,7 @@ async def process_internal_widget_query(
 ):
     account_unique_id = current_user["account_unique_id"]
     query = payload.query.strip() if payload.query else None
-    visitor_email = payload.email if payload.email else None
+    visitor_email = current_user.user_email
     print('******Payload: ', payload)
 
     if not query:
