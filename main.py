@@ -95,9 +95,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# 2. Internal-specific CORS
-internal_app = FastAPI()
-internal_app.add_middleware(
+# Internal endpoints router
+internal_router = APIRouter(
+    prefix="/api/v1/internal"
+)
+internal_router.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3001",
@@ -108,8 +110,6 @@ internal_app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.mount("/api/v1/internal", internal_app)
 
 
 ############################################
@@ -696,7 +696,7 @@ async def process_widget_query(
 
 
 # Queries received from the in-app test widget
-@internal_app.post("/widget/query")
+@internal_router.post("/widget/query")
 async def process_internal_widget_query(
     payload: WidgetQueryPayload,
     current_user: Annotated[User, Depends(get_current_active_user)],
@@ -1919,7 +1919,7 @@ async def process_widget_message(
     print(f"Chat message processed successfully: {chat_message.message_text} from {chat_message.sender_type}")
 
 
-@internal_app.post("/widget/messages")
+@internal_router.post("/widget/messages")
 async def process_internal_widget_message(
                                     payload: ChatMessagePayload,
                                     current_user: Annotated[User, Depends(get_current_active_user)],
