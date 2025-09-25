@@ -680,7 +680,7 @@ async def process_widget_query(
 
 
 # Queries received from the in-app test widget
-@app.post("/api/v1/widget/query")
+@app.post("/api/v1/internal/widget/query")
 async def process_internal_widget_query(
     payload: WidgetQueryPayload,
     current_user: Annotated[User, Depends(get_current_active_user)],
@@ -1903,7 +1903,7 @@ async def process_widget_message(
     print(f"Chat message processed successfully: {chat_message.message_text} from {chat_message.sender_type}")
 
 
-@app.post("/api/v1/widget/messages")
+@app.post("/api/v1/internal/widget/messages")
 async def process_internal_widget_message(
                                     payload: ChatMessagePayload,
                                     current_user: Annotated[User, Depends(get_current_active_user)],
