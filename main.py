@@ -680,6 +680,58 @@ async def process_widget_query(
     return response
 
 
+# Queries received from the in-app test widget
+@app.post("/api/v1/internal/widget/query")
+async def process_internal_widget_query(
+    payload: WidgetQueryPayload,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    session: Session = Depends(get_session)
+):
+    account_unique_id = current_user["account_unique_id"]
+    query = payload.query.strip() if payload.query else None
+    visitor_email = payload.email if payload.email else None
+    print('******Payload: ', payload)
+
+    if not query:
+        return {"error": "No query provided"}
+
+    # Identify the chat session
+    try:
+        chat_session = create_or_identify_chat_session(
+            account_unique_id,
+            payload.visitor_uuid,
+            session
+        )
+    except Exception as e:
+        print(f"Error creating/identifying chat session: {e}")
+        raise HTTPException(status_code=500, detail="Failed to identify chat session")
+
+    # Pull chat history for context
+    chat_history = session.exec(
+        select(ChatMessage)
+        .where(ChatMessage.chat_session_id == chat_session.id)
+        .order_by(ChatMessage.timestamp)
+    ).all()
+
+    # Add the new user query to chat history
+    chat_history.append(
+        {"sender_type": "user", "message_text": query, "sources": []}
+    )
+
+    # Now feed `chat_history` into your query_source_data function
+    response = query_source_data.query_source_data(
+            query, visitor_email, account_unique_id, session, chat_history=chat_history
+        )
+
+    response = {
+        "response": {
+            "response_text": "Unable to process your query at this time, please contact us via email."
+        }
+    }
+
+    return response
+
+
 
 @app.get("/api/v1/generate-chroma-db/{account_unique_id}")
 async def generate_chroma_db_datastore(account_unique_id: str,
@@ -1826,6 +1878,39 @@ async def process_widget_message(
                                     session: Session = Depends(get_session)
                                     ):
     account_unique_id = auth_info["account_unique_id"]
+    print(f"Received chat message from widget for account {account_unique_id}: {payload.message_text}")
+    # Validate the chat message here
+    if not payload.message_text or not payload.chat_session_id or not payload.visitor_uuid:
+        raise HTTPException(status_code=400, detail="chat_session_id, visitor_uuid, and message_text are required fields")
+    if payload.sender_type not in ['user', 'bot']:
+        raise HTTPException(status_code=400, detail="sender_type must be 'user' or 'bot'")
+    # Validate the chat session ID and visitor UUID
+    if not isinstance(payload.chat_session_id, int) or not payload.visitor_uuid:
+        raise HTTPException(status_code=400, detail="Invalid chat_session_id or visitor_uuid format")
+    
+    # Process the chat message
+    print(f"Processing chat message: {payload.message_text} from {payload.sender_type}")
+    try:
+        chat_session = create_or_identify_chat_session(account_unique_id, payload.visitor_uuid, session)
+    except Exception as e:
+        print(f"Error creating or identifying chat session: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create or identify chat session")
+
+    try:
+        chat_message = create_chat_message(chat_session.id, payload.message_text, payload.sender_type, payload.sources, session)
+    except Exception as e:
+        print(f"Error creating chat message: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create chat message")
+    print(f"Chat message processed successfully: {chat_message.message_text} from {chat_message.sender_type}")
+
+
+@app.post("/api/v1internal/widget/messages")
+async def process_internal_widget_message(
+                                    payload: ChatMessagePayload,
+                                    current_user: Annotated[User, Depends(get_current_active_user)],
+                                    session: Session = Depends(get_session)
+                                    ):
+    account_unique_id = current_user["account_unique_id"]
     print(f"Received chat message from widget for account {account_unique_id}: {payload.message_text}")
     # Validate the chat message here
     if not payload.message_text or not payload.chat_session_id or not payload.visitor_uuid:
