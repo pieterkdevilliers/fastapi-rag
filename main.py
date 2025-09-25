@@ -1904,7 +1904,7 @@ async def process_widget_message(
     print(f"Chat message processed successfully: {chat_message.message_text} from {chat_message.sender_type}")
 
 
-@app.post("/api/v1internal/widget/messages")
+@app.post("/api/v1/internal/widget/messages")
 async def process_internal_widget_message(
                                     payload: ChatMessagePayload,
                                     current_user: Annotated[User, Depends(get_current_active_user)],
