@@ -87,24 +87,17 @@ INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
 app = FastAPI()
 
-
-
-internal_router = APIRouter()
-# Include the router
-app.include_router(internal_router)
-
-
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 # 2. Internal-specific CORS
-internal = FastAPI()
-internal.add_middleware(
+internal_app = FastAPI()
+internal_app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3001",
@@ -115,7 +108,8 @@ internal.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.mount("/internal", internal)
+
+app.mount("/api/v1/internal", internal_app)
 
 
 ############################################
@@ -702,7 +696,7 @@ async def process_widget_query(
 
 
 # Queries received from the in-app test widget
-@internal_router.post("/api/v1/internal/widget/query")
+@internal_app.post("/widget/query")
 async def process_internal_widget_query(
     payload: WidgetQueryPayload,
     current_user: Annotated[User, Depends(get_current_active_user)],
@@ -1925,7 +1919,7 @@ async def process_widget_message(
     print(f"Chat message processed successfully: {chat_message.message_text} from {chat_message.sender_type}")
 
 
-@internal_router.post("/api/v1/internal/widget/messages")
+@internal_app.post("/widget/messages")
 async def process_internal_widget_message(
                                     payload: ChatMessagePayload,
                                     current_user: Annotated[User, Depends(get_current_active_user)],
