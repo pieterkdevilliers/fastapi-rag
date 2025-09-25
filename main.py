@@ -95,23 +95,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Internal endpoints router
-internal_router = APIRouter(
-    prefix="/api/v1/internal"
-)
-internal_router.add_middleware(
+
+# Internal app
+internal_app = FastAPI()
+internal_app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3001",
         "https://expertecho.ai",
         "https://expertecho-yjtdtd6hlq-nw.a.run.app",
     ],
-    allow_credentials=True,
+    allow_credentials=True,  # required for session cookies
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
+app.mount("/api/v1/internal", internal_app)
 ############################################
 #  Authentication
 ############################################
@@ -696,7 +695,7 @@ async def process_widget_query(
 
 
 # Queries received from the in-app test widget
-@internal_router.post("/widget/query")
+@internal_app.post("/widget/query")
 async def process_internal_widget_query(
     payload: WidgetQueryPayload,
     current_user: Annotated[User, Depends(get_current_active_user)],
@@ -1919,7 +1918,7 @@ async def process_widget_message(
     print(f"Chat message processed successfully: {chat_message.message_text} from {chat_message.sender_type}")
 
 
-@internal_router.post("/widget/messages")
+@internal_app.post("/widget/messages")
 async def process_internal_widget_message(
                                     payload: ChatMessagePayload,
                                     current_user: Annotated[User, Depends(get_current_active_user)],
