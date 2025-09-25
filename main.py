@@ -95,7 +95,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# 2. Internal-specific CORS
+
+# Internal app
 internal_app = FastAPI()
 internal_app.add_middleware(
     CORSMiddleware,
@@ -104,14 +105,12 @@ internal_app.add_middleware(
         "https://expertecho.ai",
         "https://expertecho-yjtdtd6hlq-nw.a.run.app",
     ],
-    allow_credentials=True,
+    allow_credentials=True,  # required for session cookies
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.mount("/api/v1/internal", internal_app)
-
-
 ############################################
 #  Authentication
 ############################################
