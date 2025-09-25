@@ -47,6 +47,8 @@ def get_scoreapp_report(accout_unique_id: str, visitor_email: str, session: Sess
     statement = select(ScoreCardResult).where(ScoreCardResult.account_unique_id == accout_unique_id, ScoreCardResult.email == visitor_email)
     result = session.exec(statement)
     scoreapp_report = result.first()
-    scoreapp_report_text = scoreapp_report.extracted_report_text
-
+    if scoreapp_report:
+        scoreapp_report_text = scoreapp_report.extracted_report_text
+    else:
+        scoreapp_report_text = ""
     return {"scoreapp_report_text": scoreapp_report_text}
