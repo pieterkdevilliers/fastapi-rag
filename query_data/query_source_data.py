@@ -102,6 +102,7 @@ def prepare_db_and_perform_query(query,
     print(f"account: {account}")
     relevance_score = account.relevance_score
     k_value = account.k_value
+    sources_returned = account.sources_returned
     temperature = account.temperature
 
     db = prepare_db(account_unique_id)
@@ -109,7 +110,7 @@ def prepare_db_and_perform_query(query,
 
     prompt_text = get_most_recent_prompt(account_unique_id, session).prompt_text
 
-    result = search_db(db, query_text, relevance_score, k_value, account_unique_id, visitor_email, session, chat_history=chat_history, prompt_text=prompt_text, temperature=temperature)
+    result = search_db(db, query_text, relevance_score, k_value, sources_returned, account_unique_id, visitor_email, session, chat_history=chat_history, prompt_text=prompt_text, temperature=temperature)
 
     return result
 
@@ -203,7 +204,7 @@ def prepare_db(account_unique_id):
     return db
 
 
-def search_db(db, query, relevance_score, k_value, account_unique_id, visitor_email, session, chat_history=None, prompt_text=None, temperature=0.2):
+def search_db(db, query, relevance_score, k_value, sources_returned, account_unique_id, visitor_email, session, chat_history=None, prompt_text=None, temperature=0.2):
     """
     Search the DB
     """
@@ -240,6 +241,7 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, visitor_em
     if isinstance(results, dict):
         # Extract the first element of documents list
         documents = results.get("documents", [[]])[0]  # Get the first sublist
+        metadatas = results.get("metadatas", [[]])[0]
     else:
         documents = []
 
@@ -291,7 +293,8 @@ def search_db(db, query, relevance_score, k_value, account_unique_id, visitor_em
         response_text = str(result)  # fallback
 
     # Collect source metadata from the first element of metadatas
-    sources = [meta.get("source", None) for meta in results.get("metadatas", [[]])[0]]
+    # sources = [meta.get("source", None) for meta in results.get("metadatas", [[]])[0]]
+    sources = [meta.get("source", None) for meta in metadatas[:sources_returned]]
 
     return {
         "query": query,
