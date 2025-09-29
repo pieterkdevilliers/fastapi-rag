@@ -760,11 +760,8 @@ async def process_widget_query_agent(
         raise HTTPException(status_code=500, detail="Failed to identify chat session")
 
     # Pull chat history for context
-    chat_history = session.exec(
-        select(ChatMessage)
-        .where(ChatMessage.chat_session_id == chat_session.id)
-        .order_by(ChatMessage.timestamp)
-    ).all()
+    chat_history = get_chat_messages_by_session_id(chat_session.id, session)
+    print("Retrieved Chat History: ", chat_history)
 
     # Add the new user query to chat history
     chat_history.append(
