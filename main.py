@@ -726,6 +726,85 @@ async def process_internal_widget_query(
     return response
 
 
+############################################################################
+# ExpertEcho Agents Endpoints
+############################################################################
+
+# REINSTATE API AUTH BEFORE DEPLOYING AS LIVE #
+# REMOVE UNIQUE_ACCOUNT_ID FROM ENDPOINT AND DIRECT SET #
+# DISABLE DEFAULT ACTIVE_SUBSCRIPTION #
+@app.post("/api/v1/widget/query-agent/{account_unique_id}")
+async def process_widget_query_agent(
+    payload: WidgetQueryPayload,
+    account_unique_id: str,
+    # auth_info: dict = Security(get_widget_api_key_user),
+    session: Session = Depends(get_session)
+):
+    # account_unique_id = auth_info["account_unique_id"]
+    query = payload.query.strip() if payload.query else None
+    visitor_email = payload.email if payload.email else None
+    print('******Payload: ', payload)
+
+    if not query:
+        return {"error": "No query provided"}
+
+    # Identify the chat session
+    try:
+        chat_session = create_or_identify_chat_session(
+            account_unique_id,
+            payload.visitor_uuid,
+            session
+        )
+    except Exception as e:
+        print(f"Error creating/identifying chat session: {e}")
+        raise HTTPException(status_code=500, detail="Failed to identify chat session")
+
+    # Pull chat history for context
+    chat_history = session.exec(
+        select(ChatMessage)
+        .where(ChatMessage.chat_session_id == chat_session.id)
+        .order_by(ChatMessage.timestamp)
+    ).all()
+
+    # Add the new user query to chat history
+    chat_history.append(
+        {"sender_type": "user", "message_text": query, "sources": []}
+    )
+
+    # Now feed `chat_history` into your query_source_data function
+    # active_subscription = check_active_subscription_status(account_unique_id, session)
+    active_subscription = True
+    if active_subscription:
+        response = query_source_data.query_source_data(
+            query, visitor_email, account_unique_id, session, chat_history=chat_history
+        )
+    else:
+        # Handle unsubscribed users
+        recipients = get_notification_users(account_unique_id, session)
+        if not recipients:
+            raise HTTPException(status_code=404, detail="No notification users found for this account")
+
+        email_service = get_email_service()
+        try:
+            for recipient in recipients:
+                email_service.send_unsubscribed_widget_email(
+                    recipient['user_email'],
+                    'www.yourdocsai.app/login?redirect=/accounts'
+                )
+        except Exception as e:
+            print(f"ERROR sending email: {e}") 
+            raise HTTPException(status_code=500, detail=str(e))
+
+        response = {
+            "response": {
+                "response_text": "Unable to process your query at this time, please contact us via email."
+            }
+        }
+
+    return response
+
+############################################################################
+############################################################################
 
 @app.get("/api/v1/generate-chroma-db/{account_unique_id}")
 async def generate_chroma_db_datastore(account_unique_id: str,
