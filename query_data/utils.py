@@ -20,7 +20,7 @@ async def call_repo_b(query_payload: Query):
         "x-api-key": REPO_B_API_KEY,
         "Content-Type": "application/json"
     }
-    
+    print('Query being sent: ', query_payload)
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
             
