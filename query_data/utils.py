@@ -23,6 +23,7 @@ async def call_repo_b(query_payload: Query):
     print('Query being sent: ', query_payload)
     print('Query being sent model_dump: ', query_payload.model_dump())
     print('Headers: ', headers)
+    print('Repo B URL: ', REPO_B_URL)
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
             
