@@ -33,6 +33,7 @@ async def call_repo_b(query_payload: Query):
             )
             
             # Check if the response was successful
+            print('response: ', response)
             response.raise_for_status()
             
             # Check if response has content before trying to parse JSON
