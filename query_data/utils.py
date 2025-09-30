@@ -1,7 +1,63 @@
+import httpx
+import os
+import json
 from urllib.parse import urlparse
 from sqlmodel import Session
 from sqlmodel.sql.expression import select
 from integration.models import ScoreCardResult
+from .query_data_schema import Query
+from dotenv import load_dotenv
+load_dotenv()
+
+REPO_B_URL = os.getenv("REPO_B_URL")
+REPO_B_API_KEY = os.getenv("REPO_B_API_KEY")
+
+async def call_repo_b(query_payload: Query):
+    """
+    Call to ExpertEcho Agents Service
+    """
+    headers = {
+        "x-api-key": REPO_B_API_KEY,
+        "Content-Type": "application/json"
+    }
+    
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            
+            response = await client.post(
+                REPO_B_URL, 
+                json=query_payload.model_dump(),
+                headers=headers
+            )
+            
+            # Check if the response was successful
+            response.raise_for_status()
+            
+            # Check if response has content before trying to parse JSON
+            if not response.text.strip():
+                return {"error": "Empty response from Repo B"}
+            
+            # Try to parse JSON
+            try:
+                return response.json()
+            except json.JSONDecodeError as json_err:
+                return {"error": "Invalid JSON response from Repo B", "content": response.text}
+                
+        except httpx.HTTPStatusError as http_err:
+            # Try to parse error response as JSON if possible
+            try:
+                error_data = http_err.response.json()
+                return {"error": f"HTTP {http_err.response.status_code}", "details": error_data}
+            except json.JSONDecodeError:
+                return {"error": f"HTTP {http_err.response.status_code}", "details": http_err.response.text}
+                
+        except httpx.RequestError as req_err:
+            return {"error": "Request failed", "details": str(req_err)}
+        
+        except Exception as e:
+            return {"error": "Unexpected error", "details": str(e)}
+
+    
 
 def normalize_origin(origin: str) -> str:
     """

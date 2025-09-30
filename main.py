@@ -1,4 +1,5 @@
 import os
+import uuid
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -8,7 +9,7 @@ import stripe
 import secrets
 import chromadb
 from bs4 import BeautifulSoup
-from typing import Any, Union, Annotated, List, Optional
+from typing import Any, Union, Annotated, List, Optional, Dict
 from datetime import datetime, timezone
 from secrets import token_hex
 import shutil
@@ -63,6 +64,8 @@ from webhook_utils import send_chat_messages_webhook_notification, send_opt_in_w
 import integration.utils as int_utils
 from integration.models import ScoreAppAccount, ScoreCardResult
 import products.utils as prod_utils
+import query_data.utils as query_utils
+from query_data.query_data_schema import Query
 load_dotenv()
 
 
@@ -733,6 +736,8 @@ async def process_internal_widget_query(
 # REINSTATE API AUTH BEFORE DEPLOYING AS LIVE #
 # REMOVE UNIQUE_ACCOUNT_ID FROM ENDPOINT AND DIRECT SET #
 # DISABLE DEFAULT ACTIVE_SUBSCRIPTION #
+
+
 @app.post("/api/v1/widget/query-agent/{account_unique_id}")
 async def process_widget_query_agent(
     payload: WidgetQueryPayload,
@@ -741,9 +746,8 @@ async def process_widget_query_agent(
     session: Session = Depends(get_session)
 ):
     # account_unique_id = auth_info["account_unique_id"]
+    account = get_account_by_account_unique_id(account_unique_id, session)
     query = payload.query.strip() if payload.query else None
-    visitor_email = payload.email if payload.email else None
-    print('******Payload: ', payload)
 
     if not query:
         return {"error": "No query provided"}
@@ -755,26 +759,58 @@ async def process_widget_query_agent(
             payload.visitor_uuid,
             session
         )
+        print("Chat Session: ", chat_session)
     except Exception as e:
         print(f"Error creating/identifying chat session: {e}")
         raise HTTPException(status_code=500, detail="Failed to identify chat session")
 
     # Pull chat history for context
     chat_history = get_chat_messages_by_session_id(chat_session.id, session)
-    print("Retrieved Chat History: ", chat_history)
+    chat_history_dicts = [
+        {
+            "sender": msg.sender_type,       # matches repo B
+            "message": msg.message_text,     # matches repo B
+        }
+        for msg in chat_history
+    ]
 
-    # Add the new user query to chat history
-    chat_history.append(
-        {"sender_type": "user", "message_text": query, "sources": []}
+    chat_history_dicts.append({
+        "sender": "user",
+        "message": query,
+    })
+    
+    scoreapp_report_text = query_utils.get_scoreapp_report(account_unique_id, payload.email, session)
+
+    user_products = prod_utils.get_active_user_products_for_account(account_unique_id, session)
+    if user_products:
+        user_products_prompt = prod_utils.format_user_products_for_prompt(user_products)
+    else:
+        user_products_prompt = ""
+    
+    prompt_text = get_most_recent_prompt(account_unique_id, session).prompt_text
+
+    agent_payload = Query(
+        query=query,
+        prompt=prompt_text,
+        visitor_email=payload.email or "",
+        visitor_uuid=payload.visitor_uuid,
+        account_unique_id=account_unique_id,
+        chat_history=chat_history_dicts,
+        relevance_score=account.relevance_score,
+        k_value=account.k_value,
+        sources_returned=account.sources_returned,
+        temperature=account.temperature,
+        chat_session_id=str(chat_session.id),
+        scoreapp_report_text=scoreapp_report_text,
+        user_products_prompt=user_products_prompt,
     )
 
     # Now feed `chat_history` into your query_source_data function
     # active_subscription = check_active_subscription_status(account_unique_id, session)
     active_subscription = True
     if active_subscription:
-        response = query_source_data.query_source_data(
-            query, visitor_email, account_unique_id, session, chat_history=chat_history
-        )
+
+        response = await query_utils.call_repo_b(agent_payload)
     else:
         # Handle unsubscribed users
         recipients = get_notification_users(account_unique_id, session)
