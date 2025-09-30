@@ -836,6 +836,82 @@ async def process_widget_query_agent(
 
     return response
 
+
+# Queries received from the in-app test widget
+
+@app.post("/api/v1/internal/widget/agent-query")
+async def process_internal_widget_query_agent(
+    payload: WidgetQueryPayload,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    session: Session = Depends(get_session)
+):
+    account_unique_id = current_user["account_unique_id"]
+    account = get_account_by_account_unique_id(account_unique_id, session)
+    query = payload.query.strip() if payload.query else None
+    visitor_email = current_user["user_email"]
+    print('******Payload: ', payload)
+
+
+    if not query:
+        return {"error": "No query provided"}
+
+    # Identify the chat session
+    try:
+        chat_session = create_or_identify_chat_session(
+            account_unique_id,
+            payload.visitor_uuid,
+            session
+        )
+    except Exception as e:
+        print(f"Error creating/identifying chat session: {e}")
+        raise HTTPException(status_code=500, detail="Failed to identify chat session")
+
+    # Pull chat history for context
+    chat_history = get_chat_messages_by_session_id(chat_session.id, session)
+    chat_history_dicts = [
+        {
+            "sender": msg.sender_type,       # matches repo B
+            "message": msg.message_text,     # matches repo B
+        }
+        for msg in chat_history
+    ]
+
+    chat_history_dicts.append({
+        "sender": "user",
+        "message": query,
+    })
+    
+    scoreapp_report_text = query_utils.get_scoreapp_report(account_unique_id, payload.email, session)
+
+    user_products = prod_utils.get_active_user_products_for_account(account_unique_id, session)
+    if user_products:
+        user_products_prompt = prod_utils.format_user_products_for_prompt(user_products)
+    else:
+        user_products_prompt = ""
+    
+    prompt_text = get_most_recent_prompt(account_unique_id, session).prompt_text
+
+    agent_payload = Query(
+        query=query,
+        prompt=prompt_text,
+        visitor_email=payload.email or "",
+        visitor_uuid=payload.visitor_uuid,
+        account_unique_id=account_unique_id,
+        chat_history=chat_history_dicts,
+        relevance_score=account.relevance_score,
+        k_value=account.k_value,
+        sources_returned=account.sources_returned,
+        temperature=account.temperature,
+        chat_session_id=str(chat_session.id),
+        scoreapp_report_text=scoreapp_report_text,
+        user_products_prompt=user_products_prompt,
+    )
+
+    # Now feed `chat_history` into your query_source_data function
+    response = await query_utils.call_repo_b(agent_payload)
+
+    return response
+
 ############################################################################
 ############################################################################
 
