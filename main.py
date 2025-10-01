@@ -840,8 +840,8 @@ async def process_widget_query_agent(
 # Queries received from the in-app test widget
 
 # Modified endpoint to support streaming
-@app.post("/api/v1/internal/widget/agent-query/stream")
-async def process_internal_widget_query_agent_stream(
+@app.post("/api/v1/internal/widget/agent-query")
+async def process_internal_widget_query_agent(
     payload: WidgetQueryPayload,
     current_user: Annotated[User, Depends(get_current_active_user)],
     session: Session = Depends(get_session)
