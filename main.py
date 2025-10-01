@@ -759,16 +759,6 @@ async def process_widget_query_agent(
             session
         )
         print("Chat Session: ", chat_session)
-        try:
-            chat_utils.create_chat_message(
-                session=session,
-                chat_session_id=chat_session.id,
-                sender_type="user",
-                message_text=payload.query,
-                sources=[]
-            )
-        except Exception as db_error:
-            print(f"Error saving to DB: {db_error}")
     except Exception as e:
         print(f"Error creating/identifying chat session: {e}")
         raise HTTPException(status_code=500, detail="Failed to identify chat session")
@@ -845,17 +835,6 @@ async def process_widget_query_agent(
                         yield f"data: {json.dumps(chunk)}\n\n"
                         
                     elif chunk_type == "done":
-                        # Save to database now that we have the full response
-                        try:
-                            chat_utils.create_chat_message(
-                                session=session,
-                                chat_session_id=chat_session.id,
-                                sender_type="bot",
-                                message_text=full_response_text,
-                                sources=sources
-                            )
-                        except Exception as db_error:
-                            print(f"Error saving to DB: {db_error}")
                         
                         # Send done signal to client
                         yield f"data: {json.dumps(chunk)}\n\n"
