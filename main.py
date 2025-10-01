@@ -866,8 +866,8 @@ async def process_internal_widget_query_agent(
                 session=session,
                 chat_session_id=chat_session.id,
                 sender_type="user",
-                message_text=full_response_text,
-                sources=sources
+                message_text=payload.query,
+                sources=[]
             )
         except Exception as db_error:
             print(f"Error saving to DB: {db_error}")
