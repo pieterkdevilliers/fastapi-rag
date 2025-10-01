@@ -810,7 +810,66 @@ async def process_widget_query_agent(
     active_subscription = check_active_subscription_status(account_unique_id, session)
     if active_subscription:
 
-        response = await query_utils.call_repo_b(agent_payload)
+        # Variables to accumulate the full response for DB storage
+        full_response_text = ""
+        sources = []
+        
+        async def generate():
+            nonlocal full_response_text, sources
+            
+            try:
+                async for chunk in query_utils.call_repo_b_stream(agent_payload):
+                    chunk_type = chunk.get("type")
+                    
+                    if chunk_type == "sources":
+                        # Store sources but don't necessarily send to client
+                        sources = chunk.get("content", [])
+                        # Optionally send to client
+                        yield f"data: {json.dumps(chunk)}\n\n"
+                        
+                    elif chunk_type == "chunk":
+                        # Accumulate for DB storage
+                        content = chunk.get("content", "")
+                        full_response_text += content
+                        # Stream to client
+                        yield f"data: {json.dumps(chunk)}\n\n"
+                        
+                    elif chunk_type == "done":
+                        # Save to database now that we have the full response
+                        try:
+                            chat_utils.create_chat_message(
+                                session=session,
+                                chat_session_id=chat_session.id,
+                                sender_type="bot",
+                                message_text=full_response_text,
+                                sources=sources
+                            )
+                        except Exception as db_error:
+                            print(f"Error saving to DB: {db_error}")
+                        
+                        # Send done signal to client
+                        yield f"data: {json.dumps(chunk)}\n\n"
+                        
+                    elif chunk_type == "error":
+                        # Send error to client
+                        yield f"data: {json.dumps(chunk)}\n\n"
+                        
+            except Exception as e:
+                error_chunk = {
+                    "type": "error",
+                    "content": f"Stream processing error: {str(e)}"
+                }
+                yield f"data: {json.dumps(error_chunk)}\n\n"
+        
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            }
+        )
     else:
         # Handle unsubscribed users
         recipients = get_notification_users(account_unique_id, session)
