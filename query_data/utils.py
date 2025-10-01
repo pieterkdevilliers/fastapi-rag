@@ -12,54 +12,102 @@ load_dotenv()
 REPO_B_URL = os.getenv("REPO_B_URL")
 REPO_B_API_KEY = os.getenv("REPO_B_API_KEY")
 
-async def call_repo_b(query_payload: Query):
+# Modified utility function to stream from Repo B
+async def call_repo_b_stream(query_payload: Query):
     """
-    Call to ExpertEcho Agents Service
+    Stream response from Repo B (ExpertEcho Agents Service)
     """
     headers = {
         "x-api-key": REPO_B_API_KEY,
         "Content-Type": "application/json"
     }
-    print('Query being sent: ', query_payload)
-    print('Query being sent model_dump: ', query_payload.model_dump())
-    print('Headers: ', headers)
-    print('Repo B URL: ', REPO_B_URL)
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    
+    print('Query being sent for streaming: ', query_payload)
+    
+    async with httpx.AsyncClient(timeout=120.0) as client:
         try:
-            
-            response = await client.post(
-                REPO_B_URL, 
+            async with client.stream(
+                "POST",
+                f"{REPO_B_URL}/stream",  # Note: using the streaming endpoint
                 json=query_payload.model_dump(),
                 headers=headers
-            )
-            
-            # Check if the response was successful
-            print('response: ', response)
-            response.raise_for_status()
-            
-            # Check if response has content before trying to parse JSON
-            if not response.text.strip():
-                return {"error": "Empty response from Repo B"}
-            
-            # Try to parse JSON
-            try:
-                return response.json()
-            except json.JSONDecodeError as json_err:
-                return {"error": "Invalid JSON response from Repo B", "content": response.text}
+            ) as response:
+                response.raise_for_status()
                 
+                # Stream SSE events from Repo B
+                async for line in response.aiter_lines():
+                    if line.startswith("data: "):
+                        try:
+                            data = json.loads(line[6:])  # Remove "data: " prefix
+                            yield data
+                        except json.JSONDecodeError:
+                            print(f"Failed to parse SSE data: {line}")
+                            continue
+                            
         except httpx.HTTPStatusError as http_err:
-            # Try to parse error response as JSON if possible
-            try:
-                error_data = http_err.response.json()
-                return {"error": f"HTTP {http_err.response.status_code}", "details": error_data}
-            except json.JSONDecodeError:
-                return {"error": f"HTTP {http_err.response.status_code}", "details": http_err.response.text}
-                
+            yield {
+                "type": "error",
+                "content": f"HTTP {http_err.response.status_code}: {http_err.response.text}"
+            }
         except httpx.RequestError as req_err:
-            return {"error": "Request failed", "details": str(req_err)}
-        
+            yield {
+                "type": "error",
+                "content": f"Request failed: {str(req_err)}"
+            }
         except Exception as e:
-            return {"error": "Unexpected error", "details": str(e)}
+            yield {
+                "type": "error",
+                "content": f"Unexpected error: {str(e)}"
+            }
+
+# async def call_repo_b(query_payload: Query):
+#     """
+#     Call to ExpertEcho Agents Service
+#     """
+#     headers = {
+#         "x-api-key": REPO_B_API_KEY,
+#         "Content-Type": "application/json"
+#     }
+#     print('Query being sent: ', query_payload)
+#     print('Query being sent model_dump: ', query_payload.model_dump())
+#     print('Headers: ', headers)
+#     print('Repo B URL: ', REPO_B_URL)
+#     async with httpx.AsyncClient(timeout=60.0) as client:
+#         try:
+            
+#             response = await client.post(
+#                 REPO_B_URL, 
+#                 json=query_payload.model_dump(),
+#                 headers=headers
+#             )
+            
+#             # Check if the response was successful
+#             print('response: ', response)
+#             response.raise_for_status()
+            
+#             # Check if response has content before trying to parse JSON
+#             if not response.text.strip():
+#                 return {"error": "Empty response from Repo B"}
+            
+#             # Try to parse JSON
+#             try:
+#                 return response.json()
+#             except json.JSONDecodeError as json_err:
+#                 return {"error": "Invalid JSON response from Repo B", "content": response.text}
+                
+#         except httpx.HTTPStatusError as http_err:
+#             # Try to parse error response as JSON if possible
+#             try:
+#                 error_data = http_err.response.json()
+#                 return {"error": f"HTTP {http_err.response.status_code}", "details": error_data}
+#             except json.JSONDecodeError:
+#                 return {"error": f"HTTP {http_err.response.status_code}", "details": http_err.response.text}
+                
+#         except httpx.RequestError as req_err:
+#             return {"error": "Request failed", "details": str(req_err)}
+        
+#         except Exception as e:
+#             return {"error": "Unexpected error", "details": str(e)}
 
     
 
