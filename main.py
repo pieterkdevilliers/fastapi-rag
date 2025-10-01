@@ -908,7 +908,7 @@ async def process_internal_widget_query_agent(
         scoreapp_report_text=scoreapp_report_text,
         user_products_prompt=user_products_prompt,
     )
-
+    
     # Now feed `chat_history` into your query_source_data function
     response = await query_utils.call_repo_b(agent_payload)
 
