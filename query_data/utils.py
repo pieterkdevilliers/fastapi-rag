@@ -28,7 +28,7 @@ async def call_repo_b_stream(query_payload: Query):
         try:
             async with client.stream(
                 "POST",
-                f"{REPO_B_URL}", 
+                f"{REPO_B_URL}",
                 json=query_payload.model_dump(),
                 headers=headers
             ) as response:
