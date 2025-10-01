@@ -738,14 +738,13 @@ async def process_internal_widget_query(
 # DISABLE DEFAULT ACTIVE_SUBSCRIPTION #
 
 
-@app.post("/api/v1/widget/query-agent/{account_unique_id}")
+@app.post("/api/v1/widget/query-agent")
 async def process_widget_query_agent(
     payload: WidgetQueryPayload,
-    account_unique_id: str,
-    # auth_info: dict = Security(get_widget_api_key_user),
+    auth_info: dict = Security(get_widget_api_key_user),
     session: Session = Depends(get_session)
 ):
-    # account_unique_id = auth_info["account_unique_id"]
+    account_unique_id = auth_info["account_unique_id"]
     account = get_account_by_account_unique_id(account_unique_id, session)
     query = payload.query.strip() if payload.query else None
 
@@ -806,8 +805,7 @@ async def process_widget_query_agent(
     )
 
     # Now feed `chat_history` into your query_source_data function
-    # active_subscription = check_active_subscription_status(account_unique_id, session)
-    active_subscription = True
+    active_subscription = check_active_subscription_status(account_unique_id, session)
     if active_subscription:
 
         response = await query_utils.call_repo_b(agent_payload)
