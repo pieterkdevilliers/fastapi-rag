@@ -861,6 +861,16 @@ async def process_internal_widget_query_agent(
             payload.visitor_uuid,
             session
         )
+        try:
+            chat_utils.create_chat_message(
+                session=session,
+                chat_session_id=chat_session.id,
+                sender_type="user",
+                message_text=full_response_text,
+                sources=sources
+            )
+        except Exception as db_error:
+            print(f"Error saving to DB: {db_error}")
     except Exception as e:
         print(f"Error creating/identifying chat session: {e}")
         raise HTTPException(status_code=500, detail="Failed to identify chat session")
