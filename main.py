@@ -935,16 +935,16 @@ async def process_internal_widget_query_agent(
                     
                 elif chunk_type == "done":
                     # Save to database now that we have the full response
-                    # try:
-                    #     save_chat_message(
-                    #         session=session,
-                    #         chat_session_id=chat_session.id,
-                    #         sender_type="assistant",
-                    #         message_text=full_response_text,
-                    #         sources=sources
-                    #     )
-                    # except Exception as db_error:
-                    #     print(f"Error saving to DB: {db_error}")
+                    try:
+                        chat_utils.create_chat_message(
+                            session=session,
+                            chat_session_id=chat_session.id,
+                            sender_type="bot",
+                            message_text=full_response_text,
+                            sources=sources
+                        )
+                    except Exception as db_error:
+                        print(f"Error saving to DB: {db_error}")
                     
                     # Send done signal to client
                     yield f"data: {json.dumps(chunk)}\n\n"
