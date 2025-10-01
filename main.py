@@ -779,13 +779,15 @@ async def process_widget_query_agent(
     })
     
     scoreapp_report_text = query_utils.get_scoreapp_report(account_unique_id, payload.email, session)
+    print('scoreapp_report_text: ', scoreapp_report_text)
 
     user_products = prod_utils.get_active_user_products_for_account(account_unique_id, session)
+    print('user_products: ', user_products)
     if user_products:
         user_products_prompt = prod_utils.format_user_products_for_prompt(user_products)
     else:
         user_products_prompt = ""
-    
+    print('user_products_prompt: ', user_products_prompt)
     prompt_text = get_most_recent_prompt(account_unique_id, session).prompt_text
 
     agent_payload = Query(
@@ -880,13 +882,15 @@ async def process_internal_widget_query_agent(
     })
     
     scoreapp_report_text = query_utils.get_scoreapp_report(account_unique_id, payload.email, session)
+    print('scoreapp_report_text: ', scoreapp_report_text)
 
     user_products = prod_utils.get_active_user_products_for_account(account_unique_id, session)
+    print('user_products: ', user_products)
     if user_products:
         user_products_prompt = prod_utils.format_user_products_for_prompt(user_products)
     else:
         user_products_prompt = ""
-    
+    print('user_products_prompt: ', user_products_prompt)
     prompt_text = get_most_recent_prompt(account_unique_id, session).prompt_text
 
     agent_payload = Query(
