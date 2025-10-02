@@ -127,6 +127,7 @@ def get_notification_users(account_unique_id: str, session: Session):
     statement = select(User).filter(User.account_unique_id == account_unique_id, User.receive_notifications is True)
     result = session.exec(statement)
     users = result.all()
+    print('Notification Users Found: ', users)
     
     if not users:
         return {"error": "No users found"}

@@ -1260,6 +1260,7 @@ async def widget_contact_us(
         raise HTTPException(status_code=400, detail="Name, email, and message are required fields")
     
     recipients = get_notification_users(auth_info["account_unique_id"], session)
+    print('recipients: ', recipients)
     if not recipients:
         raise HTTPException(status_code=404, detail="No notification users found for this account")
     
@@ -1350,7 +1351,6 @@ async def widget_contact_us(
 
     email_service = get_email_service()
     print(f"Sending contact us email to {len(recipients)} recipients for account {auth_info['account_unique_id']}")
-    print('recipients: ', recipients)
     try:
         for recipient in recipients:
             # 4. Call the new, cleaner email service method
