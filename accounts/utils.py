@@ -124,7 +124,7 @@ def get_notification_users(account_unique_id: str, session: Session):
     """
     Get Users who should receive notifications
     """
-    statement = select(User).filter(User.account_unique_id == account_unique_id, User.receive_notifications is True)
+    statement = select(User).filter(User.account_unique_id == account_unique_id)
     result = session.exec(statement)
     users = result.all()
     print('Notification Users Found: ', users)
