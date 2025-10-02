@@ -1353,6 +1353,7 @@ async def widget_contact_us(
     try:
         for recipient in recipients:
             # 4. Call the new, cleaner email service method
+            print('recipient: ', recipient)
             email_service.send_email(
                 to_email=recipient['user_email'],
                 subject=f"Contact Us from {payload.name}",
