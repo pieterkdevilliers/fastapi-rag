@@ -52,6 +52,8 @@ def handler(event, context):
     s3_key = event['s3_key']
     s3_pdf_file_key = event['s3_pdf_file_key']
     account_unique_id = event.get('account_unique_id', s3_key.split('/')[0])
+    chuck_size = event['chuck_size']
+    chunk_overlap = event['chunk_overlap']
     print(f"Starting processing for s3://{s3_bucket}/{s3_key}")
     try:
         file_content, file_extension = download_from_s3(s3_bucket, s3_key)
@@ -182,10 +184,10 @@ def hybrid_parse_pdf(file_content: bytes, s3_key: str) -> Optional[str]:
     return text
 
 
-def split_text(documents: list[Document]):
+def split_text(documents: list[Document], chuck_size: int = 450, chunk_overlap: int = 75):
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=chuck_size,
+        chunk_overlap=chunk_overlap,
         length_function=len,
         add_start_index=True,
     )

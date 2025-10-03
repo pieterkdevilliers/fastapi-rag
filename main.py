@@ -1116,7 +1116,7 @@ async def generate_chroma_db_datastore(account_unique_id: str,
     Generate Chroma DB
     """
     print(f"Received request to generate Chroma DB for account {account_unique_id} with replace={replace}")
-    
+    account = get_account_by_account_unique_id(account_unique_id, session)
     try:
         documents_from_s3 = await load_documents_from_s3(account_unique_id=account_unique_id, replace=replace, session=session)
 
@@ -1145,6 +1145,8 @@ async def generate_chroma_db_datastore(account_unique_id: str,
                 "s3_key": s3_key,
                 "s3_pdf_file_key": db_file.file_name,
                 "account_unique_id": account_unique_id,
+                "chuck_size": account.chunk_size,
+                "chunk_overlap": account.chunk_overlap,
             }
 
             try:
