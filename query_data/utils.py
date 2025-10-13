@@ -23,6 +23,8 @@ async def call_repo_b_stream(query_payload: Query):
     }
     
     print('Query being sent for streaming: ', query_payload)
+    print('Headers: ', headers)
+    print('Repo B URL: ', REPO_B_URL)
     
     async with httpx.AsyncClient(timeout=120.0) as client:
         try:
@@ -35,14 +37,18 @@ async def call_repo_b_stream(query_payload: Query):
                 response.raise_for_status()
                 
                 # Stream SSE events from Repo B
-                async for line in response.aiter_lines():
-                    if line.startswith("data: "):
-                        try:
-                            data = json.loads(line[6:])  # Remove "data: " prefix
-                            yield data
-                        except json.JSONDecodeError:
-                            print(f"Failed to parse SSE data: {line}")
-                            continue
+                buffer = ""
+                async for raw_line in response.aiter_raw():
+                    buffer += raw_line.decode("utf-8")
+                    while "\n\n" in buffer:
+                        event, buffer = buffer.split("\n\n", 1)
+                        if event.startswith("data: "):
+                            try:
+                                data = json.loads(event[6:])
+                                yield data
+                            except json.JSONDecodeError:
+                                print(f"Failed to parse SSE data: {raw_line}")
+                                continue
                             
         except httpx.HTTPStatusError as http_err:
             yield {
