@@ -17,7 +17,7 @@ def process_stripe_product_created_event(event: dict, session: Session):
     """
     product_data = event.get('data', {}).get('object', {})
     product_title = product_data.get('name', '')
-    if "YourDocsAI" in product_title:
+    if "Expert Echo" in product_title:
         product_id = product_data.get('id', '')
         product_description = product_data.get('description', '')
         product_statement_descriptor = product_data.get('statement_descriptor', '')
@@ -52,7 +52,7 @@ def process_stripe_product_updated_event(event: dict, session: Session):
     """
     product_data = event.get('data', {}).get('object', {})
     product_title = product_data.get('name', '')
-    if "YourDocsAI" in product_title:
+    if "Expert Echo" in product_title:
         product_id = product_data.get('id', '')
         product_title = product_data.get('name', '')
         product_description = product_data.get('description', '')
@@ -86,7 +86,7 @@ def process_stripe_subscription_invoice_paid_event(event: dict, session: Session
     """
     invoice_data = event.get('data', {}).get('object', {})
     related_product_title = invoice_data.get('lines', {}).get('data', [{}])[0].get('description', {})
-    if "YourDocsAI" in related_product_title:
+    if "Expert Echo" in related_product_title:
         stripe_subscription_id = invoice_data.get('subscription', '')
         stripe_customer_id = invoice_data.get('customer', '')
         type = invoice_data.get('lines', {}).get('data', [{}])[0].get('price', {}).get('recurring', {}).get('interval', '')
