@@ -667,7 +667,7 @@ async def process_widget_query(
             for recipient in recipients:
                 email_service.send_unsubscribed_widget_email(
                     recipient['user_email'],
-                    'www.yourdocsai.app/login?redirect=/accounts'
+                    'www.expertecho.ai/login?redirect=/accounts'
                 )
         except Exception as e:
             print(f"ERROR sending email: {e}") 
@@ -870,7 +870,7 @@ async def process_widget_query_agent(
             for recipient in recipients:
                 email_service.send_unsubscribed_widget_email(
                     recipient['user_email'],
-                    'www.yourdocsai.app/login?redirect=/accounts'
+                    'www.expertecho.ai/login?redirect=/accounts'
                 )
         except Exception as e:
             print(f"ERROR sending email: {e}") 
