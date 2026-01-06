@@ -2787,5 +2787,11 @@ async def mailerlite_webhook(request: Request, session: Session = Depends(get_se
     """
     payload = await request.json()
     print("MailerLite Webhook Payload: ", payload)
+    firstname = payload.get("data", {}).get("fields", {}).get("first_name", "")
+    last_name = payload.get("data", {}).get("fields", {}).get("last_name", "")
+    email = payload.get("data", {}).get("fields", {}).get("email", "")
+    print("Firstname: ", firstname)
+    print("Last name: ", last_name)
+    print("Email: ", email)
     # Process the MailerLite webhook payload
     return {"response": "success"}
