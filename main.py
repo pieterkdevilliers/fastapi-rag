@@ -2781,17 +2781,32 @@ async def delete_user_product(
 ############################################
 
 @app.post("/api/v1/mailerlite/webhook/")
-async def mailerlite_webhook(request: Request, session: Session = Depends(get_session)):
+async def scoreapp_webhook(request: Request, session: Session = Depends(get_session)):
     """
-    MailerLite Webhook
+    ScoreApp Webhook (Quiz Finished event)
     """
-    payload = await request.json()
-    print("MailerLite Webhook Payload: ", payload)
-    firstname = payload.get("data", {}).get("fields", {}).get("first_name", "")
-    last_name = payload.get("data", {}).get("fields", {}).get("last_name", "")
-    email = payload.get("data", {}).get("fields", {}).get("email", "")
-    print("Firstname: ", firstname)
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    print("ScoreApp Webhook Payload: ", payload)
+
+    # Optional: Only process QUIZ_FINISHED events (in case you add more events later)
+    if payload.get("event_name") != "QUIZ_FINISHED":
+        return {"response": "ignored - not QUIZ_FINISHED"}
+
+    data = payload.get("data", {})
+
+    # Extract lead details directly from data
+    first_name = data.get("first_name", "")
+    last_name = data.get("last_name", "")
+    full_name = data.get("full_name", "")  # Often provided as fallback
+    email = data.get("email", "")
+
+    print("First name: ", first_name)
     print("Last name: ", last_name)
+    print("Full name: ", full_name)
     print("Email: ", email)
-    # Process the MailerLite webhook payload
+
     return {"response": "success"}
