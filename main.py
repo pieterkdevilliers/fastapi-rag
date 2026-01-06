@@ -17,7 +17,7 @@ import boto3
 import convert_to_pdf
 from sqlmodel import SQLModel
 import io
-from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite, update_active_customer_groups, update_cancelled_customer_groups
+from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite, update_active_customer_groups, update_cancelled_customer_groups, add_subscriber, assign_subscriber_to_group
 from aws_ses_service import EmailService, get_email_service
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request, Security, responses, APIRouter
@@ -2808,5 +2808,17 @@ async def scoreapp_webhook(request: Request, session: Session = Depends(get_sess
     print("Last name: ", last_name)
     print("Full name: ", full_name)
     print("Email: ", email)
+
+    # Add subscriber to MailerLite
+    subscriber = add_subscriber(email=email, fields={"first_name": first_name, "last_name": last_name})
+    if not subscriber:
+        raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
+    
+    # Add subscriber to Waiting List group
+    try:
+        assign_subscriber_to_group(email=email, group_id=os.getenv("MAILERLITE_WAITING_LIST_GROUP_ID"))
+    except ValueError as e:
+        print(f"DEBUG: Error assigning subscriber {email} to Waiting List group: {e}")
+        return {"error": str(e)}
 
     return {"response": "success"}
