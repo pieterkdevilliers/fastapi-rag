@@ -2816,7 +2816,7 @@ async def scoreapp_webhook(request: Request, session: Session = Depends(get_sess
     
     # Add subscriber to Waiting List group
     try:
-        assign_subscriber_to_group(email=email, group_id=os.getenv("MAILERLITE_WAITING_LIST_GROUP_ID"))
+        assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_WAITING_LIST_GROUP_ID")))
     except ValueError as e:
         print(f"DEBUG: Error assigning subscriber {email} to Waiting List group: {e}")
         return {"error": str(e)}
