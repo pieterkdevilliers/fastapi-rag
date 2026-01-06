@@ -2774,3 +2774,18 @@ async def delete_user_product(
     
     return {'response': 'success',
             'product_id': product_id}
+
+
+############################################
+#  MailerLite Routes
+############################################
+
+@app.post("/api/v1/mailerlite/webhook/")
+async def mailerlite_webhook(request: Request, session: Session = Depends(get_session)):
+    """
+    MailerLite Webhook
+    """
+    payload = await request.json()
+    print("MailerLite Webhook Payload: ", payload)
+    # Process the MailerLite webhook payload
+    return {"response": "success"}
