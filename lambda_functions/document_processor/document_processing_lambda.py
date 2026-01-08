@@ -40,7 +40,10 @@ chroma_headers = {'X-Chroma-Token': CHROMA_SERVER_AUTHN_CREDENTIALS}
 class ChromaEmbeddingFunction(EmbeddingFunction):
     """A wrapper for the LangChain OpenAIEmbeddings to be used by ChromaDB."""
     def __init__(self):
-        self.embedding_function = OpenAIEmbeddings()
+        self.embedding_function = OpenAIEmbeddings(
+            model="text-embedding-3-large",
+            dimensions=1536
+        )
 
     def __call__(self, input: list[str]) -> list[list[float]]:
         return self.embedding_function.embed_documents(input)
