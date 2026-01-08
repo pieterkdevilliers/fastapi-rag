@@ -43,7 +43,10 @@ embedding_function = OpenAIEmbeddings()
 
 class ChromaEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
-        self.embedding_function = OpenAIEmbeddings()
+        self.embedding_function = OpenAIEmbeddings(
+            model="text-embedding-3-large",
+            dimensions=1536
+        )
 
     def __call__(self, input):
         # Ensure that the input is a list of strings

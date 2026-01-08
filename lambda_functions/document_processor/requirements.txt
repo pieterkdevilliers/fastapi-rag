@@ -9,6 +9,6 @@ pypandoc
 markdown
 langchain
 langchain-openai
-tiktoken
+tiktoken==0.7.0
 pandas
 openpyxl

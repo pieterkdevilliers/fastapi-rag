@@ -22,7 +22,8 @@ RUN yum install -y wget tar gzip && \
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install -r requirements.txt
+# RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt --target "${LAMBDA_TASK_ROOT}"
 
 # Copy your Lambda function code into the container's task root
 COPY document_processing_lambda.py ${LAMBDA_TASK_ROOT}
