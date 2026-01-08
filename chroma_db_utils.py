@@ -1,6 +1,8 @@
 import os
 import chromadb
 from typing import Optional
+from chromadb.config import DEFAULT_TENANT, DEFAULT_DATABASE
+
 
 CHROMA_SERVER_AUTHN_CREDENTIALS = os.environ['CHROMA_SERVER_AUTHN_CREDENTIALS']
 chroma_headers = {'X-Chroma-Token': CHROMA_SERVER_AUTHN_CREDENTIALS}
@@ -35,7 +37,9 @@ def delete_chunks_from_chroma(
     try:
         chroma_client = chromadb.HttpClient(
             host=chroma_endpoint,
-            headers=chroma_headers  # Make sure this is defined globally or passed in
+            headers=chroma_headers,
+            tenant=DEFAULT_TENANT,
+            database=DEFAULT_DATABASE
         )
 
         collection_name = f"collection-{account_unique_id}"
