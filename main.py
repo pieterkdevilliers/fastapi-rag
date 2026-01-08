@@ -1,3 +1,4 @@
+import io
 import os
 import uuid
 from dotenv import load_dotenv
@@ -16,7 +17,6 @@ import shutil
 import boto3
 import convert_to_pdf
 from sqlmodel import SQLModel
-import io
 from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite, update_active_customer_groups, update_cancelled_customer_groups, add_subscriber, assign_subscriber_to_group
 from aws_ses_service import EmailService, get_email_service
 from datetime import timedelta
@@ -39,6 +39,7 @@ from accounts.utils import create_new_account_in_db, update_account_in_db, delet
     create_password_reset_token, get_reset_token, update_user_password, delete_reset_token, get_account_by_account_unique_id, \
     check_active_subscription_status, get_account_webhook_url, create_account_prompt, get_account_prompts, get_most_recent_prompt, \
     get_account_prompt_by_id, get_opt_in_webhook_url
+from chroma_db_utils import delete_chunks_from_chroma
 
 import accounts.utils as account_utils
 # from create_database import generate_chroma_db
@@ -1718,10 +1719,16 @@ async def delete_file(account_unique_id: str, file_id: int,
     
     s3_response = await delete_file_from_s3(account_unique_id, file, session)
     if s3_response == True:
+
+        s3_object_key = f"{file.account_unique_id}/{file.file_name}"
+        chroma_response =delete_chunks_from_chroma(s3_object_key, account_unique_id)
+
         response = delete_file_from_db(account_unique_id, file_id, session)
         new_docs_count = get_docs_count_for_user_account(account_unique_id, session)
         return {'response': 'success',
-                'file_id': response['file_id'], 'new_docs_count': new_docs_count}
+                'file_id': response['file_id'],
+                'new_docs_count': new_docs_count,
+                'chroma_response': chroma_response['status']}
     else:
         raise HTTPException(status_code=404, detail={"error": "File could not be deleted", "file_id": file_id})
     
