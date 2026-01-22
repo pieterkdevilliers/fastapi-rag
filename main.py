@@ -2838,7 +2838,7 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
             email = payload.get("email", "")
 
             # Add subscriber to MailerLite
-            subscriber = add_subscriber(email=email, fields={"first_name": first_name, "last_name": last_name})
+            subscriber = add_subscriber(email=email, fields={"first_name": first_name})
             if not subscriber:
                 raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
             
