@@ -2822,7 +2822,7 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
         
     elif not payload.get("event_name"):
 
-        if payload.get("visitorUuid") and not payload.get("message"):
+        if payload.get("visitorUuid"):
 
             # Extract lead details
             first_name = payload.get("name", "")
@@ -2840,11 +2840,12 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
                 print(f"DEBUG: Error assigning subscriber {email} to New Enquiries List group: {e}")
                 return {"error": str(e)}
             
-        elif payload.get("message"):
+        elif payload.get("contact_info"):
 
             # Extract lead details
-            first_name = payload.get("name", "")
-            email = payload.get("email", "")
+            contact_info = payload.get("contact_info", {})
+            first_name = contact_info.get("name", "")
+            email = contact_info.get("email", "")
 
             # Add subscriber to MailerLite
             subscriber = add_subscriber(email=email, fields={"first_name": first_name})
