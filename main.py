@@ -2788,44 +2788,65 @@ async def delete_user_product(
 ############################################
 
 @app.post("/api/v1/mailerlite/webhook/")
-async def scoreapp_webhook(request: Request, session: Session = Depends(get_session)):
+async def receiving_webhook(request: Request, session: Session = Depends(get_session)):
     """
-    ScoreApp Webhook (Quiz Finished event)
+    Webhooks received into our expertecho account - Internal use only
     """
     try:
         payload = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    print("ScoreApp Webhook Payload: ", payload)
+    print("Receiving Webhook Payload: ", payload)
 
-    # Optional: Only process QUIZ_FINISHED events (in case you add more events later)
-    if payload.get("event_name") != "QUIZ_FINISHED":
-        return {"response": "ignored - not QUIZ_FINISHED"}
+    if payload.get("event_name") == "QUIZ_FINISHED":
+        print("Processing QUIZ_FINISHED event")
 
-    data = payload.get("data", {})
+        data = payload.get("data", {})
 
-    # Extract lead details directly from data
-    first_name = data.get("first_name", "")
-    last_name = data.get("last_name", "")
-    full_name = data.get("full_name", "")  # Often provided as fallback
-    email = data.get("email", "")
+        # Extract lead details directly from data
+        first_name = data.get("first_name", "")
+        last_name = data.get("last_name", "")
+        full_name = data.get("full_name", "")  # Often provided as fallback
+        email = data.get("email", "")
 
-    print("First name: ", first_name)
-    print("Last name: ", last_name)
-    print("Full name: ", full_name)
-    print("Email: ", email)
+        print("First name: ", first_name)
+        print("Last name: ", last_name)
+        print("Full name: ", full_name)
+        print("Email: ", email)
 
-    # Add subscriber to MailerLite
-    subscriber = add_subscriber(email=email, fields={"first_name": first_name, "last_name": last_name})
-    if not subscriber:
-        raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
-    
-    # Add subscriber to Waiting List group
-    try:
-        assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_WAITING_LIST_GROUP_ID")))
-    except ValueError as e:
-        print(f"DEBUG: Error assigning subscriber {email} to Waiting List group: {e}")
-        return {"error": str(e)}
+        # Add subscriber to MailerLite
+        subscriber = add_subscriber(email=email, fields={"first_name": first_name, "last_name": last_name})
+        if not subscriber:
+            raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
+        
+        # Add subscriber to Waiting List group
+        try:
+            assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_WAITING_LIST_GROUP_ID")))
+        except ValueError as e:
+            print(f"DEBUG: Error assigning subscriber {email} to Waiting List group: {e}")
+            return {"error": str(e)}
+        
+    elif not payload.get("event_name"):
+        print("Not a score_app event")
+
+        if payload.get("visitorUuid"):
+            print("Visitor UUID: ", payload["visitorUuid"])
+
+            # Extract lead details
+            first_name = payload.get("name", "")
+            email = payload.get("email", "")
+
+            # Add subscriber to MailerLite
+            subscriber = add_subscriber(email=email, fields={"first_name": first_name, "last_name": last_name})
+            if not subscriber:
+                raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
+            
+            # Add subscriber to New Enquiries List group
+            try:
+                assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_NEW_ENQUIRIES_GROUP_ID")))
+            except ValueError as e:
+                print(f"DEBUG: Error assigning subscriber {email} to New Enquiries List group: {e}")
+                return {"error": str(e)}
 
     return {"response": "success"}
