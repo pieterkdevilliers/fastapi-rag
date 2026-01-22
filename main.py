@@ -61,7 +61,7 @@ from stripe_service import process_stripe_product_created_event, process_stripe_
 from core.models import Product, PasswordResetToken, ContactPayload, OptInPayload
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
 from chroma_db_api import clear_chroma_db_datastore_for_replace, check_chroma_db_collection_status
-from pinecone_db_utils import check_pinecone_namespace_status, clear_pinecone_namespace_for_replace
+from pinecone_db_utils import check_pinecone_namespace_status, clear_pinecone_namespace_for_replace, delete_chunks_from_pinecone
 from webhook_utils import send_chat_messages_webhook_notification, send_opt_in_webhook_notification
 import integration.utils as int_utils
 from integration.models import ScoreAppAccount, ScoreCardResult
@@ -1699,7 +1699,7 @@ async def delete_file(account_unique_id: str, file_id: int,
     if s3_response == True:
 
         s3_object_key = f"{file.account_unique_id}/{file.file_name}"
-        chroma_response =delete_chunks_from_chroma(s3_object_key, account_unique_id)
+        chroma_response =delete_chunks_from_pinecone(s3_object_key, account_unique_id)
 
         response = delete_file_from_db(account_unique_id, file_id, session)
         new_docs_count = get_docs_count_for_user_account(account_unique_id, session)
