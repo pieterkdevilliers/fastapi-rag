@@ -61,6 +61,7 @@ from stripe_service import process_stripe_product_created_event, process_stripe_
 from core.models import Product, PasswordResetToken, ContactPayload, OptInPayload
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
 from chroma_db_api import clear_chroma_db_datastore_for_replace, check_chroma_db_collection_status
+from pinecone_db_utils import check_pinecone_namespace_status, clear_pinecone_namespace_for_replace
 from webhook_utils import send_chat_messages_webhook_notification, send_opt_in_webhook_notification
 import integration.utils as int_utils
 from integration.models import ScoreAppAccount, ScoreCardResult
@@ -1123,10 +1124,10 @@ async def generate_chroma_db_datastore(account_unique_id: str,
 
         if replace:
             try:
-                print("Clearing ChromaDB before replacing")
-                clear_chroma_db_datastore_for_replace(account_unique_id=account_unique_id)
+                print("Clearing Pinecone namespace before replacing")
+                clear_pinecone_namespace_for_replace(account_unique_id=account_unique_id)
             except Exception as e:
-                error_message = f"ERROR: Failed to invoke Lambda: {e}"
+                error_message = f"ERROR: Failed to clear Pinecone namespace: {e}"
                 print(error_message)
                 return {"status": "error", "message": error_message}
         
@@ -2074,7 +2075,7 @@ async def delete_account(account_unique_id: str,
         print('*****delete_user_products_result: ', delete_user_products_result)
 
     # Chroma Data Store
-    collection_status = check_chroma_db_collection_status(account_unique_id)
+    collection_status = check_pinecone_namespace_status(account_unique_id)
     print("collection_status: ", collection_status["status"])
     if not collection_status["status"] == 404:
         delete_vector_store_result = await clear_chroma_db_datastore(account_unique_id, current_user)
