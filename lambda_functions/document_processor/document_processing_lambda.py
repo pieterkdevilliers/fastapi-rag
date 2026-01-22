@@ -10,6 +10,7 @@ import gc
 import boto3
 import openai
 import chromadb
+from pinecone import Pinecone
 
 # Import all necessary parsing and langchain libraries
 from docx import Document as DocxDocument
@@ -19,6 +20,7 @@ import markdown
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from langchain_openai import OpenAIEmbeddings
+from langchain_pinecone import PineconeVectorStore
 from chromadb.api.types import EmbeddingFunction
 from typing import Optional, List
 import pandas as pd
@@ -29,24 +31,17 @@ import numpy as np
 # The chromadb client will now read ALL the CHROMA_* variables automatically.
 openai.api_key = os.environ['OPENAI_API_KEY']
 BUCKET_NAME = os.environ['AWS_STORAGE_BUCKET_NAME']
+pinecone_api_key = os.environ['PINECONE_EXPERTECHO_API_KEY']
 
 # --- Global Clients (Initialized once per Lambda container start) ---
 s3_client = boto3.client('s3')
 textract_client = boto3.client('textract')
 
-CHROMA_SERVER_AUTHN_CREDENTIALS = os.environ['CHROMA_SERVER_AUTHN_CREDENTIALS']
-chroma_headers = {'X-Chroma-Token': CHROMA_SERVER_AUTHN_CREDENTIALS}
-
-class ChromaEmbeddingFunction(EmbeddingFunction):
-    """A wrapper for the LangChain OpenAIEmbeddings to be used by ChromaDB."""
-    def __init__(self):
-        self.embedding_function = OpenAIEmbeddings(
-            model="text-embedding-3-large",
-            dimensions=1536
-        )
-
-    def __call__(self, input: list[str]) -> list[list[float]]:
-        return self.embedding_function.embed_documents(input)
+embeddings_model = OpenAIEmbeddings(
+    model="text-embedding-3-large",
+    dimensions=3072,           # Keep this for full quality
+    # api_key=os.environ["OPENAI_API_KEY"]  # if not set via env already
+)
 
 # === THE LAMBDA HANDLER - MAIN ENTRY POINT ===
 
@@ -76,7 +71,7 @@ def handler(event, context):
                 print(f"Parsing returned no text for {s3_key}. No chunks generated.")
 
         if chunks:
-            save_chunks_to_chroma(chunks, account_unique_id)
+            save_chunks_to_vectorstore(chunks, account_unique_id)
         else:
             print("No chunks were generated. Nothing to save.")
         return {"statusCode": 200, "body": "File processed successfully."}
@@ -86,32 +81,40 @@ def handler(event, context):
 
 # === HELPER FUNCTIONS ===
 
-def save_chunks_to_chroma(chunks: list[Document], account_unique_id: str):
-    """Connects to remote ChromaDB and saves chunks."""
-    CHROMA_ENDPOINT = os.environ['CHROMA_ENDPOINT']
-    print(f"Connecting to ChromaDB at {CHROMA_ENDPOINT}...")
-    chroma_client = chromadb.HttpClient(
-        host=CHROMA_ENDPOINT,
-        headers=chroma_headers
-    )
+def save_chunks_to_vectorstore(chunks: list[Document], account_unique_id: str):
+    """Connects to remote Pinecone and saves chunks."""
+    api_key = pinecone_api_key
+    index_name = "expert-echo-rag"
 
-    print(f"Successfully connected to ChromaDB.")
-    collection_name = f"collection-{account_unique_id}"
-    embedding_function = ChromaEmbeddingFunction()
-    collection = chroma_client.get_or_create_collection(
-        name=collection_name,
-        embedding_function=embedding_function
-    )
-    print(f"Using Chroma collection: {collection.name} with ID: {collection.id}")
+    print(f"Connecting to Pinecone index '{index_name}'...")
+    pc = Pinecone(api_key=api_key)
+    index = pc.Index(index_name)
+    print("Successfully connected to Pinecone.")
+
+    namespace = f"account-{account_unique_id}"
+
     num_chunks = len(chunks)
     if num_chunks == 0:
         return
-    collection.add(
-        ids=[str(uuid.uuid4()) for _ in range(num_chunks)],
-        documents=[chunk.page_content for chunk in chunks],
-        metadatas=[chunk.metadata for chunk in chunks]
-    )
-    print(f"Successfully added {num_chunks} chunks to Chroma collection.")
+
+    texts = [chunk.page_content for chunk in chunks]
+    embeddings = embeddings_model.embed_documents(texts)
+
+    # Prepare vectors in Pinecone format
+    to_upsert = []
+    for i, (text, emb, meta) in enumerate(zip(texts, embeddings, [chunk.metadata for chunk in chunks])):
+        doc_id = str(uuid.uuid4())  # or deterministic if needed
+        full_meta = {**meta, "text": text}  # store original text for retrieval
+        to_upsert.append((doc_id, emb, full_meta))
+
+    # Upsert in batches to avoid timeouts/large payloads (Pinecone handles ~500-1000 safely)
+    batch_size = 100
+    for i in range(0, len(to_upsert), batch_size):
+        batch = to_upsert[i:i + batch_size]
+        index.upsert(vectors=batch, namespace=namespace)
+        print(f"Upserted batch {i//batch_size + 1} of {len(to_upsert)//batch_size + 1}")
+
+    print(f"Successfully upserted {num_chunks} chunks to namespace '{namespace}'.")
     gc.collect()
 
 

@@ -18,6 +18,8 @@ RUN yum install -y wget tar gzip && \
     mv /tmp/pandoc-${PANDOC_VERSION}/bin/pandoc /usr/local/bin/ && \
     rm -rf /tmp/pandoc*
 
+RUN pip install --upgrade pip
+
 # Copy requirements file
 COPY requirements.txt .
 

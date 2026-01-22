@@ -9,6 +9,8 @@ pypandoc
 markdown
 langchain
 langchain-openai
+langchain-pinecone==0.2.13
+pinecone==7.3.0
 tiktoken==0.7.0
 pandas
 openpyxl
