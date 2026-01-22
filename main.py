@@ -2794,6 +2794,7 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
     """
     try:
         payload = await request.json()
+        print("DEBUG: Received MailerLite webhook payload:", payload)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
