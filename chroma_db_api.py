@@ -93,20 +93,3 @@ def clear_chroma_db_datastore_for_replace(account_unique_id: str):
                 detail="An error occurred while trying to clear the database."
             )
 
-# Example usage
-# CHROMA_ENDPOINT = 'https://fastapi-rag-chroma.onrender.com/api/v1'
-# CHROMA_SERVER_AUTHN_CREDENTIALS = os.environ.get('CHROMA_SERVER_AUTHN_CREDENTIALS')
-# final_endpoint = f'{CHROMA_ENDPOINT}/databases'
-
-# # Data to create the database
-# data = {
-#     'name': 'test_db22',
-# }
-
-# headers = {
-#     'X-Chroma-Token': CHROMA_SERVER_AUTHN_CREDENTIALS,
-#     'Content-Type': 'application/json'
-# }
-
-# # Call the function to create the ChromaDB database
-# create_render_chroma_db(final_endpoint, headers=headers, data=data)
