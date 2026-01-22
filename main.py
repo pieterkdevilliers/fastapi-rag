@@ -2813,12 +2813,12 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
         existing_subscriber = get_subscriber(email)
         if not existing_subscriber:
             # Add subscriber to MailerLite
-            subscriber = add_subscriber(email=email, fields={"first_name": first_name, "last_name": last_name})
+            subscriber = add_subscriber(email=email, fields={"name": first_name, "last_name": last_name})
             if not subscriber:
                 raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
         else:
-            update_subscriber(email=email, fields={"first_name": first_name, "last_name": last_name})
-            
+            update_subscriber(email=email, fields={"name": first_name, "last_name": last_name})
+
         # Add subscriber to Waiting List group
         try:
             assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_WAITING_LIST_GROUP_ID")))
@@ -2839,12 +2839,12 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
             existing_subscriber = get_subscriber(email)
             if not existing_subscriber:
                 # Add subscriber to MailerLite
-                subscriber = add_subscriber(email=email, fields={"first_name": first_name})
+                subscriber = add_subscriber(email=email, fields={"name": first_name})
                 if not subscriber:
                     raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
             
             else:
-                update_subscriber(email=email, fields={"first_name": first_name})
+                update_subscriber(email=email, fields={"name": first_name})
             
             # Add subscriber to New Enquiries List group
             try:
@@ -2868,12 +2868,12 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
             existing_subscriber = get_subscriber(email)
             if not existing_subscriber:
                 # Add subscriber to MailerLite
-                subscriber = add_subscriber(email=email, fields={"first_name": first_name})
+                subscriber = add_subscriber(email=email, fields={"name": first_name})
                 if not subscriber:
                     raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
             
             else:
-                update_subscriber(email=email, fields={"first_name": first_name})
+                update_subscriber(email=email, fields={"name": first_name})
             # Add subscriber to New Enquiries List group
             try:
                 assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_UNANSWERED_QUESTIONS_GROUP_ID")))
