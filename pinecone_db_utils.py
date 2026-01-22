@@ -1,6 +1,6 @@
 import os
 from pinecone import Pinecone
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from fastapi import HTTPException, status
 
 def check_pinecone_namespace_status(account_unique_id: str) -> Dict[str, Any]:
@@ -90,3 +90,74 @@ def clear_pinecone_namespace_for_replace(account_unique_id: str) -> Dict[str, An
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"An error occurred while clearing the namespace: {error_msg}"
             )
+        
+def delete_chunks_from_pinecone(
+    s3_key: str,
+    account_unique_id: str,
+    index_name: str = "expert-echo-rag"  # Make configurable or env var if needed
+) -> Dict[str, Any]:
+    """
+    Deletes all chunks from Pinecone that belong to a specific source file (s3_key)
+    within the account-specific namespace.
+
+    Args:
+        s3_key (str): The full S3 key of the file (e.g., 'account123/docs/report.pdf')
+                      Stored in metadata["source"] during ingestion.
+        account_unique_id (str): Unique ID for the account (used in namespace).
+        index_name (str, optional): Name of the Pinecone index.
+
+    Returns:
+        dict: Summary of deletion operation (status, namespace, remaining count, etc.)
+    """
+    api_key = os.environ.get('PINECONE_EXPERTECHO_API_KEY')
+    if not api_key:
+        raise ValueError("PINECONE_EXPERTECHO_API_KEY environment variable not set")
+
+    print(f"Connecting to Pinecone index '{index_name}' to delete chunks for source: {s3_key}")
+
+    try:
+        pc = Pinecone(api_key=api_key)
+        index = pc.Index(index_name)
+
+        namespace = f"account-{account_unique_id}"
+
+        print(f"Deleting chunks from namespace '{namespace}' where metadata.source == '{s3_key}'")
+
+        # Delete using metadata filter (supported in serverless)
+        index.delete(
+            filter={"source": {"$eq": s3_key}},
+            namespace=namespace
+        )
+
+        # Optional verification: Query with same filter to count remaining (low-cost, returns IDs only)
+        # Use top_k=10000 or higher if expecting many chunks; Pinecone caps at 10k per query
+        verify_response = index.query(
+            vector=[0.0] * 3072,  # Dummy zero vector (dimension must match your embeddings!)
+            top_k=10000,          # Adjust if you have >10k chunks per file (rare)
+            filter={"source": {"$eq": s3_key}},
+            include_values=False,
+            include_metadata=False,
+            namespace=namespace
+        )
+
+        remaining_ids = [match['id'] for match in verify_response.get('matches', [])]
+        remaining_count = len(remaining_ids)
+
+        print(f"Deletion complete. Remaining chunks with source '{s3_key}': {remaining_count}")
+
+        return {
+            "status": "success",
+            "namespace": namespace,
+            "deleted_source": s3_key,
+            "remaining_with_same_source": remaining_count
+        }
+
+    except Exception as e:
+        error_msg = f"Failed to delete chunks for {s3_key} in namespace {namespace}: {str(e)}"
+        print(error_msg)
+        return {
+            "status": "error",
+            "error": error_msg,
+            "namespace": f"account-{account_unique_id}",
+            "deleted_source": s3_key
+        }
