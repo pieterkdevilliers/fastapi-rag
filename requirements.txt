@@ -70,6 +70,7 @@ langchain-chroma==0.1.4
 langchain-community==0.3.0
 langchain-core==0.3.5
 langchain-openai==0.2.0
+langchain-pinecone==0.2.13
 langchain-text-splitters==0.3.0
 langdetect==1.0.9
 langsmith==0.1.126
@@ -109,6 +110,7 @@ orjson==3.10.7
 overrides==7.7.0
 packaging==24.1
 passlib==1.7.4
+pinecone==7.3.0
 pluggy==1.5.0
 posthog==3.6.6
 protobuf==4.25.5
