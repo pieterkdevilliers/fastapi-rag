@@ -17,7 +17,7 @@ import shutil
 import boto3
 import convert_to_pdf
 from sqlmodel import SQLModel
-from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite, update_active_customer_groups, update_cancelled_customer_groups, add_subscriber, assign_subscriber_to_group
+from mailerlite_services import sync_to_mailerlite, delete_subscriber_from_mailerlite, update_active_customer_groups, update_subscriber, update_cancelled_customer_groups, add_subscriber, assign_subscriber_to_group, get_subscriber
 from aws_ses_service import EmailService, get_email_service
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request, Security, responses, APIRouter
@@ -2798,6 +2798,7 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
+    # ScoreApp Quiz Finished Event
     if payload.get("event_name") == "QUIZ_FINISHED":
 
         data = payload.get("data", {})
@@ -2808,11 +2809,16 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
         full_name = data.get("full_name", "")  # Often provided as fallback
         email = data.get("email", "")
 
-        # Add subscriber to MailerLite
-        subscriber = add_subscriber(email=email, fields={"first_name": first_name, "last_name": last_name})
-        if not subscriber:
-            raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
-        
+        # Check if subscriber already exists
+        existing_subscriber = get_subscriber(email)
+        if not existing_subscriber:
+            # Add subscriber to MailerLite
+            subscriber = add_subscriber(email=email, fields={"first_name": first_name, "last_name": last_name})
+            if not subscriber:
+                raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
+        else:
+            update_subscriber(email=email, fields={"first_name": first_name, "last_name": last_name})
+            
         # Add subscriber to Waiting List group
         try:
             assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_WAITING_LIST_GROUP_ID")))
@@ -2822,16 +2828,23 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
         
     elif not payload.get("event_name"):
 
+        # New Enquiries Event
         if payload.get("visitorUuid"):
 
             # Extract lead details
             first_name = payload.get("name", "")
             email = payload.get("email", "")
 
-            # Add subscriber to MailerLite
-            subscriber = add_subscriber(email=email, fields={"first_name": first_name})
-            if not subscriber:
-                raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
+            # Check if subscriber already exists
+            existing_subscriber = get_subscriber(email)
+            if not existing_subscriber:
+                # Add subscriber to MailerLite
+                subscriber = add_subscriber(email=email, fields={"first_name": first_name})
+                if not subscriber:
+                    raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
+            
+            else:
+                update_subscriber(email=email, fields={"first_name": first_name})
             
             # Add subscriber to New Enquiries List group
             try:
@@ -2840,18 +2853,27 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
                 print(f"DEBUG: Error assigning subscriber {email} to New Enquiries List group: {e}")
                 return {"error": str(e)}
             
+        # Unanswered Questions Event
         elif payload.get("contact_info"):
 
             # Extract lead details
             contact_info = payload.get("contact_info", {})
+            print("DEBUG: contact_info: ", contact_info)
             first_name = contact_info.get("name", "")
+            print("DEBUG: first_name: ", first_name)
             email = contact_info.get("email", "")
+            print("DEBUG: email: ", email)
 
-            # Add subscriber to MailerLite
-            subscriber = add_subscriber(email=email, fields={"first_name": first_name})
-            if not subscriber:
-                raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
+            # Check if subscriber already exists
+            existing_subscriber = get_subscriber(email)
+            if not existing_subscriber:
+                # Add subscriber to MailerLite
+                subscriber = add_subscriber(email=email, fields={"first_name": first_name})
+                if not subscriber:
+                    raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
             
+            else:
+                update_subscriber(email=email, fields={"first_name": first_name})
             # Add subscriber to New Enquiries List group
             try:
                 assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_UNANSWERED_QUESTIONS_GROUP_ID")))
