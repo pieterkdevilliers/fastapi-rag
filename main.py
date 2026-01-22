@@ -1129,7 +1129,7 @@ async def generate_chroma_db_datastore(account_unique_id: str,
             except Exception as e:
                 error_message = f"ERROR: Failed to clear Pinecone namespace: {e}"
                 print(error_message)
-                return {"status": "error", "message": error_message}
+                # return {"status": "error", "message": error_message}
         
 
         print(f"Loaded {len(documents_from_s3)} documents from S3 based on DB query.")
