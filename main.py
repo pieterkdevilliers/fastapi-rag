@@ -2797,10 +2797,7 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    print("Receiving Webhook Payload: ", payload)
-
     if payload.get("event_name") == "QUIZ_FINISHED":
-        print("Processing QUIZ_FINISHED event")
 
         data = payload.get("data", {})
 
@@ -2809,11 +2806,6 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
         last_name = data.get("last_name", "")
         full_name = data.get("full_name", "")  # Often provided as fallback
         email = data.get("email", "")
-
-        print("First name: ", first_name)
-        print("Last name: ", last_name)
-        print("Full name: ", full_name)
-        print("Email: ", email)
 
         # Add subscriber to MailerLite
         subscriber = add_subscriber(email=email, fields={"first_name": first_name, "last_name": last_name})
@@ -2828,10 +2820,8 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
             return {"error": str(e)}
         
     elif not payload.get("event_name"):
-        print("Not a score_app event")
 
         if payload.get("visitorUuid"):
-            print("Visitor UUID: ", payload["visitorUuid"])
 
             # Extract lead details
             first_name = payload.get("name", "")
