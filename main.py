@@ -2822,7 +2822,7 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
         
     elif not payload.get("event_name"):
 
-        if payload.get("visitorUuid"):
+        if payload.get("visitorUuid") and not payload.get("message"):
 
             # Extract lead details
             first_name = payload.get("name", "")
@@ -2838,6 +2838,24 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
                 assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_NEW_ENQUIRIES_GROUP_ID")))
             except ValueError as e:
                 print(f"DEBUG: Error assigning subscriber {email} to New Enquiries List group: {e}")
+                return {"error": str(e)}
+            
+        elif payload.get("message"):
+
+            # Extract lead details
+            first_name = payload.get("name", "")
+            email = payload.get("email", "")
+
+            # Add subscriber to MailerLite
+            subscriber = add_subscriber(email=email, fields={"first_name": first_name})
+            if not subscriber:
+                raise HTTPException(status_code=500, detail="Failed to add subscriber to MailerLite")
+            
+            # Add subscriber to New Enquiries List group
+            try:
+                assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_UNANSWERED_QUESTIONS_GROUP_ID")))
+            except ValueError as e:
+                print(f"DEBUG: Error assigning subscriber {email} to Unanswered Questions List group: {e}")
                 return {"error": str(e)}
 
     return {"response": "success"}
