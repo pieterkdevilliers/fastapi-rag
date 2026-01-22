@@ -1186,37 +1186,14 @@ async def clear_chroma_db_datastore(account_unique_id: str, current_user: Annota
     Clear Chroma DB
     """
     print(f"Received request to clear Chroma DB for account {account_unique_id}")
-    print(f"Connecting to ChromaDB at {CHROMA_ENDPOINT}...")
-    chroma_client = chromadb.HttpClient(
-        host=CHROMA_ENDPOINT,
-        headers=chroma_headers
-    )
-
-    print(f"Successfully connected to ChromaDB.")
-    collection_name = f"collection-{account_unique_id}"
-    
     try:
-        # This is the correct way to delete a collection from the ChromaDB server.
-        chroma_client.delete_collection(name=collection_name)
-        print(f"Successfully deleted collection: {collection_name}")
-        return {"response": f"success, collection '{collection_name}' deleted"}
-
-    except ValueError as e:
-        # The chromadb client raises a ValueError if the collection doesn't exist.
-        # This is not necessarily an error in our endpoint's logic.
-        print(f"Attempted to delete a non-existent collection: {collection_name}. Error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Collection '{collection_name}' not found for this account."
-        )
+        print("Clearing Pinecone namespace before replacing")
+        clear_pinecone_namespace_for_replace(account_unique_id=account_unique_id)
     except Exception as e:
-        # Catch other potential errors (e.g., network issues connecting to Chroma)
-        print(f"An unexpected error occurred: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while trying to clear the database."
-        )
-    
+        error_message = f"ERROR: Failed to clear Pinecone namespace: {e}"
+        print(error_message)
+        return {"status": "error", "message": error_message}
+
 
 @app.post("/api/v1/widget/opt-in")
 async def widget_opt_in(

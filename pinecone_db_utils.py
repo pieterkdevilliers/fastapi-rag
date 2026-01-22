@@ -55,8 +55,8 @@ def clear_pinecone_namespace_for_replace(account_unique_id: str) -> Dict[str, An
     """
     print(f"Received request to clear Pinecone namespace for account {account_unique_id}")
 
-    api_key = os.environ['PINECONE_EXPERTECHO_API_KEY']  # your env var from logs
-    index_name = "expert-echo-rag"  # ← your actual index name
+    api_key = os.environ['PINECONE_EXPERTECHO_API_KEY']
+    index_name = "expert-echo-rag"
 
     print(f"Connecting to Pinecone index '{index_name}'...")
     pc = Pinecone(api_key=api_key)
