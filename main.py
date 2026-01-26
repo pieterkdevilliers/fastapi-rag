@@ -2888,6 +2888,7 @@ async def generate_wordcloud(account_unique_id: str,
         background_color='white', 
         max_words=200,
         collocations=False,
+        colormap='viridis',
         ).generate_from_frequencies(wordcloud_data)
 
     # Save Wordcloud Image
