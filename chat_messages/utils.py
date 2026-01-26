@@ -1,4 +1,4 @@
-from mistralai import Chat
+
 from sqlmodel import select, Session, func
 from chat_messages.models import ChatSession, ChatMessage, EmailMessage
 from accounts.models import Account
