@@ -2865,15 +2865,12 @@ async def generate_wordcloud(account_unique_id: str,
     """
     s3_key = f"wordclouds/{account_unique_id}_last7days.png"
 
-    # Check if fresh enough version exists in S3
-    if s3_services.s3_object_exists(s3_key):
-        # Option A: return presigned URL (recommended)
-        presigned = s3_services.s3.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": BUCKET_NAME, "Key": s3_key},
-            ExpiresIn=3600  # 1h, or longer
-        )
-        return {"response": "success", "wordcloud_url": presigned}
+    presigned = s3_services.s3.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": BUCKET_NAME, "Key": s3_key},
+        ExpiresIn=3600  # 1h, or longer
+    )
+    return {"response": "success", "wordcloud_url": presigned}
     
     # Get Wordcloud Data
     wordcloud_data = query_utils.generate_wordcloud_data(account_unique_id, session)
@@ -2886,11 +2883,12 @@ async def generate_wordcloud(account_unique_id: str,
     
     # Generate Wordcloud
     wordcloud = WordCloud(
-        width=800, 
-        height=400, 
+        width=1200, 
+        height=600, 
         background_color='white', 
         max_words=200,
-        collocations=False
+        collocations=False,
+        colormap='viridis',
         ).generate_from_frequencies(wordcloud_data)
 
     # Save Wordcloud Image
