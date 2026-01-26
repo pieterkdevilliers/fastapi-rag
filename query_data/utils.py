@@ -189,7 +189,7 @@ def generate_wordcloud_data(account_unique_id:str,session: Session):
     # Generate wordcloud data from chat messages
     for chat in chats:
         for message in chat:
-            words = message.content.split()
+            words = message.message_text.split()
             for word in words:
                 wordcloud_data[word] = wordcloud_data.get(word, 0) + 1
 
