@@ -276,3 +276,4 @@ def get_chat_sessions_last_7_days(account_unique_id: str, session: Session):
     chat_sessions = session.exec(statement).all()
 
     return chat_sessions
+

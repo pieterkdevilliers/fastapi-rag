@@ -3,6 +3,7 @@ import os
 import uuid
 from dotenv import load_dotenv
 load_dotenv()
+from io import BytesIO
 import json
 import tempfile
 import stripe
@@ -64,6 +65,7 @@ import products.utils as prod_utils
 import query_data.utils as query_utils
 from query_data.query_data_schema import Query
 from wordcloud import WordCloud
+import aws_s3_services as s3_services
 
 
 # Initialize the S3 client
@@ -2861,12 +2863,26 @@ async def generate_wordcloud(account_unique_id: str,
     """
     Get Wordcloud Data for an Account
     """
+    s3_key = f"wordclouds/{account_unique_id}_last7days.png"
+
+    # Check if fresh enough version exists in S3
+    if s3_services.s3_object_exists(s3_key):
+        # Option A: return presigned URL (recommended)
+        presigned = s3_services.s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": BUCKET_NAME, "Key": s3_key},
+            ExpiresIn=3600  # 1h, or longer
+        )
+        return {"response": "success", "wordcloud_url": presigned}
+    
     # Get Wordcloud Data
     wordcloud_data = query_utils.generate_wordcloud_data(account_unique_id, session)
 
-    if not wordcloud_data:
-        return {"error": "No wordcloud data found",
-                "account_unique_id": account_unique_id}
+    if not wordcloud_data or isinstance(wordcloud_data, dict) and "error" in wordcloud_data:
+        raise HTTPException(
+            status_code=404,
+            detail=wordcloud_data.get("error", "No wordcloud data available")
+        )
     
     # Generate Wordcloud
     wordcloud = WordCloud(
@@ -2878,9 +2894,15 @@ async def generate_wordcloud(account_unique_id: str,
         ).generate_from_frequencies(wordcloud_data)
 
     # Save Wordcloud Image
-    wordcloud_path = f"wordcloud_{account_unique_id}.png"
-    wordcloud.to_file(wordcloud_path)
+    img_buffer = BytesIO()
+    wordcloud.to_image().save(img_buffer, format="PNG")
+    img_buffer.seek(0)
 
 
-    return {"response": "success",
-            "wordcloud_image": wordcloud_path}
+    url = s3_services.upload_bytes_to_s3(
+        data=img_buffer.getvalue(),
+        key=s3_key,
+        content_type="image/png"
+    )
+
+    return {"response": "success", "wordcloud_url": url}

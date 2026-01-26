@@ -7,6 +7,9 @@ from sqlmodel.sql.expression import select
 from integration.models import ScoreCardResult
 from .query_data_schema import Query
 import chat_messages.utils as chat_utils
+from wordcloud import STOPWORDS
+from collections import Counter
+import re
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -169,28 +172,25 @@ def get_scoreapp_report(accout_unique_id: str, visitor_email: str, session: Sess
     return {"scoreapp_report_text": scoreapp_report_text}
 
 
-def generate_wordcloud_data(account_unique_id:str,session: Session):
-    """
-    Fetch chats for the last 7 days and generate wordcloud data
-    """
-
+def generate_wordcloud_data(account_unique_id: str, session: Session) -> dict:
     chats_sessions = chat_utils.get_chat_sessions_last_7_days(account_unique_id, session)
-
     if not chats_sessions:
-        return {"error": "No chat sessions found for the last 7 days"}
-    chats = []
-    for chat_session in chats_sessions:
-        chat_messages = chat_utils.get_chat_messages_for_chat_session(chat_session.id, session)
-        for message in chat_messages:
-            chat = [message]
-            chats.append(chat)
-    wordcloud_data = {}
+        return {}
 
-    # Generate wordcloud data from chat messages
-    for chat in chats:
-        for message in chat:
-            words = message.message_text.split()
-            for word in words:
-                wordcloud_data[word] = wordcloud_data.get(word, 0) + 1
+    all_text = []
 
-    return wordcloud_data
+    for session in chats_sessions:
+        messages = chat_utils.get_chat_messages_for_chat_session(session.id, session)
+        for msg in messages:
+            # Clean a bit – adjust as needed
+            text = re.sub(r'[^a-zA-Z\s]', '', msg.message_text.lower())
+            all_text.append(text)
+
+    if not all_text:
+        return {}
+
+    # Count frequencies properly
+    words = " ".join(all_text).split()
+    freq = Counter(w for w in words if w not in STOPWORDS and len(w) > 2)
+
+    return dict(freq.most_common(500))
