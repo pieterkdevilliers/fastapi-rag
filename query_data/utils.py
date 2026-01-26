@@ -173,14 +173,17 @@ def get_scoreapp_report(accout_unique_id: str, visitor_email: str, session: Sess
 
 
 def generate_wordcloud_data(account_unique_id: str, session: Session) -> dict:
+    """
+    Generate wordcloud data from chat messages in the last 7 days for the given account
+    """
     chats_sessions = chat_utils.get_chat_sessions_last_7_days(account_unique_id, session)
     if not chats_sessions:
         return {}
 
     all_text = []
 
-    for session in chats_sessions:
-        messages = chat_utils.get_chat_messages_for_chat_session(session.id, session)
+    for chat_session in chats_sessions:
+        messages = chat_utils.get_chat_messages_for_chat_session(chat_session.id, session)
         for msg in messages:
             # Clean a bit – adjust as needed
             text = re.sub(r'[^a-zA-Z\s]', '', msg.message_text.lower())
