@@ -6,6 +6,7 @@ from sqlmodel import Session
 from sqlmodel.sql.expression import select
 from integration.models import ScoreCardResult
 from .query_data_schema import Query
+import chat_messages.utils as chat_utils
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -166,3 +167,30 @@ def get_scoreapp_report(accout_unique_id: str, visitor_email: str, session: Sess
     else:
         scoreapp_report_text = ""
     return {"scoreapp_report_text": scoreapp_report_text}
+
+
+def generate_wordcloud_data(account_unique_id:str,session: Session):
+    """
+    Fetch chats for the last 7 days and generate wordcloud data
+    """
+
+    chats_sessions = chat_utils.get_chat_sessions_last_7_days(account_unique_id, session)
+
+    if not chats_sessions:
+        return {"error": "No chat sessions found for the last 7 days"}
+    chats = []
+    for chat_session in chats_sessions:
+        chat_messages = chat_utils.get_chat_messages_for_chat_session(chat_session.id, session)
+        for message in chat_messages:
+            chat = [message]
+            chats.append(chat)
+    wordcloud_data = {}
+
+    # Generate wordcloud data from chat messages
+    for chat in chats:
+        for message in chat:
+            words = message.content.split()
+            for word in words:
+                wordcloud_data[word] = wordcloud_data.get(word, 0) + 1
+
+    return wordcloud_data

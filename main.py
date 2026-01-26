@@ -3,7 +3,6 @@ import os
 import uuid
 from dotenv import load_dotenv
 load_dotenv()
-
 import json
 import tempfile
 import stripe
@@ -64,7 +63,7 @@ from integration.models import ScoreAppAccount, ScoreCardResult
 import products.utils as prod_utils
 import query_data.utils as query_utils
 from query_data.query_data_schema import Query
-load_dotenv()
+from wordcloud import WordCloud
 
 
 # Initialize the S3 client
@@ -2850,3 +2849,38 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
                 return {"error": str(e)}
 
     return {"response": "success"}
+
+############################################
+#  Reporting Routes
+############################################
+
+@app.get("/api/v1/reporting/wordcloud/{account_unique_id}")
+async def generate_wordcloud(account_unique_id: str,
+                             current_user: Annotated[User, Depends(get_current_active_user)],
+                             session: Session = Depends(get_session)) -> dict[str, Any]:
+    """
+    Get Wordcloud Data for an Account
+    """
+    # Get Wordcloud Data
+    wordcloud_data = query_utils.generate_wordcloud_data(account_unique_id, session)
+
+    if not wordcloud_data:
+        return {"error": "No wordcloud data found",
+                "account_unique_id": account_unique_id}
+    
+    # Generate Wordcloud
+    wordcloud = WordCloud(
+        width=800, 
+        height=400, 
+        background_color='white', 
+        max_words=200,
+        collocations=False
+        ).generate_from_frequencies(wordcloud_data)
+
+    # Save Wordcloud Image
+    wordcloud_path = f"wordcloud_{account_unique_id}.png"
+    wordcloud.to_file(wordcloud_path)
+
+
+    return {"response": "success",
+            "wordcloud_image": wordcloud_path}

@@ -179,3 +179,4 @@ weasyprint==65.1
 markdown-it-py==3.0.0 # If using it for MD -> HTML
 Pillow==10.0.0 # Often a dependency for WeasyPrint or image handling
 stripe==12.2.0
+wordcloud==1.9.6
