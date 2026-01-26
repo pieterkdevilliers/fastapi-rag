@@ -1,3 +1,4 @@
+from mistralai import Chat
 from sqlmodel import select, Session, func
 from chat_messages.models import ChatSession, ChatMessage, EmailMessage
 from accounts.models import Account
@@ -259,3 +260,19 @@ def delete_email_message_from_db(message_id, session: Session):
     
     return {"response": "success",
             "email_message deleted": message_id}
+
+
+def get_chat_sessions_last_7_days(account_unique_id: str, session: Session):
+    """
+    Returns the number of chat sessions for the account in the last 7 days
+    """
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+
+    statement = select(ChatSession).where(
+            ChatSession.account_unique_id == account_unique_id,
+            ChatSession.start_time >= seven_days_ago
+        )
+
+    chat_sessions = session.exec(statement).all()
+
+    return chat_sessions
