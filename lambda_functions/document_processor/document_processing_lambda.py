@@ -9,7 +9,6 @@ import uuid
 import gc
 import boto3
 import openai
-import chromadb
 from pinecone import Pinecone
 
 # Import all necessary parsing and langchain libraries
@@ -21,14 +20,12 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
-from chromadb.api.types import EmbeddingFunction
 from typing import Optional, List
 import pandas as pd
 import numpy as np
 
 
 # --- Configuration (Loaded from Lambda Environment Variables) ---
-# The chromadb client will now read ALL the CHROMA_* variables automatically.
 openai.api_key = os.environ['OPENAI_API_KEY']
 BUCKET_NAME = os.environ['AWS_STORAGE_BUCKET_NAME']
 pinecone_api_key = os.environ['PINECONE_EXPERTECHO_API_KEY']

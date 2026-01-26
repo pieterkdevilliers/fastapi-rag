@@ -8,7 +8,6 @@ import json
 import tempfile
 import stripe
 import secrets
-import chromadb
 from bs4 import BeautifulSoup
 from typing import Any, Union, Annotated, List, Optional, Dict
 from datetime import datetime, timezone
@@ -39,10 +38,8 @@ from accounts.utils import create_new_account_in_db, update_account_in_db, delet
     create_password_reset_token, get_reset_token, update_user_password, delete_reset_token, get_account_by_account_unique_id, \
     check_active_subscription_status, get_account_webhook_url, create_account_prompt, get_account_prompts, get_most_recent_prompt, \
     get_account_prompt_by_id, get_opt_in_webhook_url
-from chroma_db_utils import delete_chunks_from_chroma
 
 import accounts.utils as account_utils
-# from create_database import generate_chroma_db
 from db import engine
 import query_data.query_source_data as query_source_data
 from authentication import oauth2_scheme, Token, authenticate_user, get_password_hash, create_access_token, \
@@ -60,7 +57,6 @@ from stripe_service import process_stripe_product_created_event, process_stripe_
     get_stripe_customer_from_customer_id
 from core.models import Product, PasswordResetToken, ContactPayload, OptInPayload
 from core.utils import create_stripe_subscription_in_db, get_db_subscription_by_subscription_id, update_stripe_subscription_in_db
-from chroma_db_api import clear_chroma_db_datastore_for_replace, check_chroma_db_collection_status
 from pinecone_db_utils import check_pinecone_namespace_status, clear_pinecone_namespace_for_replace, delete_chunks_from_pinecone
 from webhook_utils import send_chat_messages_webhook_notification, send_opt_in_webhook_notification
 import integration.utils as int_utils
@@ -83,10 +79,6 @@ lambda_client = boto3.client("lambda", region_name="us-east-1")
 
 # Front-end Env Settings
 FE_BASE_URL = os.getenv('FE_BASE_URL', 'http://localhost:3000')  # Default to localhost if not set
-
-CHROMA_SERVER_AUTHN_CREDENTIALS = os.environ['CHROMA_SERVER_AUTHN_CREDENTIALS']
-chroma_headers = {'X-Chroma-Token': CHROMA_SERVER_AUTHN_CREDENTIALS}
-CHROMA_ENDPOINT = os.environ['CHROMA_ENDPOINT']
 
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
@@ -1115,9 +1107,9 @@ async def generate_chroma_db_datastore(account_unique_id: str,
                                        replace: bool = False,
                                        session: Session = Depends(get_session)) -> dict[str, Any]:
     """
-    Generate Chroma DB
+    Generate Pinecone DB
     """
-    print(f"Received request to generate Chroma DB for account {account_unique_id} with replace={replace}")
+    print(f"Received request to generate Pinecone DB for account {account_unique_id} with replace={replace}")
     account = get_account_by_account_unique_id(account_unique_id, session)
     try:
         documents_from_s3 = await load_documents_from_s3(account_unique_id=account_unique_id, replace=replace, session=session)
@@ -1171,10 +1163,8 @@ async def generate_chroma_db_datastore(account_unique_id: str,
             
         response = {"message": "Document processing passed to Lambda"}
 
-        # response = await generate_chroma_db(account_unique_id, replace)
-        # print(f"Chroma DB generation successful: {response}")
     except Exception as e:
-        print(f"Error generating Chroma DB: {e}")
+        print(f"Error generating Pinecone DB: {e}")
         return {"error": str(e)}
     
     return response
@@ -1183,9 +1173,9 @@ async def generate_chroma_db_datastore(account_unique_id: str,
 @app.get("/api/v1/clear-chroma-db/{account_unique_id}")
 async def clear_chroma_db_datastore(account_unique_id: str, current_user: Annotated[User, Depends(get_current_active_user)]) -> dict[str, Any]:
     """
-    Clear Chroma DB
+    Clear Pinecone DB
     """
-    print(f"Received request to clear Chroma DB for account {account_unique_id}")
+    print(f"Received request to clear Pinecone DB for account {account_unique_id}")
     try:
         print("Clearing Pinecone namespace before replacing")
         clear_pinecone_namespace_for_replace(account_unique_id=account_unique_id)
@@ -2051,7 +2041,7 @@ async def delete_account(account_unique_id: str,
         delete_user_products_result = prod_utils.delete_user_product_from_db(account_unique_id, user_product.id, session)
         print('*****delete_user_products_result: ', delete_user_products_result)
 
-    # Chroma Data Store
+    # Pinecone Data Store
     collection_status = check_pinecone_namespace_status(account_unique_id)
     print("collection_status: ", collection_status["status"])
     if not collection_status["status"] == 404:

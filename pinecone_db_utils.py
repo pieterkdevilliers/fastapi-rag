@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 
 def check_pinecone_namespace_status(account_unique_id: str) -> Dict[str, Any]:
     """
-    Checks if a Pinecone namespace (equivalent to Chroma collection) has any data.
+    Checks if a Pinecone namespace has any data.
     Returns similar structure to your original: status code + message or stats.
     """
     api_key = os.environ['PINECONE_EXPERTECHO_API_KEY']  # or your env var name
