@@ -2864,13 +2864,6 @@ async def generate_wordcloud(account_unique_id: str,
     Get Wordcloud Data for an Account
     """
     s3_key = f"wordclouds/{account_unique_id}_last7days.png"
-
-    presigned = s3_services.s3.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": BUCKET_NAME, "Key": s3_key},
-        ExpiresIn=3600  # 1h, or longer
-    )
-    return {"response": "success", "wordcloud_url": presigned}
     
     # Get Wordcloud Data
     wordcloud_data = query_utils.generate_wordcloud_data(account_unique_id, session)
