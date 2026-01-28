@@ -920,7 +920,6 @@ async def process_internal_widget_query_agent(
 
     # Pull chat history for context
     chat_history = get_chat_messages_by_session_id(chat_session.id, session)
-    print("*********Chat History Length: **********", len(chat_history))
     chat_history_dicts = [
         {
             "sender": msg.sender_type,
@@ -1013,9 +1012,13 @@ async def process_internal_widget_query_agent(
                 "content": f"Stream processing error: {str(e)}"
             }
             yield f"data: {json.dumps(error_chunk)}\n\n"
-        print('Query Payload for Sentiment Analysis: ', agent_payload)
-        sentiment = await query_utils.get_initial_query_sentiment(query_payload=agent_payload)
-        print(f"Initial sentiment for query '{query}': {sentiment}")
+
+        if len(chat_history) <= 1:
+            sentiment = await query_utils.get_initial_query_sentiment(query_payload=agent_payload)
+            print(f"Initial sentiment for query '{query}': {sentiment}")
+
+        if len(chat_history) > 1:
+            print("Not analyzing sentiment for non-initial queries.")
     
     return StreamingResponse(
         generate(),
