@@ -25,7 +25,10 @@ class ChatSession(ChatSessionBase, table=True):
     end_time: Optional[datetime] = Field(default=None, nullable=True)
     visitor_name: Optional[str] = Field(nullable=True)
     visitor_email: Optional[str] = Field(nullable=True)
-
+    initial_query_sentiment: Optional[str] = Field(default=None, nullable=True)  # e.g., 'positive', 'neutral', 'negative'
+    initial_query_sentiment_explanation: Optional[str] = Field(default=None, nullable=True)
+    conversation_sentiment: Optional[str] = Field(default=None, nullable=True)  # e.g., 'positive', 'neutral', 'negative'
+    conversation_sentiment_explanation: Optional[str] = Field(default=None, nullable=True)
 
 class ChatMessageBase(SQLModel):
     """
