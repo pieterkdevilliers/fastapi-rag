@@ -920,7 +920,7 @@ async def process_internal_widget_query_agent(
 
     # Pull chat history for context
     chat_history = get_chat_messages_by_session_id(chat_session.id, session)
-    print("Chat History: ", chat_history)
+    print("*********Chat History Length: **********", len(chat_history))
     chat_history_dicts = [
         {
             "sender": msg.sender_type,
