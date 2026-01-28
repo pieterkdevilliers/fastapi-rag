@@ -79,12 +79,12 @@ async def get_initial_query_sentiment(query_payload: Query):
         "x-api-key": REPO_B_API_KEY,
         "Content-Type": "application/json"
     } 
-
+    payload = query_payload.model_dump()
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
             response = await client.post(
                 f"{REPO_B_URL}/initial-question-sentiment",
-                json=query_payload.model_dump(),
+                json=payload,
                 headers=headers
             )
             response.raise_for_status()
