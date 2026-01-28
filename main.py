@@ -1019,6 +1019,8 @@ async def process_internal_widget_query_agent(
 
         if len(chat_history) > 1:
             print("Not analyzing sentiment for non-initial queries.")
+            sentiment = await query_utils.update_conversation_sentiment(query_payload=agent_payload)
+            print("Chat History: ", chat_history_dicts)
     
     return StreamingResponse(
         generate(),
