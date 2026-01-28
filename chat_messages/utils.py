@@ -62,6 +62,44 @@ def update_session_with_contact_details(account_unique_id: str, visitor_uuid: st
     return chat_session
 
 
+async def update_session_with_initial_query_sentiment(account_unique_id: str, visitor_uuid: str, session: Session, sentiment: str, explanation: str):
+    """
+    Update existing ChatSession with initial query sentiment
+    """
+    chat_session = session.exec(
+        select(ChatSession).where(ChatSession.visitor_uuid == visitor_uuid, ChatSession.account_unique_id == account_unique_id)
+    ).first()
+    if not chat_session:
+        return {"message": "Chat session not found"}
+    else:
+        chat_session.initial_query_sentiment = sentiment
+        chat_session.initial_query_sentiment_explanation = explanation
+        session.add(chat_session)
+        session.commit()
+        session.refresh(chat_session)
+
+    return chat_session
+
+
+async def update_session_with_conversation_sentiment(account_unique_id: str, visitor_uuid: str, session: Session, sentiment: str, explanation: str):
+    """
+    Update existing ChatSession with conversation sentiment
+    """
+    chat_session = session.exec(
+        select(ChatSession).where(ChatSession.visitor_uuid == visitor_uuid, ChatSession.account_unique_id == account_unique_id)
+    ).first()
+    if not chat_session:
+        return {"message": "Chat session not found"}
+    else:
+        chat_session.conversation_sentiment = sentiment
+        chat_session.conversation_sentiment_explanation = explanation
+        session.add(chat_session)
+        session.commit()
+        session.refresh(chat_session)
+
+    return chat_session
+
+
 def get_chat_messages_by_session_id(chat_session_id: int, session: Session) -> list[ChatMessage]:
     """
     Get Chat Messages by Session ID
