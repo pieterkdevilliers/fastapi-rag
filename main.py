@@ -1012,6 +1012,9 @@ async def process_internal_widget_query_agent(
                 "content": f"Stream processing error: {str(e)}"
             }
             yield f"data: {json.dumps(error_chunk)}\n\n"
+
+        sentiment = await query_utils.get_initial_query_sentiment(query_payload=query)
+        print(f"Initial sentiment for query '{query}': {sentiment}")
     
     return StreamingResponse(
         generate(),

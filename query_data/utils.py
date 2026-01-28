@@ -70,56 +70,29 @@ async def call_repo_b_stream(query_payload: Query):
                 "content": f"Unexpected error: {str(e)}"
             }
 
-# async def call_repo_b(query_payload: Query):
-#     """
-#     Call to ExpertEcho Agents Service
-#     """
-#     headers = {
-#         "x-api-key": REPO_B_API_KEY,
-#         "Content-Type": "application/json"
-#     }
-#     print('Query being sent: ', query_payload)
-#     print('Query being sent model_dump: ', query_payload.model_dump())
-#     print('Headers: ', headers)
-#     print('Repo B URL: ', REPO_B_URL)
-#     async with httpx.AsyncClient(timeout=60.0) as client:
-#         try:
-            
-#             response = await client.post(
-#                 REPO_B_URL, 
-#                 json=query_payload.model_dump(),
-#                 headers=headers
-#             )
-            
-#             # Check if the response was successful
-#             print('response: ', response)
-#             response.raise_for_status()
-            
-#             # Check if response has content before trying to parse JSON
-#             if not response.text.strip():
-#                 return {"error": "Empty response from Repo B"}
-            
-#             # Try to parse JSON
-#             try:
-#                 return response.json()
-#             except json.JSONDecodeError as json_err:
-#                 return {"error": "Invalid JSON response from Repo B", "content": response.text}
-                
-#         except httpx.HTTPStatusError as http_err:
-#             # Try to parse error response as JSON if possible
-#             try:
-#                 error_data = http_err.response.json()
-#                 return {"error": f"HTTP {http_err.response.status_code}", "details": error_data}
-#             except json.JSONDecodeError:
-#                 return {"error": f"HTTP {http_err.response.status_code}", "details": http_err.response.text}
-                
-#         except httpx.RequestError as req_err:
-#             return {"error": "Request failed", "details": str(req_err)}
-        
-#         except Exception as e:
-#             return {"error": "Unexpected error", "details": str(e)}
 
-    
+async def get_initial_query_sentiment(query_payload: Query):
+    """
+    Get initial sentiment analysis from Repo B for the given query
+    """
+    headers = {
+        "x-api-key": REPO_B_API_KEY,
+        "Content-Type": "application/json"
+    } 
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            response = await client.post(
+                f"{REPO_B_URL}/initial-question-sentiment",
+                json=query_payload.model_dump(),
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            print(f"Error calling Repo B: {e}")
+            return {"error": str(e)}
+
 
 def normalize_origin(origin: str) -> str:
     """
