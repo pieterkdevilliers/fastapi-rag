@@ -844,6 +844,30 @@ async def process_widget_query_agent(
                     "content": f"Stream processing error: {str(e)}"
                 }
                 yield f"data: {json.dumps(error_chunk)}\n\n"
+
+            if len(chat_history) <= 1:
+                sentiment = await query_utils.get_initial_query_sentiment(query_payload=agent_payload)
+                await chat_utils.update_session_with_initial_query_sentiment(
+                    account_unique_id=account_unique_id,
+                    visitor_uuid=payload.visitor_uuid,
+                    session=session,
+                    sentiment=sentiment['sentiment'],
+                    explanation=sentiment['explanation']
+                )
+                print(f"Initial sentiment for query '{query}': {sentiment}")
+
+            if len(chat_history) > 1:
+                print("Not analyzing sentiment for non-initial queries.")
+                sentiment = await query_utils.update_conversation_sentiment(query_payload=agent_payload)
+                await chat_utils.update_session_with_conversation_sentiment(
+                    account_unique_id=account_unique_id,
+                    visitor_uuid=payload.visitor_uuid,
+                    session=session,
+                    sentiment=sentiment['sentiment'],
+                    explanation=sentiment['explanation']
+                )
+                print(f"Updated sentiment for query '{query}': {sentiment}")
+
         
         return StreamingResponse(
             generate(),
