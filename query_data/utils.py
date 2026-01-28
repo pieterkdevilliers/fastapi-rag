@@ -92,6 +92,29 @@ async def get_initial_query_sentiment(query_payload: Query):
         except httpx.HTTPError as e:
             print(f"Error calling Repo B: {e}")
             return {"error": str(e)}
+        
+
+async def update_conversation_sentiment(query_payload: Query):
+    """
+    Get initial sentiment analysis from Repo B for the given conversation
+    """
+    headers = {
+        "x-api-key": REPO_B_API_KEY,
+        "Content-Type": "application/json"
+    } 
+    payload = query_payload.model_dump()
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            response = await client.post(
+                f"{REPO_B_URL}/conversation-sentiment",
+                json=payload,
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            print(f"Error calling Repo B: {e}")
+            return {"error": str(e)}
 
 
 def normalize_origin(origin: str) -> str:
