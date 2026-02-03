@@ -2835,11 +2835,11 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
         else:
             update_subscriber(email=email, fields={"name": first_name, "last_name": last_name})
 
-        # Add subscriber to Waiting List group
+        # Add subscriber to LI Survey Campaign group
         try:
-            assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_WAITING_LIST_GROUP_ID")))
+            assign_subscriber_to_group(email=email, group_id=int(os.getenv("MAILERLITE_LI_SURVEY_CAMPAIGN_GROUP_ID")))
         except ValueError as e:
-            print(f"DEBUG: Error assigning subscriber {email} to Waiting List group: {e}")
+            print(f"DEBUG: Error assigning subscriber {email} to LI Survey Campaign group: {e}")
             return {"error": str(e)}
         
     elif not payload.get("event_name"):
