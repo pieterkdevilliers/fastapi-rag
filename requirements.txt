@@ -134,6 +134,7 @@ python-dateutil==2.9.0.post0
 python-docx==1.1.2
 python-dotenv==1.0.1
 python-iso639==2024.4.27
+python-jose==3.5.0
 python-magic==0.4.27
 python-multipart==0.0.10
 python-oxmsg==0.0.1
@@ -180,3 +181,4 @@ markdown-it-py==3.0.0 # If using it for MD -> HTML
 Pillow==10.0.0 # Often a dependency for WeasyPrint or image handling
 stripe==12.2.0
 wordcloud==1.9.6
+slowapi>=0.1.9

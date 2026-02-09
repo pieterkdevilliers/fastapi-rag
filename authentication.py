@@ -1,7 +1,8 @@
 import os
 import jwt
 from jwt.exceptions import InvalidTokenError
-from typing import Annotated
+from typing import Annotated, Optional
+from jose import JWTError
 from dotenv import load_dotenv
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.security.api_key import APIKeyHeader
@@ -147,6 +148,34 @@ async def get_current_active_user(current_user: Annotated[User, Depends(get_curr
     Get Current Active User
     """
     return current_user
+
+
+def get_user_key(request: Request) -> str:
+    """
+    Sync key extractor for slowapi:
+    - Reads Authorization header
+    - Decodes JWT (sync operation)
+    - Returns user identifier (email/sub) or falls back to IP
+    """
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        # No token → fallback to IP (public/unauthenticated requests)
+        from slowapi.util import get_remote_address
+        return get_remote_address(request)
+
+    token = auth_header.split(" ", 1)[1]
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_email: Optional[str] = payload.get("sub")
+        if user_email:
+            return f"user:{user_email}"  # or just user_email — prefix avoids IP collisions
+    except JWTError:
+        pass  # Invalid token → fallback
+
+    # Fallback for invalid/missing token
+    from slowapi.util import get_remote_address
+    return get_remote_address(request)
 
 
 async def get_widget_api_key_user(request: Request, x_api_key: str | None = Header(None, alias="X-API-Key"), session: Session = Depends(get_session)):

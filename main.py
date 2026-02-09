@@ -22,7 +22,7 @@ from datetime import timedelta
 from fastapi import FastAPI, UploadFile, Depends, File, Body, HTTPException, status, Request, Security, responses, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from sqlmodel import select, Session, Field
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from pydantic import BaseModel, EmailStr, Field
@@ -43,7 +43,7 @@ import accounts.utils as account_utils
 from db import engine
 import query_data.query_source_data as query_source_data
 from authentication import oauth2_scheme, Token, authenticate_user, get_password_hash, create_access_token, \
-    get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user, get_api_key_hash, get_api_key, get_internal_api_key
+    get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, get_widget_api_key_user, get_api_key_hash, get_api_key, get_internal_api_key, get_user_key
 from dependencies import get_session
 from chat_messages.models import ChatSession, ChatMessage
 from chat_messages.utils import create_or_identify_chat_session, create_chat_message, get_session_id_by_visitor_uuid, \
@@ -66,6 +66,10 @@ import query_data.utils as query_utils
 from query_data.query_data_schema import Query
 from wordcloud import WordCloud
 import aws_s3_services as s3_services
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 
 # Initialize the S3 client
@@ -83,6 +87,8 @@ FE_BASE_URL = os.getenv('FE_BASE_URL', 'http://localhost:3000')  # Default to lo
 
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
+# app = FastAPI()
+
 app = FastAPI()
 
 # Configure CORS
@@ -94,12 +100,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+############################################
+#  Rate Limiting Middleware
+############################################
+
+limiter = Limiter(key_func=get_user_key)
+# Attach to app
+app.state.limiter = limiter
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 ############################################
 #  Authentication
 ############################################
 
 @app.get("/api/v1/root")
-async def read_root(token: Annotated[str, Depends(oauth2_scheme)]):
+@limiter.limit("15/minute")
+async def read_root(token: Annotated[str, Depends(oauth2_scheme)], request: Request):
     """
     Root Route
     """
@@ -107,8 +124,10 @@ async def read_root(token: Annotated[str, Depends(oauth2_scheme)]):
     
 
 @app.post("/api/v1/token")
+@limiter.limit("15/minute")
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-                                 session: Session = Depends(get_session)) -> Token:
+                                 session: Session = Depends(get_session),
+                                 request: Request = None) -> Token:
     """
     Login for Access Token
     """
@@ -150,10 +169,12 @@ class ForgotPasswordRequest(BaseModel):
 
 
 @app.post("/api/v1/forgot-password", status_code=status.HTTP_200_OK)
+@limiter.limit("15/minute")
 async def request_password_reset(
     request_data: ForgotPasswordRequest,
     session: Session = Depends(get_session),
-    email_service: EmailService = Depends(get_email_service)
+    email_service: EmailService = Depends(get_email_service),
+    request: Request = None
     ):
     """
     Serves the Password Reset Step 1"""
@@ -188,9 +209,11 @@ class TokenValidateRequest(BaseModel):
     token: str
 
 @app.post("/api/v1/validate-token", status_code=status.HTTP_200_OK)
+@limiter.limit("15/minute")
 async def validate_reset_token(
     request_data: TokenValidateRequest,
     session: Session = Depends(get_session),
+    request: Request = None
     ):
     """
     Serves the Password Reset Step 2"""
@@ -208,9 +231,10 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 @app.post("/api/v1/reset-password", status_code=status.HTTP_200_OK)
+@limiter.limit("15/minute")
 async def reset_password(
     request: ResetPasswordRequest,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session)
     ):
     token_record = get_reset_token(token=request.token, session=session)
 
@@ -237,9 +261,14 @@ async def reset_password(
 
 
 @app.get("/api/v1/get-docs-count/{account_unique_id}")
+@limiter.limit("250/minute")
 async def get_docs_count(account_unique_id: str,
                           current_user: Annotated[User, Depends(get_current_active_user)],
+                          request: Request,
                           session: Session = Depends(get_session)) -> dict[str, Any]:
+    '''
+    Get the count of documents uploaded by the user for their account.
+    '''
     
     docs_count = get_docs_count_for_user_account(account_unique_id, session)
 
@@ -258,9 +287,11 @@ class APIKeyCreateRequest(BaseModel):
     opt_in_required: bool
 
 @app.post("/api/v1/create-api-key/{account_unique_id}")
+@limiter.limit("250/minute")
 async def create_api_key(
                         account_unique_id: str,
                         api_key_create_request: APIKeyCreateRequest,
+                        request: Request,
                         session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Create API Key
@@ -303,7 +334,9 @@ class WidgetAPIKeyWithConfig(SQLModel):
     widget_config: Optional[WidgetConfig] = None
 
 @app.get("/api/v1/list-api-keys/{account_unique_id}")
+@limiter.limit("250/minute")
 async def list_api_keys(account_unique_id: str,
+                        request: Request,
                         current_user: Annotated[User, Depends(get_current_active_user)],
                         session: Session = Depends(get_session)) -> dict[str, List[WidgetAPIKeyWithConfig]]:
     """
@@ -341,8 +374,10 @@ async def list_api_keys(account_unique_id: str,
 
 
 @app.delete("/api/v1/delete-api-key/{account_unique_id}/{api_key_id}")
+@limiter.limit("250/minute")
 async def delete_api_key(account_unique_id: str,
                           api_key_id: str,
+                          request: Request,
                           current_user: Annotated[User, Depends(get_current_active_user)],
                           session: Session = Depends(get_session)) -> dict[str, Any]:
     """
@@ -382,9 +417,11 @@ class APIKeyUpdateRequest(BaseModel):
 
 
 @app.put("/api/v1/update-api-key/{account_unique_id}/{api_key_id}")
+@limiter.limit("250/minute")
 async def update_api_key(account_unique_id: str,
                          current_user: Annotated[User, Depends(get_current_active_user)],
                          api_key_id: str,
+                         request: Request,
                          api_key_update_request: APIKeyUpdateRequest,
                          session: Session = Depends(get_session)) -> dict[str, Any]:
     """
@@ -431,9 +468,11 @@ async def update_api_key(account_unique_id: str,
 
 
 @app.post("/api/v1/create-score-app-account/{account_unique_id}/{scoreapp_id}")
+@limiter.limit("250/minute")
 async def create_score_app_account(
                         account_unique_id: str,
                         scoreapp_id: str,
+                        request: Request,
                         current_user: Annotated[User, Depends(get_current_active_user)],
                         session: Session = Depends(get_session)) -> dict[str, Any]:
     """
@@ -449,7 +488,9 @@ async def create_score_app_account(
 
 
 @app.get("/api/v1/score-app-account/{account_unique_id}")
+@limiter.limit("250/minute")
 async def get_score_app_account(account_unique_id: str,
+                        request: Request,
                         current_user: Annotated[User, Depends(get_current_active_user)],
                         session: Session = Depends(get_session)) -> dict[str, Any]:
     """
@@ -466,10 +507,12 @@ class ScoreAppUpdate(BaseModel):
     scoreapp_id: str
 
 @app.put("/api/v1/score-app-account/{account_id}")
+@limiter.limit("250/minute")
 async def update_score_app_account(
     account_id: int,
     update_data: ScoreAppUpdate,  # Accept as JSON body
     current_user: Annotated[User, Depends(get_current_active_user)],
+    request: Request,
     session: Session = Depends(get_session)
 ) -> dict[str, Any]:
     """
@@ -487,8 +530,10 @@ async def update_score_app_account(
 
 
 @app.delete("/api/v1/score-app-account/{scoreapp_id}")
+@limiter.limit("250/minute")
 async def delete_score_app_account(scoreapp_id: str,
                           current_user: Annotated[User, Depends(get_current_active_user)],
+                          request: Request,
                           session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Delete ScoreApp Account Key
@@ -499,6 +544,7 @@ async def delete_score_app_account(scoreapp_id: str,
 
 
 @app.post("/api/v1/score-card-result")
+@limiter.limit("250/minute")
 async def add_score_card_result(request: Request, session: Session = Depends(get_session)):
     """
     Validate and create a scorecard result in the db
@@ -558,6 +604,7 @@ async def add_score_card_result(request: Request, session: Session = Depends(get
 
 
 @app.post("/api/v1/internal/scorecardresult/callback")
+@limiter.limit("250/minute")
 async def scorecardresult_callback(
     request: Request, session: Session = Depends(get_session)
 ):
@@ -588,7 +635,8 @@ async def scorecardresult_callback(
 
 
 @app.get("/api/v1/query-data/{account_unique_id}")
-async def query_data(query: str, account_unique_id: str, session: Session = Depends(get_session)) -> dict[str, Any]:
+@limiter.limit("20/minute")
+async def query_data(query: str, account_unique_id: str, request: Request, session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Query Data
     """
@@ -609,9 +657,11 @@ class WidgetQueryPayload(BaseModel):
 
 # Queries received from the web widget
 @app.post("/api/v1/widget/query")
+@limiter.limit("20/minute")
 async def process_widget_query(
     payload: WidgetQueryPayload,
     auth_info: dict = Security(get_widget_api_key_user),
+    request: Request = None,
     session: Session = Depends(get_session)
 ):
     account_unique_id = auth_info["account_unique_id"]
@@ -679,9 +729,11 @@ async def process_widget_query(
 
 # Queries received from the in-app test widget
 @app.post("/api/v1/internal/widget/query")
+@limiter.limit("20/minute")
 async def process_internal_widget_query(
     payload: WidgetQueryPayload,
     current_user: Annotated[User, Depends(get_current_active_user)],
+    request: Request,
     session: Session = Depends(get_session)
 ):
     account_unique_id = current_user["account_unique_id"]
@@ -734,9 +786,11 @@ async def process_internal_widget_query(
 
 
 @app.post("/api/v1/widget/query-agent")
+@limiter.limit("20/minute")
 async def process_widget_query_agent(
     payload: WidgetQueryPayload,
     auth_info: dict = Security(get_widget_api_key_user),
+    request: Request = None,
     session: Session = Depends(get_session)
 ):
     account_unique_id = auth_info["account_unique_id"]
@@ -908,9 +962,11 @@ async def process_widget_query_agent(
 
 # Modified endpoint to support streaming
 @app.post("/api/v1/internal/widget/agent-query")
+@limiter.limit("20/minute")
 async def process_internal_widget_query_agent(
     payload: WidgetQueryPayload,
     current_user: Annotated[User, Depends(get_current_active_user)],
+    request: Request,
     session: Session = Depends(get_session)
 ):
     account_unique_id = current_user["account_unique_id"]
@@ -1150,9 +1206,11 @@ async def process_internal_widget_query_agent(
 ############################################################################
 
 @app.get("/api/v1/generate-chroma-db/{account_unique_id}")
+@limiter.limit("20/minute")
 async def generate_chroma_db_datastore(account_unique_id: str,
                                        current_user: Annotated[User, Depends(get_current_active_user)],
                                        replace: bool = False,
+                                       request: Request = None,
                                        session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Generate Pinecone DB
@@ -1219,7 +1277,8 @@ async def generate_chroma_db_datastore(account_unique_id: str,
 
 
 @app.get("/api/v1/clear-chroma-db/{account_unique_id}")
-async def clear_chroma_db_datastore(account_unique_id: str, current_user: Annotated[User, Depends(get_current_active_user)]) -> dict[str, Any]:
+@limiter.limit("20/minute")
+async def clear_chroma_db_datastore(account_unique_id: str, request: Request, current_user: Annotated[User, Depends(get_current_active_user)]) -> dict[str, Any]:
     """
     Clear Pinecone DB
     """
@@ -1234,9 +1293,11 @@ async def clear_chroma_db_datastore(account_unique_id: str, current_user: Annota
 
 
 @app.post("/api/v1/widget/opt-in")
+@limiter.limit("20/minute")
 async def widget_opt_in(
                         payload: OptInPayload, 
                         auth_info: dict = Security(get_widget_api_key_user),
+                        request: Request = None,
                         session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Contact Us
@@ -1267,9 +1328,11 @@ async def widget_opt_in(
 
 
 @app.post("/api/v1/widget/contact-us")
+@limiter.limit("20/minute")
 async def widget_contact_us(
                         payload: ContactPayload, 
                         auth_info: dict = Security(get_widget_api_key_user),
+                        request: Request = None,
                         session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Contact Us
@@ -1393,10 +1456,12 @@ async def widget_contact_us(
 
 
 @app.post("/api/v1/create-account-prompt/{account_unique_id}")
+@limiter.limit("250/minute")
 async def create_new_account_prompt(account_unique_id: str,
                                 current_user: Annotated[User, Depends(get_current_active_user)],
                                 session: Session = Depends(get_session),
                                 prompt_key: str = Body(..., embed=True),
+                                request: Request = None,
                                 prompt_text: str = Body(..., embed=True)) -> dict[str, Any]:
     """
     Create Account Prompt
@@ -1408,8 +1473,10 @@ async def create_new_account_prompt(account_unique_id: str,
 
 
 @app.get("/api/v1/list-account-prompts/{account_unique_id}")
+@limiter.limit("250/minute")
 async def list_account_prompts(account_unique_id: str,
                         current_user: Annotated[User, Depends(get_current_active_user)],
+                        request: Request,
                         session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     List Account Prompts
@@ -1419,8 +1486,10 @@ async def list_account_prompts(account_unique_id: str,
 
 
 @app.get("/api/v1/most-recent-prompt/{account_unique_id}")
+@limiter.limit("250/minute")
 async def most_recent_account_prompt(account_unique_id: str,
                         current_user: Annotated[User, Depends(get_current_active_user)],
+                        request: Request,
                         session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Most Recent Account Prompt
@@ -1430,9 +1499,11 @@ async def most_recent_account_prompt(account_unique_id: str,
 
 
 @app.get("/api/v1/account-prompt/{account_unique_id}/{id}")
+@limiter.limit("250/minute")
 async def get_account_prompt(account_unique_id: str,
                         id: int,
                         current_user: Annotated[User, Depends(get_current_active_user)],
+                        request: Request,
                         session: Session = Depends(get_session)) -> dict[str, Any]:
     """
     Get Account Prompt by Key
@@ -1444,10 +1515,12 @@ async def get_account_prompt(account_unique_id: str,
 
 
 @app.put("/api/v1/update-account-prompt/{account_unique_id}/{id}")
+@limiter.limit("250/minute")
 async def update_account_prompt(account_unique_id: str,
                                 id: int,
                                 current_user: Annotated[User, Depends(get_current_active_user)],
                                 session: Session = Depends(get_session),
+                                request: Request = None,
                                 prompt_key: str = Body(None, embed=True),
                                 prompt_text: str = Body(None, embed=True)) -> dict[str, Any]:
     """
@@ -1473,7 +1546,9 @@ class SESEmail(BaseModel):
     account_unique_id: str = None
 
 @app.post("/api/v1/send-email")
+@limiter.limit("250/minute")
 async def send_ses_email(payload: SESEmail,
+                         request: Request,
                          email_service: EmailService = Depends(get_email_service)):
     """
     Send an email via AWS SES.
@@ -1510,9 +1585,11 @@ async def send_ses_email(payload: SESEmail,
 ############################################
 
 @app.post("/api/v1/files/{account_unique_id}/{folder_id}", status_code=202)
+@limiter.limit("250/minute")
 async def upload_files(
         account_unique_id: str,
         folder_id: int,
+        request: Request,
         current_user: Annotated[User, Depends(get_current_active_user)],
         files: list[UploadFile] = File(...),
         session: Session = Depends(get_session)
@@ -1606,7 +1683,9 @@ class FileProcessingCallback(BaseModel):
     error_message: Optional[str] = None
 
 @app.post("/api/v1/internal/files/callback", status_code=200, include_in_schema=False)
+@limiter.limit("250/minute")
 async def file_processing_callback(
+        request: Request,
         payload: FileProcessingCallback,
         session: Session = Depends(get_session),
         api_key: str = Depends(get_internal_api_key) # Secure the endpoint
@@ -1638,7 +1717,9 @@ async def file_processing_callback(
 
 
 @app.get("/api/v1/files/{account_unique_id}")
+@limiter.limit("250/minute")
 async def get_files(account_unique_id: str,
+                    request: Request,
                     current_user: Annotated[User, Depends(get_current_active_user)],
                     session: Session = Depends(get_session)):
     """
@@ -1660,7 +1741,9 @@ async def get_files(account_unique_id: str,
 
 
 @app.get("/api/v1/files/{account_unique_id}/{folder_id}")
+@limiter.limit("250/minute")
 async def get_files_in_folder(account_unique_id: str, folder_id: int,
+                              request: Request,
                               current_user: Annotated[User, Depends(get_current_active_user)],
                               session: Session = Depends(get_session)):
     """
@@ -1682,7 +1765,9 @@ async def get_files_in_folder(account_unique_id: str, folder_id: int,
 
 
 @app.get("/api/v1/files/{account_unique_id}/{file_id}")
+@limiter.limit("250/minute")
 async def get_file(account_unique_id: str, file_id: int,
+                   request: Request,
                    current_user: Annotated[User, Depends(get_current_active_user)],
                    session: Session = Depends(get_session)):
     """
@@ -1701,7 +1786,9 @@ async def get_file(account_unique_id: str, file_id: int,
 
 
 @app.put("/api/v1/files/{account_unique_id}/{file_id}", response_model=Union[SourceFile, dict])
+@limiter.limit("250/minute")
 async def update_file(file_id: int,
+                      request: Request,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       updated_file: SourceFile = Body(...),
                       session: Session = Depends(get_session)):
@@ -1721,7 +1808,9 @@ async def update_file(file_id: int,
 
 
 @app.delete("/api/v1/files/{account_unique_id}/{file_id}")
+@limiter.limit("250/minute")
 async def delete_file(account_unique_id: str, file_id: int,
+                      request: Request,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       session: Session = Depends(get_session)):
     """
@@ -1754,6 +1843,7 @@ async def delete_file(account_unique_id: str, file_id: int,
                     summary="View a specific document from S3",
                     tags=["Documents"],
                     methods=["GET", "HEAD"])
+@limiter.limit("250/minute")
 async def stream_file_from_s3(request: Request, account_unique_id: str, file_identifier: str,
                 #    current_user: Annotated[User, Depends(get_current_active_user)],
                    session: Session = Depends(get_session)):
@@ -1827,6 +1917,7 @@ class URLRequest(BaseModel):
     url: str
     
 @app.post("/api/v1/get-text-from-url/{account_unique_id}/{folder_id}")
+@limiter.limit("250/minute")
 async def get_text_from_url(request: URLRequest, account_unique_id: str, folder_id: int,
                             current_user: Annotated[User, Depends(get_current_active_user)],
                             session: Session = Depends(get_session)):
@@ -1851,7 +1942,9 @@ async def get_text_from_url(request: URLRequest, account_unique_id: str, folder_
 
 
 @app.get("/api/v1/folders/{account_unique_id}")
+@limiter.limit("250/minute")
 async def get_folders(account_unique_id: str,
+                      request: Request,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       session: Session = Depends(get_session)):
     """
@@ -1874,10 +1967,12 @@ async def get_folders(account_unique_id: str,
 
 
 @app.get("/api/v1/folders/{account_unique_id}/{folder_id}")
+@limiter.limit("250/minute")
 async def get_folder(account_unique_id: str,
                      folder_id: int,
-                      current_user: Annotated[User, Depends(get_current_active_user)],
-                      session: Session = Depends(get_session)):
+                     request: Request,
+                     current_user: Annotated[User, Depends(get_current_active_user)],
+                     session: Session = Depends(get_session)):
     """
     Get Folders
     """
@@ -1894,7 +1989,9 @@ async def get_folder(account_unique_id: str,
 
 
 @app.post("/api/v1/folders/{account_unique_id}/{folder_name}")
+@limiter.limit("250/minute")
 async def create_folder(account_unique_id: str,
+                        request: Request,
                         folder_name: str,
                           current_user: Annotated[User, Depends(get_current_active_user)],
                         session: Session = Depends(get_session)):
@@ -1920,7 +2017,9 @@ async def create_folder(account_unique_id: str,
     
 
 @app.put("/api/v1/folders/{account_unique_id}/{folder_id}", response_model=Union[Folder, dict])
+@limiter.limit("250/minute")
 async def edit_folder(account_unique_id: str, folder_id: int, updated_folder: Folder,
+                      request: Request,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       session: Session = Depends(get_session)):
     """
@@ -1938,9 +2037,11 @@ async def edit_folder(account_unique_id: str, folder_id: int, updated_folder: Fo
 
 
 @app.delete("/api/v1/folder/{folder_id}")
+@limiter.limit("250/minute")
 async def delete_folder(folder_id: int,
-                         current_user: Annotated[User, Depends(get_current_active_user)],
-                         session: Session = Depends(get_session)):
+                        request: Request,
+                        current_user: Annotated[User, Depends(get_current_active_user)],
+                        session: Session = Depends(get_session)):
     """
     Delete Folder
     """
@@ -1958,7 +2059,9 @@ async def delete_folder(folder_id: int,
 ############################################
 
 @app.get("/api/v1/accounts")
+@limiter.limit("250/minute")
 async def get_accounts(current_user: Annotated[User, Depends(get_current_active_user)],
+                       request: Request,
                        session: Session = Depends(get_session)):
     """
     Get All Accounts
@@ -1980,7 +2083,8 @@ async def get_accounts(current_user: Annotated[User, Depends(get_current_active_
 
 
 @app.post("/api/v1/accounts/{account_organisation}")
-async def create_account(account_organisation: str, session: Session = Depends(get_session)):
+@limiter.limit("250/minute")
+async def create_account(account_organisation: str, request: Request, session: Session = Depends(get_session)):
     """
     Create Account
     """
@@ -2000,7 +2104,9 @@ async def create_account(account_organisation: str, session: Session = Depends(g
 
 
 @app.put("/api/v1/accounts/{account_unique_id}", response_model=Union[Account, dict])
-async def edit_account(account_unique_id: str, updated_account: Account, 
+@limiter.limit("250/minute")
+async def edit_account(account_unique_id: str, updated_account: Account,
+                       request: Request,
                        current_user: Annotated[User, Depends(get_current_active_user)],
                        session: Session = Depends(get_session)):
     """
@@ -2013,7 +2119,9 @@ async def edit_account(account_unique_id: str, updated_account: Account,
 
 
 @app.delete("/api/v1/accounts/{account_unique_id}")
+@limiter.limit("250/minute")
 async def delete_account(account_unique_id: str,
+                         request: Request,
                          current_user: Annotated[User, Depends(get_current_active_user)],
                          session: Session = Depends(get_session)):
     """
@@ -2112,7 +2220,9 @@ async def delete_account(account_unique_id: str,
 
 
 @app.get("/api/v1/accounts/{account_unique_id}")
+@limiter.limit("250/minute")
 async def get_account(account_unique_id: str,
+                      request: Request,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       session: Session = Depends(get_session)):
     """
@@ -2134,7 +2244,9 @@ async def get_account(account_unique_id: str,
 ############################################
 
 @app.get("/api/v1/users")
+@limiter.limit("250/minute")
 async def get_users(current_user: Annotated[User, Depends(get_current_active_user)],
+                    request: Request,
                     session: Session = Depends(get_session)):
     """
     Get all Users
@@ -2162,7 +2274,9 @@ class UserCreatePayload(BaseModel):
 
 
 @app.post("/api/v1/users/{account_unique_id}")
-async def create_user(account_unique_id: str, 
+@limiter.limit("250/minute")
+async def create_user(account_unique_id: str,
+                      request: Request,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       payload: UserCreatePayload = Body(...),
                       session: Session = Depends(get_session)):
@@ -2183,9 +2297,11 @@ async def create_user(account_unique_id: str,
 
 
 @app.post("/api/v1/first-user/{account_unique_id}")
-async def create_first_user(account_unique_id: str, 
-                      payload: UserCreatePayload = Body(...),
-                      session: Session = Depends(get_session)):
+@limiter.limit("250/minute")
+async def create_first_user(account_unique_id: str,
+                            request: Request,
+                            payload: UserCreatePayload = Body(...),
+                            session: Session = Depends(get_session)):
     """
     Create User
     """
@@ -2206,7 +2322,9 @@ async def create_first_user(account_unique_id: str,
 
 
 @app.put("/api/v1/users/{account_unique_id}/{user_id}", response_model=Union[User, dict])
+@limiter.limit("250/minute")
 async def edit_user(account_unique_id: str, user_id: int, updated_user: User,
+                    request: Request,
                     current_user: Annotated[User, Depends(get_current_active_user)],
                     session: Session = Depends(get_session)):
     """
@@ -2224,7 +2342,9 @@ async def edit_user(account_unique_id: str, user_id: int, updated_user: User,
 
 
 @app.delete("/api/v1/users/{account_unique_id}/{user_id}")
+@limiter.limit("250/minute")
 async def delete_user(account_unique_id: str, user_id: int,
+                      request: Request,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       session: Session = Depends(get_session)):
     """
@@ -2240,7 +2360,9 @@ async def delete_user(account_unique_id: str, user_id: int,
 
 
 @app.get("/api/v1/users/{account_unique_id}/{user_id}")
+@limiter.limit("250/minute")
 async def get_user(account_unique_id: str, user_id: int,
+                   request: Request,
                    current_user: Annotated[User, Depends(get_current_active_user)],
                    session: Session = Depends(get_session)):
     """
@@ -2272,11 +2394,13 @@ class ChatMessagePayload(BaseModel):
 
 
 @app.post("/api/v1/widget/messages")
+@limiter.limit("250/minute")
 async def process_widget_message(
-                                    payload: ChatMessagePayload,
-                                    auth_info: dict = Security(get_widget_api_key_user),
-                                    session: Session = Depends(get_session)
-                                    ):
+                            payload: ChatMessagePayload,
+                            request: Request,
+                            auth_info: dict = Security(get_widget_api_key_user),
+                            session: Session = Depends(get_session)
+                            ):
     account_unique_id = auth_info["account_unique_id"]
     print(f"Received chat message from widget for account {account_unique_id}: {payload.message_text}")
     # Validate the chat message here
@@ -2305,8 +2429,10 @@ async def process_widget_message(
 
 
 @app.post("/api/v1/internal/widget/messages")
+@limiter.limit("250/minute")
 async def process_internal_widget_message(
                                     payload: ChatMessagePayload,
+                                    request: Request,
                                     current_user: Annotated[User, Depends(get_current_active_user)],
                                     session: Session = Depends(get_session)
                                     ):
@@ -2338,7 +2464,9 @@ async def process_internal_widget_message(
 
 
 @app.get("/api/v1/chat-sessions/{account_unique_id}")
+@limiter.limit("250/minute")
 async def get_chat_sessions(account_unique_id: str,
+                            request: Request,
                             current_user: Annotated[User, Depends(get_current_active_user)],
                             session: Session = Depends(get_session)):
     """
@@ -2361,7 +2489,9 @@ async def get_chat_sessions(account_unique_id: str,
 
 
 @app.get("/api/v1/chat-sessions/{account_unique_id}/{session_id}")
+@limiter.limit("250/minute")
 async def get_chat_session(account_unique_id: str, session_id: int,
+                           request: Request,
                            current_user: Annotated[User, Depends(get_current_active_user)],
                            session: Session = Depends(get_session)):
     """
@@ -2380,7 +2510,9 @@ async def get_chat_session(account_unique_id: str, session_id: int,
 
 
 @app.get("/api/v1/chat-messages/{account_unique_id}/{session_id}")
+@limiter.limit("250/minute")
 async def get_chat_messages(account_unique_id: str, session_id: int,
+                            request: Request,
                             current_user: Annotated[User, Depends(get_current_active_user)],
                             session: Session = Depends(get_session)):
     """
@@ -2414,10 +2546,12 @@ class SubscriptionCreate(BaseModel):
 
 
 @app.post("/api/v1/stripe-subscriptions/{account_unique_id}")
+@limiter.limit("250/minute")
 async def create_stripe_subscription(account_unique_id: str,
-                               subscription_data: SubscriptionCreate,
-                               current_user: Annotated[User, Depends(get_current_active_user)],
-                               session: Session = Depends(get_session)):
+                                    request: Request,
+                                    subscription_data: SubscriptionCreate,
+                                    current_user: Annotated[User, Depends(get_current_active_user)],
+                                    session: Session = Depends(get_session)):
     """
     Create a New Subscription
     """
@@ -2433,7 +2567,9 @@ async def create_stripe_subscription(account_unique_id: str,
 
 
 @app.get("/api/v1/stripe-subscriptions/{account_unique_id}")
+@limiter.limit("250/minute")
 async def get_stripe_subscriptions(account_unique_id: str,
+                                   request: Request,
                                    current_user: Annotated[User, Depends(get_current_active_user)],
                                    session: Session = Depends(get_session)):
     """
@@ -2455,7 +2591,9 @@ async def get_stripe_subscriptions(account_unique_id: str,
 
 
 @app.get("/api/v1/stripe-subscriptions-id/{account_unique_id}/{subscription_id}")
+@limiter.limit("250/minute")
 async def get_stripe_subscription_by_id(account_unique_id: str, subscription_id: int,
+                                      request: Request,
                                    current_user: Annotated[User, Depends(get_current_active_user)],
                                    session: Session = Depends(get_session)):
     """
@@ -2475,7 +2613,9 @@ async def get_stripe_subscription_by_id(account_unique_id: str, subscription_id:
 
 
 @app.get("/api/v1/stripe-subscriptions-ref/{account_unique_id}/{stripe_subscription_id}")
+@limiter.limit("250/minute")
 async def get_stripe_subscription_by_ref(account_unique_id: str, stripe_subscription_id: str,
+                                        request: Request,
                                    current_user: Annotated[User, Depends(get_current_active_user)],
                                    session: Session = Depends(get_session)):
     """
@@ -2503,7 +2643,9 @@ class SubscriptionUpdate(BaseModel):
 
 # The updated endpoint
 @app.put("/api/v1/stripe-subscriptions/{account_unique_id}/{subscription_id}", response_model=StripeSubscription)
+@limiter.limit("250/minute")
 async def update_stripe_subscription(account_unique_id: str, subscription_id: int,
+                                        request: Request,
                                       subscription_update_data: SubscriptionUpdate, # Renamed for clarity
                                       current_user: Annotated[User, Depends(get_current_active_user)],
                                       session: Session = Depends(get_session)):
@@ -2532,7 +2674,9 @@ async def update_stripe_subscription(account_unique_id: str, subscription_id: in
 
 
 @app.get("/api/v1/products")
+@limiter.limit("250/minute")
 async def get_products(current_user: Annotated[User, Depends(get_current_active_user)],
+                        request: Request,
                        session: Session = Depends(get_session)):
     """
     Get All Products
@@ -2554,7 +2698,8 @@ async def get_products(current_user: Annotated[User, Depends(get_current_active_
 
 
 @app.get("/api/v1/checkout/{price_id}/{account_unique_id}")
-async def create_checkout_session(price_id: str, account_unique_id: str,):
+@limiter.limit("250/minute")
+async def create_checkout_session(price_id: str, request: Request, account_unique_id: str):
     """
     Create Stripe Checkout Session
     """
@@ -2579,6 +2724,7 @@ async def create_checkout_session(price_id: str, account_unique_id: str,):
 
 
 @app.post("/api/v1/webhook/")
+@limiter.limit("250/minute")
 async def stripe_webhook(request: Request, session: Session = Depends(get_session)):
     payload = await request.body()
     event = None
@@ -2632,7 +2778,9 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
 
 
 @app.post("/api/v1/cancel-stripe-sub/{account_unique_id}/{subscription_id}")
+@limiter.limit("250/minute")
 async def cancel_stripe_subscription(account_unique_id: str, subscription_id: str,
+                                     request: Request,
                                      current_user: Annotated[User, Depends(get_current_active_user)],
                                      session: Session = Depends(get_session)):
     """
@@ -2655,7 +2803,9 @@ async def cancel_stripe_subscription(account_unique_id: str, subscription_id: st
 
 
 @app.get("/api/v1/get-dashboard-data/{account_unique_id}")
+@limiter.limit("250/minute")
 async def get_dashboard_data(account_unique_id: str,
+                            request: Request,
                           current_user: Annotated[User, Depends(get_current_active_user)],
                           session: Session = Depends(get_session)) -> dict[str, Any]:
     
@@ -2680,7 +2830,9 @@ async def get_dashboard_data(account_unique_id: str,
 ############################################
 
 @app.get("/api/v1/user-products/{account_unique_id}")
+@limiter.limit("250/minute")
 async def get_user_products(account_unique_id: str,
+                            request: Request,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       session: Session = Depends(get_session)):
     """
@@ -2697,7 +2849,9 @@ async def get_user_products(account_unique_id: str,
     
 
 @app.get("/api/v1/active-user-products/{account_unique_id}")
+@limiter.limit("250/minute")
 async def get_active_user_products(account_unique_id: str,
+                            request: Request,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       session: Session = Depends(get_session)):
     """
@@ -2714,8 +2868,10 @@ async def get_active_user_products(account_unique_id: str,
 
 
 @app.get("/api/v1/user-products/{account_unique_id}/{product_id}")
+@limiter.limit("250/minute")
 async def get_user_product(account_unique_id: str,
                      product_id: int,
+                     request: Request,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       session: Session = Depends(get_session)):
     """
@@ -2740,8 +2896,10 @@ class UserProduct(BaseModel):
 
 
 @app.post("/api/v1/user-products/{account_unique_id}")
+@limiter.limit("250/minute")
 async def create_user_product(account_unique_id: str,
                         payload: UserProduct,
+                        request: Request,
                         current_user: Annotated[User, Depends(get_current_active_user)],
                         session: Session = Depends(get_session)):
     """
@@ -2764,7 +2922,9 @@ async def create_user_product(account_unique_id: str,
     
 
 @app.put("/api/v1/user-products/{account_unique_id}/{product_id}")
+@limiter.limit("250/minute")
 async def edit_user_product(account_unique_id: str, product_id: int, payload: UserProduct,
+                            request: Request,
                       current_user: Annotated[User, Depends(get_current_active_user)],
                       session: Session = Depends(get_session)):
     """
@@ -2782,9 +2942,11 @@ async def edit_user_product(account_unique_id: str, product_id: int, payload: Us
 
 
 @app.delete("/api/v1/user-products/{account_unique_id}/{product_id}")
+@limiter.limit("250/minute")
 async def delete_user_product(
                         product_id: int,
                         account_unique_id: str,
+                        request: Request,
                         current_user: Annotated[User, Depends(get_current_active_user)],
                         session: Session = Depends(get_session)):
     """
@@ -2804,6 +2966,7 @@ async def delete_user_product(
 ############################################
 
 @app.post("/api/v1/mailerlite/webhook/")
+@limiter.limit("250/minute")
 async def receiving_webhook(request: Request, session: Session = Depends(get_session)):
     """
     Webhooks received into our expertecho account - Internal use only
@@ -2904,7 +3067,9 @@ async def receiving_webhook(request: Request, session: Session = Depends(get_ses
 ############################################
 
 @app.get("/api/v1/reporting/wordcloud/{account_unique_id}")
+@limiter.limit("250/minute")
 async def generate_wordcloud(account_unique_id: str,
+                                request: Request,
                              current_user: Annotated[User, Depends(get_current_active_user)],
                              session: Session = Depends(get_session)) -> dict[str, Any]:
     """
