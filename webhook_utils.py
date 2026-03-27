@@ -57,7 +57,7 @@ async def send_webhook_notification(webhook_url: str, contact_us_secret_key: str
     """
     Sends a structured payload to a specified webhook URL.
     """
-    print('send_webhook_notification')
+    print('send_webhook_notification:', contact_us_secret_key)
     if not webhook_url:
         return
 
@@ -93,6 +93,7 @@ async def send_opt_in_webhook_notification( opt_in_webhook_url: str, opt_in_webh
     """
     Send the opt-in details to the webhook endpoint
     """
+    print('opt-in webhook secret key: ', opt_in_webhook_secret_key)
     if not opt_in_webhook_url:
         return
     
