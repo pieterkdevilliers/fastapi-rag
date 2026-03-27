@@ -251,6 +251,28 @@ def get_opt_in_webhook_url(account_unique_id: str, session: Session):
     return webhook_url
 
 
+def get_opt_in_webhook_secret_key(account_unique_id: str, session: Session):
+    """
+    Get the account's opt_in_webhook_secret_key
+    """
+    statement = select(Account).filter(Account.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    secret_key = result.first().opt_in_webhook_secret_key
+
+    return secret_key
+
+
+def get_contact_us_secret_key(account_unique_id: str, session: Session):
+    """
+    Get the account's contact_us_secret_key
+    """
+    statement = select(Account).filter(Account.account_unique_id == account_unique_id)
+    result = session.exec(statement)
+    secret_key = result.first().contact_us_secret_key
+
+    return secret_key
+
+
 def create_account_prompt(account_unique_id: str, prompt_key: str, prompt_text: str, session: Session):
     """
     Save New Account Prompt to DB

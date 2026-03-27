@@ -40,7 +40,9 @@ class Account(AccountBase, table=True):
     chunk_size: int = Field(default=450, nullable=True)
     chunk_overlap: int = Field(default=75, nullable=True)
     webhook_url: str = Field(default=None, nullable=True)
+    contact_us_secret_key: str = Field(default=None, nullable=True)
     opt_in_webhook_url: str = Field(default=None, nullable=True)
+    opt_in_webhook_secret_key: str = Field(default=None, nullable=True)
 
 
 class UserBase(SQLModel):

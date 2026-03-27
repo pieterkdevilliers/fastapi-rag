@@ -8,7 +8,7 @@ from chat_messages.utils import get_chat_messages_by_session_id
 from core.models import ContactPayload, WebhookData, WebhookChatMessage, OptInPayload
 
 
-async def send_chat_messages_webhook_notification(account_unique_id: str, chat_session_id: int, payload: ContactPayload, webhook_url: str, session: Session):
+async def send_chat_messages_webhook_notification(account_unique_id: str, chat_session_id: int, payload: ContactPayload, webhook_url: str, contact_us_secret_key: str, session: Session):
     """
     Start webhook notification process
     """
@@ -17,10 +17,11 @@ async def send_chat_messages_webhook_notification(account_unique_id: str, chat_s
                                     chat_session_id=chat_session_id,
                                     payload=payload,
                                     webhook_url=webhook_url,
+                                    contact_us_secret_key=contact_us_secret_key,
                                     session=session)
 
 
-async def construct_chat_messages_webhook(account_unique_id: str, chat_session_id: int, payload: ContactPayload, webhook_url: str, session: Session):
+async def construct_chat_messages_webhook(account_unique_id: str, chat_session_id: int, payload: ContactPayload, webhook_url: str, contact_us_secret_key: str, session: Session):
     """
     Fetches the session messages and builds json for webhook
     """
@@ -47,12 +48,12 @@ async def construct_chat_messages_webhook(account_unique_id: str, chat_session_i
     print('webhook_transcript: ', webhook_transcript)
     print('webhook_payload: ', webhook_payload)
 
-    await send_webhook_notification(webhook_url, webhook_payload)
+    await send_webhook_notification(webhook_url, contact_us_secret_key, webhook_payload)
 
     return {"message": "Notification sent", "account_unique_id": account_unique_id}
 
 
-async def send_webhook_notification(webhook_url: str, payload: WebhookData):
+async def send_webhook_notification(webhook_url: str, contact_us_secret_key: str, payload: WebhookData):
     """
     Sends a structured payload to a specified webhook URL.
     """
@@ -71,6 +72,7 @@ async def send_webhook_notification(webhook_url: str, payload: WebhookData):
 
             response = await client.post(
                 webhook_url,
+                contact_us_secret_key=contact_us_secret_key,
                 json=payload_data,
                 headers={"Content-Type": "application/json"},
                 timeout=10.0, # Set a reasonable timeout
@@ -88,7 +90,7 @@ async def send_webhook_notification(webhook_url: str, payload: WebhookData):
             print(f"ERROR: An unexpected error occurred during webhook sending. Error: {e}")
 
 
-async def send_opt_in_webhook_notification( opt_in_webhook_url: str, payload: OptInPayload):
+async def send_opt_in_webhook_notification( opt_in_webhook_url: str, opt_in_webhook_secret_key: str, payload: OptInPayload):
     """
     Send the opt-in details to the webhook endpoint
     """
@@ -101,6 +103,7 @@ async def send_opt_in_webhook_notification( opt_in_webhook_url: str, payload: Op
 
             response = await client.post(
                 opt_in_webhook_url,
+                opt_in_webhook_secret_key,
                 json=payload_data,
                 headers={"Content-Type": "application/json"},
                 timeout=10.0, # Set a reasonable timeout
