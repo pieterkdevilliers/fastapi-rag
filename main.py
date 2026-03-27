@@ -2116,7 +2116,7 @@ async def edit_account(account_unique_id: str, updated_account: Account,
     """
     Edit Account
     """
-
+    print('****************updated_account:', updated_account)
     account = update_account_in_db(account_unique_id, updated_account, session)
     
     return account
