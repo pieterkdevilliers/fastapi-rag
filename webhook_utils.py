@@ -72,9 +72,8 @@ async def send_webhook_notification(webhook_url: str, contact_us_secret_key: str
 
             response = await client.post(
                 webhook_url,
-                contact_us_secret_key=contact_us_secret_key,
                 json=payload_data,
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", "X-Webhook-Secret": contact_us_secret_key},
                 timeout=10.0, # Set a reasonable timeout
             )
             
@@ -103,9 +102,8 @@ async def send_opt_in_webhook_notification( opt_in_webhook_url: str, opt_in_webh
 
             response = await client.post(
                 opt_in_webhook_url,
-                opt_in_webhook_secret_key,
                 json=payload_data,
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", "X-Webhook-Secret": opt_in_webhook_secret_key},
                 timeout=10.0, # Set a reasonable timeout
             )
 
