@@ -94,6 +94,7 @@ async def send_opt_in_webhook_notification( opt_in_webhook_url: str, opt_in_webh
     Send the opt-in details to the webhook endpoint
     """
     print('opt-in webhook secret key: ', opt_in_webhook_secret_key)
+    print('payload: ', payload)
     if not opt_in_webhook_url:
         return
     
@@ -107,7 +108,7 @@ async def send_opt_in_webhook_notification( opt_in_webhook_url: str, opt_in_webh
                 headers={"Content-Type": "application/json", "X-Webhook-Secret": opt_in_webhook_secret_key},
                 timeout=10.0, # Set a reasonable timeout
             )
-
+            print('headers: ', response.request.headers)
             response.raise_for_status() 
             print(f"Webhook sent successfully to {opt_in_webhook_url}. Status: {response.status_code}")
 
